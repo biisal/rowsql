@@ -1,0 +1,23 @@
+# Air configuration
+root = "."
+temp_dir = "./tmp"
+[build]
+  cmd = "go build -o ./tmp/main ./cmd/server"
+  bin = "./tmp/main"
+  include_ext = ["go", "tpl", "tmpl", "html"]
+exclude_dir = [
+    "tmp",
+    "sqlc",
+    "migrations",
+    "node_modules",
+    "frontend",
+    "react-frontend/node_modules",
+    "react-frontend/src",
+    "react-frontend/src/components/",
+    "react-frontend/src/pages/",
+  ]
+  delay = 100
+
+[log]
+  color = true
+  time = true

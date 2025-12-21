@@ -1,0 +1,37 @@
+export interface Table {
+  tableName: string;
+  tableSchema: string;
+}
+
+export interface FormInputType {
+  type: string;
+  hasSize: boolean;
+  size?: number;
+  hasBool?: boolean;
+}
+
+export interface Input {
+  dataType: FormInputType;
+  colName: string;
+  isNull: boolean;
+  isPk: boolean;
+  isUnique: boolean;
+}
+
+export interface Form {
+  selectedDataType: FormInputType;
+  dataTypes: FormInputType[];
+  tableName: string;
+  inputs: Input[];
+}
+
+export interface DbDataTypes {
+  numericType: FormInputType[];
+  stringType: FormInputType[];
+}
+
+export interface ErrorResponse {
+  error: string;
+  success: boolean;
+  status: number;
+}
