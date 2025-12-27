@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -20,11 +20,12 @@ import (
 
 func mount(cfg *configs.Config) error {
 	ctx := context.Background()
-	logger.SetupSlog(slog.LevelDebug)
+	logger.SetupSlog(slog.LevelError)
 	driver, err := utils.DetectDriver(cfg.DBSTRING)
 	if err != nil {
 		return err
 	}
+	fmt.Println("Driver detected", driver)
 	slog.Info("Database driver detected", "driver", driver)
 	cfg.Driver = driver
 	dbConn, err := sqlx.ConnectContext(ctx, driver, cfg.DBSTRING)
@@ -52,7 +53,7 @@ func mount(cfg *configs.Config) error {
 		Handler: corsMux,
 	}
 	slog.Info("Running server on port", "port", cfg.Server.Port)
-	log.Println("Running server on port", "port", cfg.Server.Port)
+	fmt.Println("Running server on port", "port", cfg.Server.Port)
 	if err := server.ListenAndServe(); err != nil {
 		return err
 	}

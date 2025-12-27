@@ -22,10 +22,16 @@ interface Table {
 
 interface SidebarProps extends React.ComponentProps<typeof ShadcnSidebar> {
   tables: Table[];
-  loading: boolean;
+  refreshing: boolean;
+  isAppending: boolean;
 }
 
-export function Sidebar({ tables, loading, ...props }: SidebarProps) {
+export function Sidebar({
+  tables,
+  refreshing: loading,
+  isAppending,
+  ...props
+}: SidebarProps) {
   const location = useLocation();
 
   const isActiveTable = (tableName: string) => {
@@ -57,8 +63,9 @@ export function Sidebar({ tables, loading, ...props }: SidebarProps) {
           <SidebarGroupLabel>Tables</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              {isAppending && <SkeletonTables count={1} />}
               {loading ? (
-                <SkeletonTables />
+                <SkeletonTables count={3} />
               ) : (
                 Array.isArray(tables) &&
                 tables.map((table) => (
@@ -107,8 +114,8 @@ export function Sidebar({ tables, loading, ...props }: SidebarProps) {
   );
 }
 
-function SkeletonTables() {
-  return new Array(3).fill(null).map((_, index) => (
+function SkeletonTables({ count }: { count: number }) {
+  return new Array(count).fill(null).map((_, index) => (
     <SidebarMenuItem key={index}>
       <SidebarMenuButton asChild>
         <div>

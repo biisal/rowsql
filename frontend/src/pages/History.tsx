@@ -1,12 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import {
-  Clock,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-  Database,
-} from "lucide-react";
+import { Clock, Loader2, ChevronLeft, Database } from "lucide-react";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { AppPagination } from "@/components/app-pagination";
 
 interface HistoryItem {
   id: number;
@@ -189,10 +184,10 @@ export function History() {
               <div className="text-center py-12">
                 <Database className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
                 <p className="text-muted-foreground">
-                  No history records found
+                  No history records found on this page
                 </p>
                 <p className="text-sm text-muted-foreground/70 mt-1">
-                  Database operations will appear here
+                  Try navigating to a different page
                 </p>
               </div>
             ) : (
@@ -227,33 +222,14 @@ export function History() {
           </CardContent>
         </Card>
 
-        {history.length > 0 && (
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              Showing page {currentPage}
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={history.length === 0}
-              >
-                Next
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
-          </div>
-        )}
+        <div className="flex items-center justify-end">
+          <AppPagination
+            currentPage={currentPage}
+            onPageChange={handlePageChange}
+            hasNextPage={history.length > 0}
+            hasPreviousPage={currentPage > 1}
+          />
+        </div>
       </div>
     </div>
   );

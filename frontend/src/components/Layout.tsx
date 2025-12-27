@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link, Outlet } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import {
   SidebarProvider,
   SidebarTrigger,
@@ -17,7 +17,8 @@ import { Toaster } from "sonner";
 import useTableStore from "@/lib/store/use-table";
 
 export function Layout() {
-  const { tables, refreshTables, tablesRefreshing: loading } = useTableStore();
+  const { tables, refreshTables, tablesRefreshing, tableAppending } =
+    useTableStore();
 
   useEffect(() => {
     refreshTables();
@@ -25,7 +26,11 @@ export function Layout() {
 
   return (
     <SidebarProvider>
-      <Sidebar loading={loading} tables={tables} />
+      <Sidebar
+        refreshing={tablesRefreshing}
+        isAppending={tableAppending}
+        tables={tables}
+      />
       <SidebarInset className="min-w-0 overflow-hidden">
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
@@ -33,7 +38,7 @@ export function Layout() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <Link to={"/"}>RowSQL</Link>
+                <BreadcrumbPage>RowSQL</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>

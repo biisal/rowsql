@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { AppPagination } from "@/components/app-pagination";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -290,29 +291,19 @@ export function TableRows() {
                 )}
               </div>
             </div>
-            <div className="flex items-center justify-end space-x-2 py-4">
+            <div className="flex items-center justify-between py-4">
               <div className="text-muted-foreground flex-1 text-sm">
                 {Object.values(selectedRows).filter(Boolean).length} of{" "}
                 {data.Rows.length} row(s) selected.
               </div>
-              <div className="space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSearchParams({ page: String(page - 1) })}
-                  disabled={page <= 1}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSearchParams({ page: String(page + 1) })}
-                  disabled={!data.Rows || data.Rows.length === 0}
-                >
-                  Next
-                </Button>
-              </div>
+              <AppPagination
+                currentPage={page}
+                onPageChange={(newPage) =>
+                  setSearchParams({ page: String(newPage) })
+                }
+                hasNextPage={data.Rows.length > 0}
+                hasPreviousPage={page > 1}
+              />
             </div>
           </CardContent>
         </Card>

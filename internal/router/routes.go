@@ -15,10 +15,7 @@ func route(method methodType, path string) string {
 func MountRouter(handler DbHandler) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
 
-	mux.Handle("/admin/", frontend.ReactHandler("/admin"))
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/admin/", http.StatusFound)
-	})
+	mux.Handle("/", frontend.ReactHandler("/"))
 
 	mux.HandleFunc(route(GET, "/tables"), handler.ListTables)
 	mux.HandleFunc(route(GET, "/table/{tableName}"), handler.TableRows)
@@ -31,7 +28,7 @@ func MountRouter(handler DbHandler) (*http.ServeMux, error) {
 	mux.HandleFunc(route(GET, "/history"), handler.ListHistory)
 	mux.HandleFunc(route(GET, "/history/recent"), handler.ListRecentHistory)
 
-	fs := http.FileServer(http.Dir("frontend/static"))
-	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
+	// fs := http.FileServer(http.Dir("frontend/static"))
+	// mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
 	return mux, nil
 }

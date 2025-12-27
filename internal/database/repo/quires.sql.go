@@ -70,7 +70,7 @@ func (q *Queries) ListTables(ctx context.Context) ([]ListTablesRow, error) {
 		if i.TableName == historyTableName {
 			continue
 		}
-		items = append(items, i)
+		items = append([]ListTablesRow{i}, items...)
 	}
 	if err := rows.Err(); err != nil {
 		slog.Error("failed to scan rows", "err", err)

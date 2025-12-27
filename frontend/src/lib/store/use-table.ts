@@ -6,10 +6,11 @@ import axios, { AxiosError } from "axios";
 
 interface TablesStore {
   tables: Table[];
-  refreshTables: () => Promise<void>;
+  refreshTables: (isAppending?: boolean) => Promise<void>;
   tablesRefreshing: boolean;
   tableDeleting: boolean;
   tableCreating: boolean;
+  tableAppending: boolean;
   deleteTable: (
     tableName: string,
     verificationQuery: string,
@@ -22,6 +23,7 @@ const useTableStore = create<TablesStore>((set, get) => ({
   tablesRefreshing: false,
   tableDeleting: false,
   tableCreating: false,
+  tableAppending: false,
 
   deleteTable: async (tableName: string, verificationQuery: string) => {
     set({ tableDeleting: true });
@@ -62,7 +64,7 @@ const useTableStore = create<TablesStore>((set, get) => ({
       const res = await api.post("/table/form/new", { tableName, inputs });
       if (res.status === 201) {
         toast.success("Table created successfully");
-        get().refreshTables();
+        get().refreshTables(true);
         return true;
       }
       toast.error("Failed to create table!Something went really wrong");
@@ -84,8 +86,12 @@ const useTableStore = create<TablesStore>((set, get) => ({
     }
     return false;
   },
-  refreshTables: async () => {
-    set({ tablesRefreshing: true });
+  refreshTables: async (isAppending) => {
+    if (isAppending) {
+      set({ tableAppending: true });
+    } else {
+      set({ tablesRefreshing: true });
+    }
     try {
       const response = await api.get("/tables");
       if (response.data.success && Array.isArray(response.data.data)) {
@@ -98,7 +104,7 @@ const useTableStore = create<TablesStore>((set, get) => ({
       console.error("Failed to fetch tables:", error);
       set({ tables: [] });
     } finally {
-      set({ tablesRefreshing: false });
+      set({ tablesRefreshing: false, tableAppending: false });
     }
   },
 }));
