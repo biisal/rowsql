@@ -1,84 +1,104 @@
-import TableFromInput from "@/components/table-form-input";
-import { Button } from "@/components/ui/button";
+import TableFromInput from '@/components/table-form-input';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import api from "@/lib/axios";
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import api from '@/lib/axios';
 import type {
   DbDataTypes,
+  ErrorResponse,
   Form as FormType,
   Input as InputType,
-} from "@/lib/types";
-import { useEffect, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
-import useTableStore from "@/lib/store/use-table";
-import { useNavigate } from "react-router-dom";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+} from '@/lib/types';
+import { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import { createTable } from '@/lib/store/use-table';
+import { useNavigate } from 'react-router-dom';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import {
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field";
-
+} from '@/components/ui/field';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { AxiosError } from 'axios';
 const formSchema = z.object({
-  tableName: z.string().min(1, "Table name is required"),
+  tableName: z.string().min(1, 'Table name is required'),
   inputs: z
     .array(
       z.object({
-        colName: z.string().min(1, "Column name is required"),
+        colName: z.string().min(1, 'Column name is required'),
         isNull: z.boolean(),
         isPk: z.boolean(),
         isUnique: z.boolean(),
         dataType: z.object({
-          type: z.string().min(1, "Data type is required"),
+          type: z.string().min(1, 'Data type is required'),
           size: z.number().optional(),
           hasSize: z.boolean(),
           hasBool: z.boolean().optional(),
+          autoIncrement: z.boolean().optional(),
         }),
       }),
     )
-    .min(1, "At least one column is required"),
+    .min(1, 'At least one column is required'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 export const TabelForm = () => {
-  const { createTable } = useTableStore();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
+
+  const createTableMutation = useMutation({
+    mutationFn: createTable,
+    onSuccess: (_, variable) => {
+      const tableName = variable.tableName;
+      toast.success('Table created successfully');
+      queryClient.invalidateQueries({ queryKey: ['tables'] });
+      navigate(`/table/${tableName}`);
+    },
+    onError: (err: AxiosError<ErrorResponse>) => {
+      toast.error(
+        err.response?.data?.error || err.message || 'Something went wrong',
+      );
+    },
+  });
+
+  // const { createTable } = useTableStore();
   const [formData, setFormData] = useState<FormType>({
     inputs: [],
     dataTypes: [],
     selectedDataType: {
-      type: "VARCHAR",
+      type: 'VARCHAR',
       size: 255,
       hasSize: true,
     },
-    tableName: "",
+    tableName: '',
   });
   const [mount, setMount] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      tableName: "",
+      tableName: '',
       inputs: [],
     },
-    mode: "onChange",
-    reValidateMode: "onChange",
+    mode: 'onChange',
+    reValidateMode: 'onChange',
   });
 
   function addCol() {
-    const currentInputs = form.getValues("inputs");
+    const currentInputs = form.getValues('inputs');
     const newInput: InputType = {
-      colName: "",
+      colName: '',
       isNull: false,
       isPk: false,
       isUnique: false,
@@ -86,7 +106,7 @@ export const TabelForm = () => {
     };
 
     const newInputs = [...currentInputs, newInput];
-    form.setValue("inputs", newInputs, {
+    form.setValue('inputs', newInputs, {
       shouldValidate: true,
       shouldDirty: true,
       shouldTouch: true,
@@ -100,14 +120,14 @@ export const TabelForm = () => {
   }
 
   function removeCol(index: number) {
-    const currentInputs = form.getValues("inputs");
+    const currentInputs = form.getValues('inputs');
     if (currentInputs.length <= 1) {
-      toast.error("At least one column is required");
+      toast.error('At least one column is required');
       return;
     }
 
     const newInputs = currentInputs.filter((_, idx) => idx !== index);
-    form.setValue("inputs", newInputs, { shouldValidate: true });
+    form.setValue('inputs', newInputs, { shouldValidate: true });
 
     const updatedFormData = { ...formData };
     updatedFormData.inputs = updatedFormData.inputs.filter(
@@ -119,20 +139,20 @@ export const TabelForm = () => {
   useEffect(() => {
     async function fetchFormDataTypes() {
       try {
-        const res = await api.get("/table/form/new");
+        const res = await api.get('/table/form/new');
         if (res.status === 200) {
           const data: { data: DbDataTypes } = res.data;
           const types = [...data.data.numericType, ...data.data.stringType];
           if (types.length === 0) {
-            toast.error("No data types found");
+            toast.error('No data types found');
             return;
           }
           const newForm: FormType = {
-            tableName: "",
+            tableName: '',
             dataTypes: types,
             inputs: [
               {
-                colName: "",
+                colName: '',
                 isNull: false,
                 isPk: false,
                 isUnique: false,
@@ -153,7 +173,7 @@ export const TabelForm = () => {
         }
       } catch (error) {
         console.error(error);
-        toast.error("Failed to fetch data types");
+        toast.error('Failed to fetch data types');
       } finally {
         setMount(true);
       }
@@ -163,34 +183,16 @@ export const TabelForm = () => {
   }, []);
 
   async function onSubmit(values: FormValues) {
-    console.log("=== FORM SUBMISSION STARTED ===");
-    console.log("Form submitted with values:", values);
-    console.log("Form state:", form.formState);
-
     const emptyColumns = values.inputs.filter((input) => !input.colName.trim());
     if (emptyColumns.length > 0) {
-      console.log("Empty columns found:", emptyColumns);
-      toast.error("Please fill in all column names");
+      console.log('Empty columns found:', emptyColumns);
+      toast.error('Please fill in all column names');
       return;
     }
-
-    console.log("Validation passed, calling createTable...");
-    try {
-      const result = await createTable(values.tableName, values.inputs);
-      console.log("createTable result:", result);
-
-      if (result) {
-        toast.success(`Table "${values.tableName}" created successfully`);
-        console.log("Navigating to table:", values.tableName);
-        navigate(`/table/${values.tableName}`);
-      } else {
-        console.log("createTable returned false");
-        toast.error("Failed to create table");
-      }
-    } catch (error) {
-      console.error("Error creating table:", error);
-      toast.error("Failed to create table");
-    }
+    await createTableMutation.mutateAsync({
+      tableName: values.tableName,
+      inputs: values.inputs,
+    });
   }
 
   if (!mount) {
@@ -254,26 +256,28 @@ export const TabelForm = () => {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={form.formState.isSubmitting}
+                  disabled={
+                    createTableMutation.isPending || !form.formState.isValid
+                  }
                   onClick={() => {
-                    console.log("=== SUBMIT BUTTON CLICKED ===");
-                    console.log("Form values:", form.getValues());
-                    console.log("Form errors:", form.formState.errors);
-                    console.log("Is valid:", form.formState.isValid);
+                    console.log('=== SUBMIT BUTTON CLICKED ===');
+                    console.log('Form values:', form.getValues());
+                    console.log('Form errors:', form.formState.errors);
+                    console.log('Is valid:', form.formState.isValid);
                   }}
                 >
-                  {form.formState.isSubmitting ? "Creating..." : "Create Table"}
+                  {form.formState.isSubmitting ? 'Creating...' : 'Create Table'}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => {
-                    console.log("=== DEBUG INFO ===");
-                    console.log("Form values:", form.getValues());
-                    console.log("Form errors:", form.formState.errors);
-                    console.log("Is valid:", form.formState.isValid);
-                    console.log("Is submitting:", form.formState.isSubmitting);
-                    console.log("Local formData:", formData);
+                    console.log('=== DEBUG INFO ===');
+                    console.log('Form values:', form.getValues());
+                    console.log('Form errors:', form.formState.errors);
+                    console.log('Is valid:', form.formState.isValid);
+                    console.log('Is submitting:', form.formState.isSubmitting);
+                    console.log('Local formData:', formData);
                   }}
                 >
                   Debug

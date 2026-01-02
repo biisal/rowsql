@@ -1,21 +1,21 @@
 package database
 
 var MySqlNumericDataTypes = []NumericDataType{
-	{Type: "BIT", HasSize: true, HasDigit: false},
-	{Type: "TINYINT", HasSize: true, HasDigit: false},
-	{Type: "BOOL", HasSize: false, HasDigit: false},
-	{Type: "BOOLEAN", HasSize: false, HasDigit: false},
-	{Type: "SMALLINT", HasSize: true, HasDigit: false},
-	{Type: "MEDIUMINT", HasSize: true, HasDigit: false},
-	{Type: "INT", HasSize: true, HasDigit: false},
-	{Type: "INTEGER", HasSize: true, HasDigit: false},
-	{Type: "BIGINT", HasSize: true, HasDigit: false},
-	{Type: "FLOAT", HasSize: true, HasDigit: true},            // FLOAT(size, d)
-	{Type: "FLOAT_PRECISION", HasSize: true, HasDigit: false}, // FLOAT(p)
-	{Type: "DOUBLE", HasSize: true, HasDigit: true},
-	{Type: "DOUBLE PRECISION", HasSize: true, HasDigit: true},
-	{Type: "DECIMAL", HasSize: true, HasDigit: true},
-	{Type: "DEC", HasSize: true, HasDigit: true},
+	{Type: "BIT", HasSize: true, HasDigit: false, HasAutoIncrement: false},
+	{Type: "TINYINT", HasSize: true, HasDigit: false, HasAutoIncrement: true},
+	{Type: "BOOL", HasSize: false, HasDigit: false, HasAutoIncrement: false},
+	{Type: "BOOLEAN", HasSize: false, HasDigit: false, HasAutoIncrement: false},
+	{Type: "SMALLINT", HasSize: true, HasDigit: false, HasAutoIncrement: true},
+	{Type: "MEDIUMINT", HasSize: true, HasDigit: false, HasAutoIncrement: true},
+	{Type: "INT", HasSize: true, HasDigit: false, HasAutoIncrement: true},
+	{Type: "INTEGER", HasSize: true, HasDigit: false, HasAutoIncrement: true},
+	{Type: "BIGINT", HasSize: true, HasDigit: false, HasAutoIncrement: true},
+	{Type: "FLOAT", HasSize: true, HasDigit: true, HasAutoIncrement: false},
+	{Type: "FLOAT_PRECISION", HasSize: true, HasDigit: false, HasAutoIncrement: false},
+	{Type: "DOUBLE", HasSize: true, HasDigit: true, HasAutoIncrement: false},
+	{Type: "DOUBLE PRECISION", HasSize: true, HasDigit: true, HasAutoIncrement: false},
+	{Type: "DECIMAL", HasSize: true, HasDigit: true, HasAutoIncrement: false},
+	{Type: "DEC", HasSize: true, HasDigit: true, HasAutoIncrement: false},
 }
 
 var MySqlStringDataTypes = []StringDataType{

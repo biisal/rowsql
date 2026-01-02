@@ -1,9 +1,10 @@
 package database
 
 type NumericDataType struct {
-	Type     string `json:"type"`
-	HasSize  bool   `json:"hasSize"`
-	HasDigit bool   `json:"hasDigit"`
+	Type             string `json:"type"`
+	HasSize          bool   `json:"hasSize"`
+	HasDigit         bool   `json:"hasDigit"`
+	HasAutoIncrement bool   `json:"hasAutoIncrement"`
 }
 
 type StringDataType struct {
@@ -21,9 +22,11 @@ type Input struct {
 }
 
 type DataType struct {
-	Type      string `json:"type"`
-	HasSize   bool   `json:"hasSize"`
-	HasValues bool   `json:"hasValues,omitempty"`
-	Size      int    `json:"size,omitempty"`
-	HasDigit  bool   `json:"hasDigit,omitempty"`
+	Type             string `json:"type"`
+	HasSize          bool   `json:"hasSize"`
+	HasValues        bool   `json:"hasValues,omitempty"`
+	Size             int    `json:"size,omitempty"`
+	HasDigit         bool   `json:"hasDigit,omitempty"`
+	HasAutoIncrement bool   `json:"hasAutoIncrement"`
+	AutoIncrement    bool   `json:"autoIncrement,omitempty"`
 }

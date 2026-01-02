@@ -19,7 +19,7 @@ func MountRouter(handler DbHandler) (*http.ServeMux, error) {
 
 	mux.HandleFunc(route(GET, "/tables"), handler.ListTables)
 	mux.HandleFunc(route(GET, "/table/{tableName}"), handler.TableRows)
-	mux.HandleFunc(route(GET, "/table/{tableName}/form"), handler.TableInsertForm)
+	mux.HandleFunc(route(GET, "/table/{tableName}/form"), handler.RowInsertForm)
 	mux.HandleFunc(route(POST, "/table/{tableName}/form"), handler.InsertOrUpdateRow)
 	mux.HandleFunc(route(DELETE, "/table/{tableName}/row/{hash}"), handler.DeleteRow)
 	mux.HandleFunc(route(GET, "/table/form/new"), handler.NewTableFormFileds)

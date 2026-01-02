@@ -1,38 +1,39 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 import {
   useParams,
   useSearchParams,
   useNavigate,
   Link,
-} from "react-router-dom";
-import { Controller, useForm } from "react-hook-form";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
-import api from "@/lib/axios";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from 'react-router-dom';
+import { Controller, useForm } from 'react-hook-form';
+import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import api from '@/lib/axios';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { toast } from "sonner";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
+} from '@/components/ui/card';
+import { toast } from 'sonner';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field";
+} from '@/components/ui/field';
 
 interface Column {
   columnName: string;
   dataType: string;
-  inputType: "text" | "number" | "checkbox" | "textarea" | "json" | "select";
+  inputType: 'text' | 'number' | 'checkbox' | 'textarea' | 'json' | 'select';
   value: string | number | boolean | null;
   isUnique: boolean;
+  hasAutoIncrement: boolean;
 }
 
 interface FormData {
@@ -42,20 +43,28 @@ interface FormData {
   ActiveTable: string;
 }
 
+interface CheckedState {
+  checked: boolean;
+  oldVal: undefined;
+}
+
 export function RowForm() {
+  const [autoEnabled, setAutoEnabled] = useState<Record<string, CheckedState>>(
+    {},
+  );
   const { tableName } = useParams<{ tableName: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState<FormData | null>(null);
 
-  const hash = searchParams.get("hash");
-  const page = searchParams.get("page") || "1";
+  const hash = searchParams.get('hash');
+  const page = searchParams.get('page') || '1';
 
   const form = useForm({
     defaultValues: {},
-    mode: "onChange",
-    reValidateMode: "onChange",
+    mode: 'onChange',
+    reValidateMode: 'onChange',
   });
 
   useEffect(() => {
@@ -78,16 +87,16 @@ export function RowForm() {
             const defaultValues: Record<string, string | number | boolean> = {};
             data.Cols.forEach((col: Column) => {
               if (col.value !== undefined && col.value !== null) {
-                if (col.inputType === "checkbox") {
+                if (col.inputType === 'checkbox') {
                   defaultValues[col.columnName] = Boolean(col.value);
-                } else if (col.inputType === "number") {
+                } else if (col.inputType === 'number') {
                   defaultValues[col.columnName] = col.value;
                 } else {
                   defaultValues[col.columnName] = String(col.value);
                 }
               } else {
                 defaultValues[col.columnName] =
-                  col.inputType === "checkbox" ? false : "";
+                  col.inputType === 'checkbox' ? false : '';
               }
             });
 
@@ -103,7 +112,7 @@ export function RowForm() {
             }
           ).response?.data?.error ||
           (err as { message?: string }).message ||
-          "Failed to load form";
+          'Failed to load form';
         toast.error(errorMessage);
       } finally {
         setLoading(false);
@@ -117,8 +126,8 @@ export function RowForm() {
   const onSubmit = async (data: Record<string, string | number | boolean>) => {
     if (!formData || !tableName) return;
 
-    console.log("=== FORM SUBMISSION STARTED ===");
-    console.log("Form submitted with values:", data);
+    console.log('=== FORM SUBMISSION STARTED ===');
+    console.log('Form submitted with values:', data);
 
     try {
       const payload: Record<string, { value: string; type: string }> = {};
@@ -126,12 +135,12 @@ export function RowForm() {
       formData.Cols.forEach((col) => {
         const value = data[col.columnName];
         payload[col.columnName] = {
-          value: value !== undefined && value !== null ? String(value) : "",
+          value: value !== undefined && value !== null ? String(value) : '',
           type: col.inputType,
         };
       });
 
-      console.log("Payload:", payload);
+      console.log('Payload:', payload);
 
       const url = hash
         ? `/table/${tableName}/form?hash=${hash}&page=${page}`
@@ -139,15 +148,15 @@ export function RowForm() {
 
       await api.post(url, payload);
 
-      toast.success(`Row ${hash ? "updated" : "created"} successfully`);
+      toast.success(`Row ${hash ? 'updated' : 'created'} successfully`);
       navigate(`/table/${tableName}?page=${page}`);
     } catch (err) {
-      console.error("Error saving row:", err);
+      console.error('Error saving row:', err);
       const errorMessage =
         (err as { response?: { data?: { error?: string } }; message?: string })
           .response?.data?.error ||
         (err as { message?: string }).message ||
-        "Failed to save row";
+        'Failed to save row';
       toast.error(errorMessage);
     }
   };
@@ -187,7 +196,7 @@ export function RowForm() {
             <FieldGroup>
               <CardHeader>
                 <CardTitle>
-                  {formData.Action === "Insert" ? "Add New Row" : "Edit Row"}
+                  {formData.Action === 'Insert' ? 'Add New Row' : 'Edit Row'}
                 </CardTitle>
               </CardHeader>
 
@@ -204,7 +213,7 @@ export function RowForm() {
                             htmlFor={`field-${col.columnName}`}
                             className="capitalize"
                           >
-                            {col.columnName.replace(/_/g, " ")}
+                            {col.columnName.replace(/_/g, ' ')}
                             <span className="text-muted-foreground ml-2 text-xs font-normal">
                               ({col.dataType})
                             </span>
@@ -215,7 +224,7 @@ export function RowForm() {
                             )}
                           </FieldLabel>
 
-                          {col.inputType === "checkbox" ? (
+                          {col.inputType === 'checkbox' ? (
                             <div className="flex items-center space-x-2 cursor-pointer bg-foreground/5 p-3 rounded">
                               <Checkbox
                                 id={`field-${col.columnName}`}
@@ -228,28 +237,62 @@ export function RowForm() {
                                 htmlFor={`field-${col.columnName}`}
                                 className="cursor-pointer mt-0! font-normal"
                               >
-                                Enable {col.columnName.replace(/_/g, " ")}
+                                Enable {col.columnName.replace(/_/g, ' ')}
                               </FieldLabel>
                             </div>
-                          ) : col.inputType === "textarea" ||
-                            col.inputType === "json" ? (
+                          ) : col.inputType === 'textarea' ||
+                            col.inputType === 'json' ? (
                             <Textarea
                               {...field}
                               id={`field-${col.columnName}`}
-                              placeholder={`Enter ${col.columnName.replace(/_/g, " ")}`}
+                              placeholder={`Enter ${col.columnName.replace(/_/g, ' ')}`}
                               rows={5}
-                              value={field.value || ""}
+                              value={field.value || ''}
                             />
                           ) : (
-                            <Input
-                              {...field}
-                              id={`field-${col.columnName}`}
-                              type={
-                                col.inputType === "number" ? "number" : "text"
-                              }
-                              placeholder={`Enter ${col.columnName.replace(/_/g, " ")}`}
-                              value={field.value || ""}
-                            />
+                            <>
+                              {col.hasAutoIncrement && (
+                                <label className="flex items-center mb-2 text-sm font-medium cursor-pointer">
+                                  <Checkbox
+                                    className="mr-2"
+                                    checked={
+                                      !!autoEnabled[col.columnName]?.checked
+                                    }
+                                    onCheckedChange={(checked) => {
+                                      const isChecked = checked === true;
+
+                                      setAutoEnabled((prev) => ({
+                                        ...prev,
+                                        [col.columnName]: {
+                                          checked: isChecked,
+                                          oldVal: field.value,
+                                        },
+                                      }));
+
+                                      if (isChecked) {
+                                        field.onChange('');
+                                      } else {
+                                        field.onChange(
+                                          autoEnabled[col.columnName]?.oldVal ||
+                                            '',
+                                        );
+                                      }
+                                    }}
+                                  />
+                                  Auto Increment
+                                </label>
+                              )}
+                              <Input
+                                {...field}
+                                disabled={autoEnabled[col.columnName]?.checked}
+                                id={`field-${col.columnName}`}
+                                type={
+                                  col.inputType === 'number' ? 'number' : 'text'
+                                }
+                                placeholder={`Enter ${col.columnName.replace(/_/g, ' ')}`}
+                                value={field.value || ''}
+                              />
+                            </>
                           )}
 
                           {fieldState.invalid && (
@@ -276,10 +319,10 @@ export function RowForm() {
                   type="submit"
                   disabled={form.formState.isSubmitting}
                   onClick={() => {
-                    console.log("=== SUBMIT BUTTON CLICKED ===");
-                    console.log("Form values:", form.getValues());
-                    console.log("Form errors:", form.formState.errors);
-                    console.log("Is valid:", form.formState.isValid);
+                    console.log('=== SUBMIT BUTTON CLICKED ===');
+                    console.log('Form values:', form.getValues());
+                    console.log('Form errors:', form.formState.errors);
+                    console.log('Is valid:', form.formState.isValid);
                   }}
                 >
                   {form.formState.isSubmitting ? (

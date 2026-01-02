@@ -8,6 +8,7 @@ export interface FormInputType {
   hasSize: boolean;
   size?: number;
   hasBool?: boolean;
+  hasAutoIncrement?: boolean;
 }
 
 export interface Input {

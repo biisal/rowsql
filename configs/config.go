@@ -2,17 +2,21 @@ package configs
 
 import (
 	"log"
+	"os"
 	"reflect"
 	"strings"
 
+	"github.com/biisal/db-gui/internal/color"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/joho/godotenv"
 )
 
 const (
-	DRIVER_POSTGRES = "pgx"
-	DRIVER_MYSQL    = "mysql"
-	DRIVER_SQLITE   = "sqlite3"
+	DRIVER_POSTGRES        = "pgx"
+	DRIVER_MYSQL           = "mysql"
+	DRIVER_SQLITE          = "sqlite3"
+	ENV_DEVELOPMENT string = "development"
+	ENV_PRODUCTION  string = "production"
 )
 
 type ServerConfig struct {
@@ -24,7 +28,9 @@ type Config struct {
 	DBSTRING        string `env:"DBSTRING" env-required:"true"`
 	Server          ServerConfig
 	Driver          string
-	MaxItemsPerPage int `env:"MAX_ITEMS_PER_PAGE" env-default:"10"`
+	MaxItemsPerPage int    `env:"MAX_ITEMS_PER_PAGE" env-default:"10"`
+	Env             string `env:"ENV" env-default:"production"`
+	LogFilePath     string `env:"LOG_FILE_PATH" env-default:"rowsql.log"`
 }
 
 func MustLoad() *Config {
@@ -40,10 +46,16 @@ func MustLoad() *Config {
 		t := reflect.TypeFor[Config]()
 		field, _ := t.FieldByName("DBSTRING")
 		tagVal := field.Tag.Get("env")
-		log.Fatalf("%s not found in .env", tagVal)
+		color.Default.Error("%s not found in .env", tagVal)
+		os.Exit(1)
 	}
 	if !strings.HasPrefix(cfg.Server.Port, ":") {
 		cfg.Server.Port = ":" + cfg.Server.Port
+	}
+	if cfg.Env != string(ENV_DEVELOPMENT) && cfg.Env != string(ENV_PRODUCTION) {
+		color.Default.Error("%s env can't be set! Make sure it's '%s' or '%s', Default '%s'",
+			cfg.Env, ENV_DEVELOPMENT, ENV_PRODUCTION, ENV_PRODUCTION)
+		os.Exit(1)
 	}
 	return &cfg
 }

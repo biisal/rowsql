@@ -11,7 +11,7 @@ frontend-dev:
 backend-dev:
 	air -c air.toml
 
-dev: ensure-psql
+dev:
 	make -j2 frontend-dev backend-dev
 
 

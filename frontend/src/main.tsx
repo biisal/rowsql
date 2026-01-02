@@ -13,21 +13,27 @@ import { RowForm } from "./pages/RowForm.tsx";
 import { TabelForm } from "./pages/table-form.tsx";
 import { NotFound } from "./pages/NotFound.tsx";
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter basename="/">
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/table/:tableName" element={<TableRows />} />
-          <Route path="/table/:tableName/form" element={<RowForm />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/table/create/new" element={<TabelForm />} />
-          <Route path="/history" element={<History />} />
-          <Route path="/docs" element={<Docs />} />
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter basename="/">
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/table/:tableName" element={<TableRows />} />
+            <Route path="/table/:tableName/form" element={<RowForm />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/table/create/new" element={<TabelForm />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/docs" element={<Docs />} />
+            <Route path="*" element={<NotFound />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </QueryClientProvider>
   </StrictMode>,
 );

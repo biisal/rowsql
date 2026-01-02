@@ -5,3 +5,5 @@ vscode
 *.sqlite
 *.db
 rowsql
+.zed
+frontend/bun.lock

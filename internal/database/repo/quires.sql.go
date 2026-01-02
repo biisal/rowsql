@@ -35,7 +35,7 @@ func (q *Queries) ListCols(ctx context.Context, tableName string) ([]ListDataCol
 	var items []ListDataCol
 	for rows.Next() {
 		var i ListDataCol
-		if err := rows.Scan(&i.ColumnName, &i.DataType, &i.IsUnique); err != nil {
+		if err := rows.Scan(&i.ColumnName, &i.DataType, &i.IsUnique, &i.HasAutoIncrement); err != nil {
 			slog.Error("failed to scan rows in list cols", "err", err)
 			return nil, err
 		}
@@ -257,7 +257,10 @@ type CreateTableProps struct {
 }
 
 func (q *Queries) CreateTable(ctx context.Context, props CreateTableProps) error {
-	parts := buildCreateTableQuiry(props.Inputs)
+	parts, err := buildCreateTableQuiry(q.driver, props.Inputs)
+	if err != nil {
+		return err
+	}
 	validName := regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 	if !validName.MatchString(props.TableName) {
 		slog.Error("invalid table name! Only alphanumeric and _ are allowed", "table_name", props.TableName)

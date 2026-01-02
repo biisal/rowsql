@@ -1,26 +1,30 @@
 package database
 
 var PostgresNumericDataTypes = []NumericDataType{
-	{Type: "SMALLINT", HasDigit: false},
-	{Type: "INT2", HasDigit: false},
-	{Type: "INTEGER", HasDigit: false},
-	{Type: "INT", HasDigit: false},
-	{Type: "INT4", HasDigit: false},
-	{Type: "BIGINT", HasDigit: false},
-	{Type: "INT8", HasDigit: false},
-	{Type: "DECIMAL", HasDigit: true}, // DECIMAL(precision, scale)
-	{Type: "NUMERIC", HasDigit: true}, // NUMERIC(precision, scale)
-	{Type: "REAL", HasDigit: false},
-	{Type: "FLOAT4", HasDigit: false},
-	{Type: "DOUBLE PRECISION", HasDigit: false},
-	{Type: "FLOAT8", HasDigit: false},
-	{Type: "SMALLSERIAL", HasDigit: false},
-	{Type: "SERIAL2", HasDigit: false},
-	{Type: "SERIAL", HasDigit: false},
-	{Type: "SERIAL4", HasDigit: false},
-	{Type: "BIGSERIAL", HasDigit: false},
-	{Type: "SERIAL8", HasDigit: false},
-	{Type: "MONEY", HasDigit: false},
+	{Type: "SMALLINT", HasDigit: false, HasAutoIncrement: true},
+	{Type: "INT2", HasDigit: false, HasAutoIncrement: true},
+	{Type: "INTEGER", HasDigit: false, HasAutoIncrement: true},
+	{Type: "INT", HasDigit: false, HasAutoIncrement: true},
+	{Type: "INT4", HasDigit: false, HasAutoIncrement: true},
+	{Type: "BIGINT", HasDigit: false, HasAutoIncrement: true},
+	{Type: "INT8", HasDigit: false, HasAutoIncrement: true},
+
+	{Type: "DECIMAL", HasDigit: true, HasAutoIncrement: false}, // DECIMAL(p, s)
+	{Type: "NUMERIC", HasDigit: true, HasAutoIncrement: false}, // NUMERIC(p, s)
+
+	{Type: "REAL", HasDigit: false, HasAutoIncrement: false},
+	{Type: "FLOAT4", HasDigit: false, HasAutoIncrement: false},
+	{Type: "DOUBLE PRECISION", HasDigit: false, HasAutoIncrement: false},
+	{Type: "FLOAT8", HasDigit: false, HasAutoIncrement: false},
+
+	{Type: "SMALLSERIAL", HasDigit: false, HasAutoIncrement: true},
+	{Type: "SERIAL2", HasDigit: false, HasAutoIncrement: true},
+	{Type: "SERIAL", HasDigit: false, HasAutoIncrement: true},
+	{Type: "SERIAL4", HasDigit: false, HasAutoIncrement: true},
+	{Type: "BIGSERIAL", HasDigit: false, HasAutoIncrement: true},
+	{Type: "SERIAL8", HasDigit: false, HasAutoIncrement: true},
+
+	{Type: "MONEY", HasDigit: false, HasAutoIncrement: false},
 }
 
 var PostgresStringDataTypes = []StringDataType{

@@ -9,13 +9,15 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/biisal/db-gui/internal/color"
 	"github.com/biisal/db-gui/internal/database"
 	"github.com/biisal/db-gui/internal/database/repo"
 	resopnse "github.com/biisal/db-gui/internal/response"
 )
 
 type DbHandler struct {
-	service DbService
+	service     DbService
+	colorLogger color.Logger
 }
 
 type BaseHtmlData struct {
@@ -28,9 +30,10 @@ type ErrorMessage struct {
 	Message string
 }
 
-func NewHandler(service DbService) DbHandler {
+func NewHandler(service DbService, colorLogger color.Logger) DbHandler {
 	return DbHandler{
 		service,
+		colorLogger,
 	}
 }
 
@@ -57,6 +60,7 @@ func (h DbHandler) ListTables(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
+	h.colorLogger.Info("Fetched %d tables", len(tables))
 	resopnse.Success(w, http.StatusOK, tables)
 }
 
@@ -71,6 +75,7 @@ func (h DbHandler) TableRows(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.service.ListRows(r.Context(), tableName, pageInt)
 	if err != nil {
 		slog.Error(err.Error())
+		h.colorLogger.Error("Failed to fetch rows from table '%s'", tableName)
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -93,10 +98,11 @@ func (h DbHandler) TableRows(w http.ResponseWriter, r *http.Request) {
 		cols,
 		tableName,
 	}
+	h.colorLogger.Debug("Loaded page %d for table '%s'", pageInt, tableName)
 	resopnse.Success(w, http.StatusOK, data)
 }
 
-func (h DbHandler) TableInsertForm(w http.ResponseWriter, r *http.Request) {
+func (h DbHandler) RowInsertForm(w http.ResponseWriter, r *http.Request) {
 	tableName := r.PathValue("tableName")
 	tables, err := h.service.ListTables(r.Context())
 	if err != nil {
@@ -111,6 +117,7 @@ func (h DbHandler) TableInsertForm(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if !found {
+		h.colorLogger.Warning("Table '%s' not found", tableName)
 		resopnse.Error(w, http.StatusNotFound, fmt.Errorf("table %s not found", tableName))
 		return
 	}
@@ -174,9 +181,11 @@ func (h DbHandler) InsertOrUpdateRow(w http.ResponseWriter, r *http.Request) {
 	if hash != "" {
 		if err := h.service.UpdateRow(r.Context(), form, tableName, hash, pageInt); err != nil {
 			slog.Error(err.Error())
+			h.colorLogger.Error("Failed to update row in table '%s'", tableName)
 			resopnse.Error(w, http.StatusInternalServerError, err)
 			return
 		}
+		h.colorLogger.Success("Row updated successfully in table '%s'", tableName)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -186,9 +195,11 @@ func (h DbHandler) InsertOrUpdateRow(w http.ResponseWriter, r *http.Request) {
 		Values:    form,
 	}); err != nil {
 		slog.Error(err.Error())
+		h.colorLogger.Error("Failed to insert row in table '%s'", tableName)
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}
+	h.colorLogger.Success("Row inserted successfully in table '%s'", tableName)
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -202,9 +213,11 @@ func (h DbHandler) DeleteRow(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := h.service.DeleteRow(r.Context(), tableName, hash, pageInt); err != nil {
 		slog.Error(err.Error())
+		h.colorLogger.Error("Failed to delete row from table '%s'", tableName)
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}
+	h.colorLogger.Success("Row deleted successfully from table '%s'", tableName)
 	resopnse.Success(w, http.StatusOK, nil)
 }
 
@@ -231,10 +244,12 @@ func (h DbHandler) CreeteNewTable(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Request data", "req", req)
 	if err := h.service.CreateTable(r.Context(), req.TableName, req.Inputs); err != nil {
 		slog.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		h.colorLogger.Error("Failed to create table '%s'", req.TableName)
+		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}
-	w.WriteHeader(http.StatusCreated)
+	h.colorLogger.Success("Table '%s' created successfully with %d columns", req.TableName, len(req.Inputs))
+	resopnse.Success(w, http.StatusCreated, nil)
 
 }
 
@@ -253,9 +268,11 @@ func (h *DbHandler) DeleteTable(w http.ResponseWriter, r *http.Request) {
 	err := h.service.DeleteTable(r.Context(), req.TableName, req.VerificationQuiry)
 	if err != nil {
 		slog.Error(err.Error())
+		h.colorLogger.Error("Failed to delete table '%s'", req.TableName)
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}
+	h.colorLogger.Success("Table '%s' deleted successfully", req.TableName)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -270,10 +287,12 @@ func (h *DbHandler) ListHistory(w http.ResponseWriter, r *http.Request) {
 	history, err := h.service.ListHistory(r.Context(), pageInt)
 	if err != nil {
 		slog.Error("Failed to list history", "err", err)
+		h.colorLogger.Error("Failed to fetch query history")
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 
+	h.colorLogger.Debug("Retrieved %d history entries (page %d)", len(history), pageInt)
 	resopnse.Success(w, http.StatusOK, history)
 }
 

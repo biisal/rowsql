@@ -122,13 +122,6 @@ export function Home() {
       <div className="max-w-6xl mx-auto space-y-8 animate-fade-in-up">
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-background to-background border border-border/50 p-8 md:p-12">
           <div className="relative z-10 max-w-2xl space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-              </span>
-              System Online
-            </div>
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">
               Welcome to <span className="text-primary">RowSQL</span>
             </h1>

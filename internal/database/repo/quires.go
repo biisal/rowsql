@@ -20,7 +20,11 @@ SELECT
     COALESCE(
         bool_or(tc.constraint_type IN ('UNIQUE', 'PRIMARY KEY')),
         false
-    ) as is_unique
+    ) AS is_unique,
+    (
+        c.is_identity = 'YES'
+        OR c.column_default LIKE 'nextval(%'
+    ) AS is_auto_increment
 FROM information_schema.columns c
 LEFT JOIN information_schema.key_column_usage kcu
     ON c.table_name = kcu.table_name
@@ -30,7 +34,12 @@ LEFT JOIN information_schema.table_constraints tc
     ON kcu.constraint_name = tc.constraint_name
     AND kcu.table_schema = tc.table_schema
 WHERE c.table_name = $1
-GROUP BY c.column_name, c.data_type, c.ordinal_position
+GROUP BY
+    c.column_name,
+    c.data_type,
+    c.ordinal_position,
+    c.is_identity,
+    c.column_default
 ORDER BY c.ordinal_position;
 `
 
@@ -44,7 +53,8 @@ SELECT
             ELSE 0
         END) = 1,
         false
-    ) as is_unique
+    ) AS is_unique,
+    (c.extra LIKE '%auto_increment%') AS is_auto_increment
 FROM information_schema.columns c
 LEFT JOIN information_schema.key_column_usage kcu
     ON c.table_name = kcu.table_name
@@ -55,23 +65,35 @@ LEFT JOIN information_schema.table_constraints tc
     AND kcu.table_schema = tc.table_schema
 WHERE c.table_name = ?
   AND c.table_schema = DATABASE()
-GROUP BY c.column_name, c.data_type, c.ordinal_position
+GROUP BY
+    c.column_name,
+    c.data_type,
+    c.ordinal_position,
+    c.extra
 ORDER BY c.ordinal_position;
 `
 
 const sqliteColsQuery = `
 SELECT
-    p.name as column_name,
-    p.type as data_type,
+    p.name AS column_name,
+    p.type AS data_type,
     CASE
         WHEN p.pk = 1 THEN 1
         WHEN EXISTS (
-            SELECT 1 FROM pragma_index_list(?) il
-            JOIN pragma_index_info(il.name) ii ON ii.name = p.name
+            SELECT 1
+            FROM pragma_index_list(?) il
+            JOIN pragma_index_info(il.name) ii
+                ON ii.name = p.name
             WHERE il."unique" = 1
         ) THEN 1
         ELSE 0
-    END as is_unique
+    END AS is_unique,
+    CASE
+        WHEN p.pk = 1
+             AND lower(p.type) = 'integer'
+        THEN 1
+        ELSE 0
+    END AS is_auto_increment
 FROM pragma_table_info(?) AS p;
 `
 
@@ -227,7 +249,7 @@ func buildQueryWhereClause(cols []ListDataCol, data []any, driver string, argsId
 
 }
 
-func buildCreateTableQuiry(parts []database.Input) string {
+func buildCreateTableQuiry(driver string, parts []database.Input) (string, error) {
 	slog.Info("Building create table query")
 	var s = strings.Builder{}
 	partsLen := len(parts)
@@ -248,11 +270,26 @@ func buildCreateTableQuiry(parts []database.Input) string {
 		if input.IsPK {
 			s.WriteString(" PRIMARY KEY")
 		}
+		if input.DataType.AutoIncrement {
+			if !input.IsPK {
+				errorMsg := "Auto-increment can only be set on primary key columns"
+				slog.Error(errorMsg)
+				return "", fmt.Errorf(errorMsg)
+			}
+			text := "AUTO_INCREMENT"
+			switch driver {
+			case configs.DRIVER_POSTGRES:
+				text = "SERIAL"
+			case configs.DRIVER_SQLITE:
+				text = "AUTOINCREMENT"
+			}
+			fmt.Fprintf(&s, " %s", text)
+		}
 		if i < partsLen-1 {
 			s.WriteString(",")
 		}
 	}
 	slog.Info("Query", "query", s.String())
-	return s.String()
+	return s.String(), nil
 
 }

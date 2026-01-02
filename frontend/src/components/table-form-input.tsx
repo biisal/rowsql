@@ -26,6 +26,8 @@ interface TableInputProps {
         size?: number;
         hasSize: boolean;
         hasBool?: boolean;
+        autoIncrement?: boolean;
+        hasAutoIncrement?: boolean;
       };
     }>;
   }>;
@@ -120,6 +122,36 @@ export default function TableFromInput({
               </Field>
             );
           }}
+        />
+        <Controller
+        control={control}
+        name={`inputs.${index}.dataType`}
+        render={({ field, fieldState }) => {
+          if (!field.value?.hasAutoIncrement) return <></>
+
+          return (
+            <Field
+              orientation="horizontal"
+              className="cursor-pointer  p-2 rounded"
+            >
+              <Checkbox
+              className="cursor-pointer"
+              id={`dataHasAutoIncrement-${index}`}
+              checked={field.value.autoIncrement}
+              onCheckedChange={(checked) => field.onChange({
+                ...field.value,
+                autoIncrement: checked === true,
+              })}
+              />
+              <FieldLabel htmlFor={`dataHasAutoIncrement-${index}`}>
+                Auto Increment
+              </FieldLabel>
+              {fieldState.invalid && (
+                <FieldError errors={[fieldState.error]} />
+              )}
+            </Field>
+          );
+        }}
         />
       </div>
 

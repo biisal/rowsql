@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 
 	"github.com/biisal/db-gui/configs"
+	"github.com/biisal/db-gui/internal/color"
 	"github.com/biisal/db-gui/internal/database/repo"
 	"github.com/biisal/db-gui/internal/logger"
 	"github.com/biisal/db-gui/internal/router"
@@ -20,12 +20,25 @@ import (
 
 func mount(cfg *configs.Config) error {
 	ctx := context.Background()
-	logger.SetupSlog(slog.LevelError)
+	colorLogger := color.Logger{}
+
+	loggerLevel := slog.LevelInfo
+	if cfg.Env == configs.ENV_PRODUCTION {
+		loggerLevel = slog.LevelError
+	}
+
+	file, err := logger.SetupSlog(cfg.LogFilePath, loggerLevel)
+	if err != nil {
+		return err
+	}
+	colorLogger.Info("All logs will be written in %s", cfg.LogFilePath)
+	defer file.Close()
+
 	driver, err := utils.DetectDriver(cfg.DBSTRING)
 	if err != nil {
 		return err
 	}
-	fmt.Println("Driver detected", driver)
+	colorLogger.Info("Database driver detected: %s", driver)
 	slog.Info("Database driver detected", "driver", driver)
 	cfg.Driver = driver
 	dbConn, err := sqlx.ConnectContext(ctx, driver, cfg.DBSTRING)
@@ -40,7 +53,7 @@ func mount(cfg *configs.Config) error {
 	}
 
 	dbService := router.NewService(dbRepo, cfg.MaxItemsPerPage)
-	dbHandler := router.NewHandler(dbService)
+	dbHandler := router.NewHandler(dbService, colorLogger)
 
 	mux, err := router.MountRouter(dbHandler)
 	corsMux := middleware.CORS()(mux)
@@ -52,8 +65,7 @@ func mount(cfg *configs.Config) error {
 		Addr:    cfg.Server.Port,
 		Handler: corsMux,
 	}
-	slog.Info("Running server on port", "port", cfg.Server.Port)
-	fmt.Println("Running server on port", "port", cfg.Server.Port)
+	colorLogger.Success("Running server on port %s", cfg.Server.Port)
 	if err := server.ListenAndServe(); err != nil {
 		return err
 	}

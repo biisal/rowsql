@@ -1,11 +1,12 @@
 package repo
 
 type ListDataCol struct {
-	IsUnique   bool   `json:"isUnique"`
-	Value      any    `json:"value"`
-	ColumnName string `json:"columnName"`
-	DataType   string `json:"dataType"`
-	InputType  string `json:"inputType"`
+	IsUnique         bool   `json:"isUnique"`
+	Value            any    `json:"value"`
+	ColumnName       string `json:"columnName"`
+	DataType         string `json:"dataType"`
+	InputType        string `json:"inputType"`
+	HasAutoIncrement bool   `json:"hasAutoIncrement"`
 }
 
 type ListDataProps struct {
