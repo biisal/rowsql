@@ -4,10 +4,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	"github.com/biisal/db-gui/configs"
+	"github.com/biisal/db-gui/internal/logger"
 )
 
 func IsSafeIdentifier(s string) bool {
@@ -163,7 +163,7 @@ func GetInputType(dbType string) string {
 	if val, ok := dataTypeMap[lowerType]; ok {
 		return val
 	}
-	slog.Warn("unknown data type", "type", dbType)
+	logger.Warning("unknown data type: %s", dbType)
 	return textInput
 }
 

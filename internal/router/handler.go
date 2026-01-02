@@ -4,20 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/biisal/db-gui/internal/color"
 	"github.com/biisal/db-gui/internal/database"
 	"github.com/biisal/db-gui/internal/database/repo"
+	"github.com/biisal/db-gui/internal/logger"
 	resopnse "github.com/biisal/db-gui/internal/response"
 )
 
 type DbHandler struct {
-	service     DbService
-	colorLogger color.Logger
+	service DbService
 }
 
 type BaseHtmlData struct {
@@ -30,17 +28,16 @@ type ErrorMessage struct {
 	Message string
 }
 
-func NewHandler(service DbService, colorLogger color.Logger) DbHandler {
+func NewHandler(service DbService) DbHandler {
 	return DbHandler{
 		service,
-		colorLogger,
 	}
 }
 
 func (h DbHandler) getBaseData(ctx context.Context, tableName ...string) (*BaseHtmlData, error) {
 	tables, err := h.service.ListTables(ctx)
 	if err != nil {
-		slog.Error(err.Error())
+		logger.Error("%s", err)
 		return nil, err
 	}
 	if len(tableName) == 0 {
@@ -48,7 +45,7 @@ func (h DbHandler) getBaseData(ctx context.Context, tableName ...string) (*BaseH
 	}
 	cols, err := h.service.ListCols(ctx, tableName[0])
 	if err != nil {
-		slog.Error(err.Error())
+		logger.Error("%s", err)
 		return nil, err
 	}
 	return &BaseHtmlData{Tables: tables, Cols: cols, ActiveTable: tableName[0]}, nil
@@ -60,7 +57,7 @@ func (h DbHandler) ListTables(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	h.colorLogger.Info("Fetched %d tables", len(tables))
+	logger.Info("Fetched %d tables", len(tables))
 	resopnse.Success(w, http.StatusOK, tables)
 }
 
@@ -74,15 +71,15 @@ func (h DbHandler) TableRows(w http.ResponseWriter, r *http.Request) {
 	pageInt = max(pageInt, 1)
 	rows, err := h.service.ListRows(r.Context(), tableName, pageInt)
 	if err != nil {
-		slog.Error(err.Error())
-		h.colorLogger.Error("Failed to fetch rows from table '%s'", tableName)
+		logger.Error("%s", err)
+		logger.Error("Failed to fetch rows from table '%s'", tableName)
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	cols, err := h.service.ListCols(r.Context(), tableName)
 	if err != nil {
-		slog.Error(err.Error())
+		logger.Error("%s", err)
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -98,7 +95,7 @@ func (h DbHandler) TableRows(w http.ResponseWriter, r *http.Request) {
 		cols,
 		tableName,
 	}
-	h.colorLogger.Debug("Loaded page %d for table '%s'", pageInt, tableName)
+	logger.Debug("Loaded page %d for table '%s'", pageInt, tableName)
 	resopnse.Success(w, http.StatusOK, data)
 }
 
@@ -106,7 +103,7 @@ func (h DbHandler) RowInsertForm(w http.ResponseWriter, r *http.Request) {
 	tableName := r.PathValue("tableName")
 	tables, err := h.service.ListTables(r.Context())
 	if err != nil {
-		slog.Error(err.Error())
+		logger.Error("%s", err)
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -117,7 +114,7 @@ func (h DbHandler) RowInsertForm(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if !found {
-		h.colorLogger.Warning("Table '%s' not found", tableName)
+		logger.Warning("Table '%s' not found", tableName)
 		resopnse.Error(w, http.StatusNotFound, fmt.Errorf("table %s not found", tableName))
 		return
 	}
@@ -134,7 +131,7 @@ func (h DbHandler) RowInsertForm(w http.ResponseWriter, r *http.Request) {
 		action = "Update"
 		initialRow, err = h.service.GetRow(r.Context(), tableName, hash, pageInt)
 		if err != nil {
-			slog.Error(err.Error())
+			logger.Error("%s", err)
 			resopnse.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -142,7 +139,7 @@ func (h DbHandler) RowInsertForm(w http.ResponseWriter, r *http.Request) {
 
 	basseData, err := h.getBaseData(r.Context(), tableName)
 	if err != nil {
-		slog.Error(err.Error())
+		logger.Error("%s", err)
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -165,7 +162,7 @@ func (h DbHandler) InsertOrUpdateRow(w http.ResponseWriter, r *http.Request) {
 	tableName := r.PathValue("tableName")
 	var form = make(map[string]repo.FormValue)
 	if err := json.NewDecoder(r.Body).Decode(&form); err != nil {
-		slog.Error(err.Error())
+		logger.Error("%s", err)
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -180,12 +177,12 @@ func (h DbHandler) InsertOrUpdateRow(w http.ResponseWriter, r *http.Request) {
 
 	if hash != "" {
 		if err := h.service.UpdateRow(r.Context(), form, tableName, hash, pageInt); err != nil {
-			slog.Error(err.Error())
-			h.colorLogger.Error("Failed to update row in table '%s'", tableName)
+			logger.Error("%s", err)
+			logger.Error("Failed to update row in table '%s'", tableName)
 			resopnse.Error(w, http.StatusInternalServerError, err)
 			return
 		}
-		h.colorLogger.Success("Row updated successfully in table '%s'", tableName)
+		logger.Success("Row updated successfully in table '%s'", tableName)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -194,12 +191,12 @@ func (h DbHandler) InsertOrUpdateRow(w http.ResponseWriter, r *http.Request) {
 		TableName: tableName,
 		Values:    form,
 	}); err != nil {
-		slog.Error(err.Error())
-		h.colorLogger.Error("Failed to insert row in table '%s'", tableName)
+		logger.Error("%s", err)
+		logger.Error("Failed to insert row in table '%s'", tableName)
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}
-	h.colorLogger.Success("Row inserted successfully in table '%s'", tableName)
+	logger.Success("Row inserted successfully in table '%s'", tableName)
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -212,12 +209,12 @@ func (h DbHandler) DeleteRow(w http.ResponseWriter, r *http.Request) {
 		pageInt = 1
 	}
 	if err := h.service.DeleteRow(r.Context(), tableName, hash, pageInt); err != nil {
-		slog.Error(err.Error())
-		h.colorLogger.Error("Failed to delete row from table '%s'", tableName)
+		logger.Error("%s", err)
+		logger.Error("Failed to delete row from table '%s'", tableName)
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}
-	h.colorLogger.Success("Row deleted successfully from table '%s'", tableName)
+	logger.Success("Row deleted successfully from table '%s'", tableName)
 	resopnse.Success(w, http.StatusOK, nil)
 }
 
@@ -237,18 +234,18 @@ func (h DbHandler) CreeteNewTable(w http.ResponseWriter, r *http.Request) {
 		Inputs    []database.Input `json:"inputs"`
 	}{}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		slog.Error(err.Error())
+		logger.Error("%s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	slog.Info("Request data", "req", req)
+	logger.Info("Request data: %+v", req)
 	if err := h.service.CreateTable(r.Context(), req.TableName, req.Inputs); err != nil {
-		slog.Error(err.Error())
-		h.colorLogger.Error("Failed to create table '%s'", req.TableName)
+		logger.Error("%s", err)
+		logger.Error("Failed to create table '%s'", req.TableName)
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}
-	h.colorLogger.Success("Table '%s' created successfully with %d columns", req.TableName, len(req.Inputs))
+	logger.Success("Table '%s' created successfully with %d columns", req.TableName, len(req.Inputs))
 	resopnse.Success(w, http.StatusCreated, nil)
 
 }
@@ -261,18 +258,18 @@ type DeleteTableRequest struct {
 func (h *DbHandler) DeleteTable(w http.ResponseWriter, r *http.Request) {
 	var req DeleteTableRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		slog.Error(err.Error())
+		logger.Error("%s", err)
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 	err := h.service.DeleteTable(r.Context(), req.TableName, req.VerificationQuiry)
 	if err != nil {
-		slog.Error(err.Error())
-		h.colorLogger.Error("Failed to delete table '%s'", req.TableName)
+		logger.Error("%s", err)
+		logger.Error("Failed to delete table '%s'", req.TableName)
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}
-	h.colorLogger.Success("Table '%s' deleted successfully", req.TableName)
+	logger.Success("Table '%s' deleted successfully", req.TableName)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -286,20 +283,20 @@ func (h *DbHandler) ListHistory(w http.ResponseWriter, r *http.Request) {
 
 	history, err := h.service.ListHistory(r.Context(), pageInt)
 	if err != nil {
-		slog.Error("Failed to list history", "err", err)
-		h.colorLogger.Error("Failed to fetch query history")
+		logger.Error("Failed to list history: %v", err)
+		logger.Error("Failed to fetch query history")
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	h.colorLogger.Debug("Retrieved %d history entries (page %d)", len(history), pageInt)
+	logger.Debug("Retrieved %d history entries (page %d)", len(history), pageInt)
 	resopnse.Success(w, http.StatusOK, history)
 }
 
 func (h *DbHandler) ListRecentHistory(w http.ResponseWriter, r *http.Request) {
 	history, err := h.service.ListHistory(r.Context(), 1)
 	if err != nil {
-		slog.Error("Failed to list recent history", "err", err)
+		logger.Error("Failed to list recent history: %v", err)
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}

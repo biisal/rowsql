@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/biisal/db-gui/internal/color"
+	"github.com/biisal/db-gui/internal/logger"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/joho/godotenv"
 )
@@ -46,14 +46,14 @@ func MustLoad() *Config {
 		t := reflect.TypeFor[Config]()
 		field, _ := t.FieldByName("DBSTRING")
 		tagVal := field.Tag.Get("env")
-		color.Default.Error("%s not found in .env", tagVal)
+		logger.Error("%s not found in .env", tagVal)
 		os.Exit(1)
 	}
 	if !strings.HasPrefix(cfg.Server.Port, ":") {
 		cfg.Server.Port = ":" + cfg.Server.Port
 	}
 	if cfg.Env != string(ENV_DEVELOPMENT) && cfg.Env != string(ENV_PRODUCTION) {
-		color.Default.Error("%s env can't be set! Make sure it's '%s' or '%s', Default '%s'",
+		logger.Error("%s env can't be set! Make sure it's '%s' or '%s', Default '%s'",
 			cfg.Env, ENV_DEVELOPMENT, ENV_PRODUCTION, ENV_PRODUCTION)
 		os.Exit(1)
 	}

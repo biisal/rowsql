@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log/slog"
 	"regexp"
 
 	"github.com/biisal/db-gui/internal/database"
+	"github.com/biisal/db-gui/internal/logger"
 	"github.com/biisal/db-gui/internal/utils"
 )
 
@@ -28,7 +28,7 @@ func (q *Queries) ListCols(ctx context.Context, tableName string) ([]ListDataCol
 	query, args := colsQuery(q.db.DriverName(), tableName)
 	rows, err := q.db.QueryContext(ctx, query, args...)
 	if err != nil {
-		slog.Error("failed to query", "err", err)
+		logger.Error("failed to query: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -36,14 +36,14 @@ func (q *Queries) ListCols(ctx context.Context, tableName string) ([]ListDataCol
 	for rows.Next() {
 		var i ListDataCol
 		if err := rows.Scan(&i.ColumnName, &i.DataType, &i.IsUnique, &i.HasAutoIncrement); err != nil {
-			slog.Error("failed to scan rows in list cols", "err", err)
+			logger.Error("failed to scan rows in list cols: %v", err)
 			return nil, err
 		}
 		i.InputType = utils.GetInputType(i.DataType)
 		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Error("failed to scan rows", "err", err)
+		logger.Error("failed to scan rows: %v", err)
 		return nil, err
 	}
 	return items, nil
@@ -64,7 +64,7 @@ func (q *Queries) ListTables(ctx context.Context) ([]ListTablesRow, error) {
 	for rows.Next() {
 		var i ListTablesRow
 		if err := rows.Scan(&i.TableSchema, &i.TableName); err != nil {
-			slog.Error("failed to scan rows", "err", err)
+			logger.Error("failed to scan rows: %v", err)
 			return nil, err
 		}
 		if i.TableName == historyTableName {
@@ -73,10 +73,10 @@ func (q *Queries) ListTables(ctx context.Context) ([]ListTablesRow, error) {
 		items = append([]ListTablesRow{i}, items...)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Error("failed to scan rows", "err", err)
+		logger.Error("failed to scan rows: %v", err)
 		return nil, err
 	}
-	slog.Info("Tables", "tables", items)
+	logger.Info("Tables: %v", items)
 	q.Tables = items
 	return items, nil
 }
@@ -122,11 +122,11 @@ func (q *Queries) InsertRow(ctx context.Context, props InsertDataProps) error {
 		return err
 	}
 	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", props.TableName, qParts.Columns, qParts.Placeholders)
-	slog.Info("Query", "query", query)
-	slog.Info("Args", "args", qParts.Args)
+	logger.Info("Query: %s", query)
+	logger.Info("Args: %v", qParts.Args)
 	_, err = q.db.ExecContext(ctx, query, qParts.Args...)
 	if err != nil {
-		slog.Error(err.Error())
+		logger.Error("%s", err)
 		return err
 	}
 
@@ -142,19 +142,19 @@ func (q *Queries) GetRow(ctx context.Context, tableName, hash string, offest, li
 	}
 
 	if row := q.cache.Get(hash); row != nil {
-		slog.Info("found data in cache", "data", row)
+		logger.Info("found data in cache: %v", row)
 		return row, nil
 	}
-	slog.Info("not found in cache! Fetching from db", "limit", limit, "offset", offest)
+	logger.Info("not found in cache! Fetching from db limit=%d offset=%d", limit, offest)
 	for offest <= limit {
 		query := fmt.Sprintf("SELECT * FROM %s LIMIT $1 OFFSET $2", tableName)
-		slog.Info("Query", "query", query, "offset", offest, "tableName", tableName)
+		logger.Info("Query: %s offset=%d tableName=%s", query, offest, tableName)
 		data, err := q.db.QueryRowxContext(ctx, query, offest+1, offest).SliceScan()
 		if err != nil {
 			if !errors.Is(err, sql.ErrNoRows) {
 				return nil, err
 			}
-			slog.Info("row not found! Continuing to next row")
+			logger.Info("row not found! Continuing to next row")
 		}
 		for i, v := range data {
 			if b, ok := v.([]byte); ok {
@@ -164,7 +164,7 @@ func (q *Queries) GetRow(ctx context.Context, tableName, hash string, offest, li
 		row_hash := utils.MakeRowHash(data)
 		if row_hash == hash {
 			q.cache.Set(row_hash, data)
-			slog.Info("found data in db", "data", data)
+			logger.Info("found data in db: %v", data)
 			return data, nil
 		}
 		offest++
@@ -190,10 +190,10 @@ func (q *Queries) DeleteRow(ctx context.Context, props UpdateOrDeleteRowProps) e
 	}
 	clause, args, err := buildQueryWhereClause(cols, row, q.db.DriverName(), 1)
 	query := fmt.Sprintf("DELETE FROM %s WHERE %s", props.TableName, clause)
-	slog.Info("Query", "query", query)
+	logger.Info("Query: %s", query)
 	_, err = q.db.ExecContext(ctx, query, args...)
 	if err != nil {
-		slog.Error(err.Error())
+		logger.Error("%s", err)
 		return err
 	}
 
@@ -237,11 +237,11 @@ func (q *Queries) UpdateRow(ctx context.Context, props UpdateOrDeleteRowProps) e
 	}
 
 	query := fmt.Sprintf("UPDATE %s SET %s WHERE %s", props.TableName, data, whereClause)
-	slog.Info("Query", "query", query)
+	logger.Info("Query: %s", query)
 	fullargs := append(args, wcArgs...)
 	_, err = q.db.ExecContext(ctx, query, fullargs...)
 	if err != nil {
-		slog.Error(err.Error())
+		logger.Error("%s", err)
 		return err
 	}
 
@@ -263,20 +263,20 @@ func (q *Queries) CreateTable(ctx context.Context, props CreateTableProps) error
 	}
 	validName := regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 	if !validName.MatchString(props.TableName) {
-		slog.Error("invalid table name! Only alphanumeric and _ are allowed", "table_name", props.TableName)
+		logger.Error("invalid table name! Only alphanumeric and _ are allowed table_name=%s", props.TableName)
 		return errors.New("invalid table name! Only alphanumeric and _ are allowed")
 	}
 	query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (%s) ;", props.TableName, parts)
-	slog.Info("CREATE Query", "query", query)
+	logger.Info("CREATE Query: %s", query)
 	result, err := q.db.ExecContext(ctx, query)
 	if err != nil {
-		slog.Error(err.Error())
+		logger.Error("%s", err)
 		return err
 	}
 
 	_, err = result.RowsAffected()
 	if err != nil {
-		slog.Error(err.Error())
+		logger.Error("%s", err)
 		return err
 	}
 
@@ -291,7 +291,7 @@ func (q *Queries) DeleteTable(ctx context.Context, tableName string) error {
 	tables, err := q.ListTables(ctx)
 	found := false
 	if err != nil {
-		slog.Error(err.Error())
+		logger.Error("%s", err)
 		return err
 	}
 	for _, t := range tables {
@@ -305,10 +305,10 @@ func (q *Queries) DeleteTable(ctx context.Context, tableName string) error {
 		return fmt.Errorf("table %s not found", tableName)
 	}
 	query := fmt.Sprintf("DROP TABLE IF EXISTS %s", tableName)
-	slog.Info("Query", "query", query)
+	logger.Info("Query: %s", query)
 	_, err = q.db.ExecContext(ctx, query)
 	if err != nil {
-		slog.Error(err.Error())
+		logger.Error("%s", err)
 		return err
 	}
 

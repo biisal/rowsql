@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/biisal/db-gui/configs"
+	"github.com/biisal/db-gui/internal/logger"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/mattn/go-sqlite3"
@@ -58,16 +58,16 @@ func (q *Queries) InsertHistory(ctx context.Context, message string) {
 	if err != nil {
 		if IsTableNotExistError(err) {
 			if err := q.CreateHistoryTable(ctx); err != nil {
-				slog.Error(err.Error())
+				logger.Error("%s", err)
 				return
 			}
 			_, err = q.db.ExecContext(ctx, query, message)
 			if err != nil {
-				slog.Error(err.Error())
+				logger.Error("%s", err)
 				return
 			}
 		} else {
-			slog.Error(err.Error())
+			logger.Error("%s", err)
 			return
 		}
 	}
@@ -76,7 +76,7 @@ func (q *Queries) DeleteHistory(ctx context.Context, id int) error {
 	query := fmt.Sprintf("DELETE FROM %s WHERE id = $1", historyTableName)
 	_, err := q.db.ExecContext(ctx, query, id)
 	if err != nil {
-		slog.Error(err.Error())
+		logger.Error("%s", err)
 		return err
 	}
 	return nil
@@ -94,7 +94,7 @@ func (q *Queries) CreateHistoryTable(ctx context.Context) error {
 	}
 	_, err := q.db.ExecContext(ctx, query)
 	if err != nil {
-		slog.Error(err.Error())
+		logger.Error("%s", err)
 		return err
 	}
 	return nil
@@ -112,7 +112,7 @@ func (q *Queries) ListHistory(ctx context.Context, limit, offset int) ([]History
 	}
 	rows, err := q.db.QueryxContext(ctx, query, limit, offset)
 	if err != nil {
-		slog.Error(err.Error())
+		logger.Error("%s", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -120,13 +120,13 @@ func (q *Queries) ListHistory(ctx context.Context, limit, offset int) ([]History
 	for rows.Next() {
 		var i History
 		if err := rows.Scan(&i.ID, &i.Message, &i.Time); err != nil {
-			slog.Error("failed to scan rows in list cols", "err", err)
+			logger.Error("failed to scan rows in list cols: %v", err)
 			return nil, err
 		}
 		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Error("failed to scan rows", "err", err)
+		logger.Error("failed to scan rows: %v", err)
 		return nil, err
 	}
 	return items, nil

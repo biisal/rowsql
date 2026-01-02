@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/biisal/db-gui/internal/color"
+	"github.com/biisal/db-gui/internal/logger"
 )
 
 func CORS() func(next http.Handler) http.Handler {
@@ -16,7 +16,7 @@ func CORS() func(next http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 			if r.Method == "OPTIONS" {
 				if origin != "" {
-					color.Default.Debug("CORS preflight request from origin: %s", origin)
+					logger.Debug("CORS preflight request from origin: %s", origin)
 				}
 				w.WriteHeader(http.StatusOK)
 				return

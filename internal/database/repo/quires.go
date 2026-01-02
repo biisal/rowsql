@@ -3,12 +3,12 @@ package repo
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"strconv"
 	"strings"
 
 	"github.com/biisal/db-gui/configs"
 	"github.com/biisal/db-gui/internal/database"
+	"github.com/biisal/db-gui/internal/logger"
 )
 
 const fallbackMsg = "Unknown driver – falling back to SQLite"
@@ -106,7 +106,7 @@ func colsQuery(driver string, tableName string) (string, []any) {
 	case configs.DRIVER_SQLITE:
 		return sqliteColsQuery, []any{tableName, tableName}
 	default:
-		slog.Info(fallbackMsg, "driver", driver)
+		logger.Info("%s driver=%s", fallbackMsg, driver)
 		return sqliteColsQuery, []any{tableName, tableName}
 	}
 }
@@ -144,7 +144,7 @@ func tablesQuery(driver string) string {
 	case configs.DRIVER_SQLITE:
 		return sqliteTablesQuery
 	default:
-		slog.Info(fallbackMsg, "driver", driver)
+		logger.Info("%s driver=%s", fallbackMsg, driver)
 		return sqliteTablesQuery
 	}
 }
@@ -172,7 +172,7 @@ func buildQueryParts(form map[string]FormValue, driver string) (*QueryParts, err
 		if field.Type == "json" {
 			var jsonVal map[string]any
 			if err := json.Unmarshal([]byte(field.Value), &jsonVal); err != nil {
-				slog.Error(err.Error())
+				logger.Error("%s", err)
 				return nil, err
 			}
 			values = append(values, jsonVal)
@@ -235,7 +235,7 @@ func buildQueryWhereClause(cols []ListDataCol, data []any, driver string, argsId
 		if val.DataType == "json" {
 			var jsonVal map[string]any
 			if err := json.Unmarshal([]byte(colVal.(string)), &jsonVal); err != nil {
-				slog.Error(err.Error())
+				logger.Error("%s", err)
 				return "", nil, err
 			}
 			colVal = jsonVal
@@ -250,7 +250,7 @@ func buildQueryWhereClause(cols []ListDataCol, data []any, driver string, argsId
 }
 
 func buildCreateTableQuiry(driver string, parts []database.Input) (string, error) {
-	slog.Info("Building create table query")
+	logger.Info("Building create table query")
 	var s = strings.Builder{}
 	partsLen := len(parts)
 	for i, input := range parts {
@@ -272,9 +272,8 @@ func buildCreateTableQuiry(driver string, parts []database.Input) (string, error
 		}
 		if input.DataType.AutoIncrement {
 			if !input.IsPK {
-				errorMsg := "Auto-increment can only be set on primary key columns"
-				slog.Error(errorMsg)
-				return "", fmt.Errorf(errorMsg)
+				logger.Error("Auto-increment can only be set on primary key columns")
+				return "", fmt.Errorf("auto-increment can only be set on primary key columns")
 			}
 			text := "AUTO_INCREMENT"
 			switch driver {
@@ -289,7 +288,7 @@ func buildCreateTableQuiry(driver string, parts []database.Input) (string, error
 			s.WriteString(",")
 		}
 	}
-	slog.Info("Query", "query", s.String())
+	logger.Info("Query: %s", s.String())
 	return s.String(), nil
 
 }

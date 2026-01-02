@@ -7,7 +7,13 @@ import (
 )
 
 func New(db *sqlx.DB, driver string, maxItemsPerPage int) *Queries {
-	return &Queries{db, driver, NewRowCache(100), maxItemsPerPage, nil}
+	return &Queries{
+		db:              db,
+		driver:          driver,
+		cache:           NewRowCache(100),
+		maxItemsPerPage: maxItemsPerPage,
+		Tables:          nil,
+	}
 }
 
 type Queries struct {
