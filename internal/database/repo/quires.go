@@ -17,6 +17,7 @@ const pgColsQuery = `
 SELECT
     c.column_name,
     c.data_type,
+    (c.column_default IS NOT NULL) AS default_value,
     COALESCE(
         bool_or(tc.constraint_type IN ('UNIQUE', 'PRIMARY KEY')),
         false
@@ -47,6 +48,7 @@ const mysqlColsQuery = `
 SELECT
     c.column_name,
     c.data_type,
+    (c.column_default IS NOT NULL) AS default_value,
     COALESCE(
         MAX(CASE
             WHEN tc.constraint_type IN ('UNIQUE', 'PRIMARY KEY') THEN 1
@@ -69,7 +71,8 @@ GROUP BY
     c.column_name,
     c.data_type,
     c.ordinal_position,
-    c.extra
+    c.extra,
+    c.column_default
 ORDER BY c.ordinal_position;
 `
 
@@ -77,6 +80,7 @@ const sqliteColsQuery = `
 SELECT
     p.name AS column_name,
     p.type AS data_type,
+    (p.dflt_value IS NOT NULL) AS default_value,
     CASE
         WHEN p.pk = 1 THEN 1
         WHEN EXISTS (

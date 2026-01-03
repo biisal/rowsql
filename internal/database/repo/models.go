@@ -7,6 +7,7 @@ type ListDataCol struct {
 	DataType         string `json:"dataType"`
 	InputType        string `json:"inputType"`
 	HasAutoIncrement bool   `json:"hasAutoIncrement"`
+	HasDefault       bool   `json:"hasDefault"`
 }
 
 type ListDataProps struct {

@@ -1,15 +1,15 @@
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import type { Form } from "@/lib/types";
-import { Controller, type Control } from "react-hook-form";
+} from '@/components/ui/select';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import type { Form } from '@/lib/types';
+import { Controller, type Control } from 'react-hook-form';
 
 interface TableInputProps {
   index: number;
@@ -107,7 +107,7 @@ export default function TableFromInput({
                 <Input
                   id={`dataSize-${index}`}
                   type="number"
-                  value={field.value.size || ""}
+                  value={field.value.size || ''}
                   onChange={(e) => {
                     field.onChange({
                       ...field.value,
@@ -124,34 +124,36 @@ export default function TableFromInput({
           }}
         />
         <Controller
-        control={control}
-        name={`inputs.${index}.dataType`}
-        render={({ field, fieldState }) => {
-          if (!field.value?.hasAutoIncrement) return <></>
+          control={control}
+          name={`inputs.${index}.dataType`}
+          render={({ field, fieldState }) => {
+            if (!field.value?.hasAutoIncrement) return <></>;
 
-          return (
-            <Field
-              orientation="horizontal"
-              className="cursor-pointer  p-2 rounded"
-            >
-              <Checkbox
-              className="cursor-pointer"
-              id={`dataHasAutoIncrement-${index}`}
-              checked={field.value.autoIncrement}
-              onCheckedChange={(checked) => field.onChange({
-                ...field.value,
-                autoIncrement: checked === true,
-              })}
-              />
-              <FieldLabel htmlFor={`dataHasAutoIncrement-${index}`}>
-                Auto Increment
-              </FieldLabel>
-              {fieldState.invalid && (
-                <FieldError errors={[fieldState.error]} />
-              )}
-            </Field>
-          );
-        }}
+            return (
+              <Field
+                orientation="horizontal"
+                className="cursor-pointer  p-2 rounded"
+              >
+                <Checkbox
+                  className="cursor-pointer"
+                  id={`dataHasAutoIncrement-${index}`}
+                  checked={field.value.autoIncrement}
+                  onCheckedChange={(checked) =>
+                    field.onChange({
+                      ...field.value,
+                      autoIncrement: checked === true,
+                    })
+                  }
+                />
+                <FieldLabel htmlFor={`dataHasAutoIncrement-${index}`}>
+                  Auto Increment
+                </FieldLabel>
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            );
+          }}
         />
       </div>
 

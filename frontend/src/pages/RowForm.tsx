@@ -34,6 +34,7 @@ interface Column {
   value: string | number | boolean | null;
   isUnique: boolean;
   hasAutoIncrement: boolean;
+  hasDefault: boolean;
 }
 
 interface FormData {
@@ -50,6 +51,10 @@ interface CheckedState {
 
 export function RowForm() {
   const [autoEnabled, setAutoEnabled] = useState<Record<string, CheckedState>>(
+    {},
+  );
+
+  const [hasDefaults, setHasDefaluts] = useState<Record<string, CheckedState>>(
     {},
   );
   const { tableName } = useParams<{ tableName: string }>();
@@ -224,10 +229,40 @@ export function RowForm() {
                             )}
                           </FieldLabel>
 
+                          {col.hasDefault && (
+                            <label className="flex items-center mb-2 text-sm font-medium cursor-pointer">
+                              <Checkbox
+                                className="mr-2"
+                                checked={!!hasDefaults[col.columnName]?.checked}
+                                onCheckedChange={(checked) => {
+                                  const isChecked = checked === true;
+
+                                  setHasDefaluts((prev) => ({
+                                    ...prev,
+                                    [col.columnName]: {
+                                      checked: isChecked,
+                                      oldVal: field.value,
+                                    },
+                                  }));
+
+                                  if (isChecked) {
+                                    field.onChange('');
+                                  } else {
+                                    field.onChange(
+                                      hasDefaults[col.columnName]?.oldVal || '',
+                                    );
+                                  }
+                                }}
+                              />
+                              Use Default Value
+                            </label>
+                          )}
+
                           {col.inputType === 'checkbox' ? (
                             <div className="flex items-center space-x-2 cursor-pointer bg-foreground/5 p-3 rounded">
                               <Checkbox
                                 id={`field-${col.columnName}`}
+                                disabled={hasDefaults[col.columnName]?.checked}
                                 checked={field.value || false}
                                 onCheckedChange={(checked) =>
                                   field.onChange(checked === true)
@@ -243,6 +278,7 @@ export function RowForm() {
                           ) : col.inputType === 'textarea' ||
                             col.inputType === 'json' ? (
                             <Textarea
+                              disabled={hasDefaults[col.columnName]?.checked}
                               {...field}
                               id={`field-${col.columnName}`}
                               placeholder={`Enter ${col.columnName.replace(/_/g, ' ')}`}
@@ -284,7 +320,10 @@ export function RowForm() {
                               )}
                               <Input
                                 {...field}
-                                disabled={autoEnabled[col.columnName]?.checked}
+                                disabled={
+                                  autoEnabled[col.columnName]?.checked ||
+                                  hasDefaults[col.columnName]?.checked
+                                }
                                 id={`field-${col.columnName}`}
                                 type={
                                   col.inputType === 'number' ? 'number' : 'text'

@@ -14,5 +14,8 @@ backend-dev:
 dev:
 	make -j2 frontend-dev backend-dev
 
+build:
+	cd ./frontend && pnpm run build
+	go build -o rowsql ./cmd/server
 
 .PHONY: frontend-dev backend-dev dev run ensure-psql

@@ -35,7 +35,7 @@ func (q *Queries) ListCols(ctx context.Context, tableName string) ([]ListDataCol
 	var items []ListDataCol
 	for rows.Next() {
 		var i ListDataCol
-		if err := rows.Scan(&i.ColumnName, &i.DataType, &i.IsUnique, &i.HasAutoIncrement); err != nil {
+		if err := rows.Scan(&i.ColumnName, &i.DataType, &i.HasDefault, &i.IsUnique, &i.HasAutoIncrement); err != nil {
 			logger.Error("failed to scan rows in list cols: %v", err)
 			return nil, err
 		}

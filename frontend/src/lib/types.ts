@@ -9,6 +9,7 @@ export interface FormInputType {
   size?: number;
   hasBool?: boolean;
   hasAutoIncrement?: boolean;
+  hasDefault?: boolean;
 }
 
 export interface Input {

@@ -19,7 +19,6 @@ import (
 func mount(cfg *configs.Config) error {
 	ctx := context.Background()
 
-	logger.Error("this is a test")
 	if err := logger.SetupFile(cfg.LogFilePath); err != nil {
 		return err
 	}
