@@ -13,7 +13,7 @@ import (
 type DbService interface {
 	ListTables(ctx context.Context) ([]repo.ListTablesRow, error)
 	ListCols(ctx context.Context, tableName string) ([]repo.ListDataCol, error)
-	ListRows(ctx context.Context, tableName string, page int) (repo.ListDataRow, error)
+	ListRows(ctx context.Context, tableName string, page int, column string, order string) (repo.ListDataRow, error)
 	InsertRow(ctx context.Context, props repo.InsertDataProps) error
 	GetRow(ctx context.Context, tableName string, hash string, page int) ([]any, error)
 	UpdateRow(ctx context.Context, values map[string]repo.FormValue, tableName, hash string, page int) error
@@ -48,14 +48,17 @@ func (s *svc) ListCols(ctx context.Context, tableName string) ([]repo.ListDataCo
 	return s.repo.ListCols(ctx, tableName)
 }
 
-func (s *svc) ListRows(ctx context.Context, tableName string, page int) (repo.ListDataRow, error) {
+func (s *svc) ListRows(ctx context.Context, tableName string, page int, column string, order string) (repo.ListDataRow, error) {
 	offset, limit := getLimitOffset(page, s.maxItemsPerPage)
 
 	return s.repo.ListRows(ctx, repo.ListDataProps{
 		TableName: tableName,
 		Limit:     limit,
 		Offset:    offset,
+		Column:    column,
+		Order:     order,
 	})
+	
 }
 
 func (s *svc) InsertRow(ctx context.Context, props repo.InsertDataProps) error {

@@ -176,7 +176,7 @@ func buildQueryParts(form map[string]FormValue, driver string) (*QueryParts, err
 		if field.Type == "json" {
 			var jsonVal map[string]any
 			if err := json.Unmarshal([]byte(field.Value), &jsonVal); err != nil {
-				logger.Error("%s", err)
+				logger.Errorln(err)
 				return nil, err
 			}
 			values = append(values, jsonVal)
@@ -239,7 +239,7 @@ func buildQueryWhereClause(cols []ListDataCol, data []any, driver string, argsId
 		if val.DataType == "json" {
 			var jsonVal map[string]any
 			if err := json.Unmarshal([]byte(colVal.(string)), &jsonVal); err != nil {
-				logger.Error("%s", err)
+				logger.Errorln(err)
 				return "", nil, err
 			}
 			colVal = jsonVal

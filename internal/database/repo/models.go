@@ -14,6 +14,8 @@ type ListDataProps struct {
 	TableName string `json:"tableName"`
 	Limit     int    `json:"limit"`
 	Offset    int    `json:"offset"`
+	Column    string `json:"column"`
+	Order     string `json:"order"`
 }
 type ListDataRow []any
 

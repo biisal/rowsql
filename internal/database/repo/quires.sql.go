@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/biisal/db-gui/internal/database"
 	"github.com/biisal/db-gui/internal/logger"
@@ -85,9 +86,25 @@ func (q *Queries) ListRows(ctx context.Context, props ListDataProps) (ListDataRo
 	if !q.isAllowedTable(props.TableName) {
 		return nil, fmt.Errorf(ErrorInvalidTable)
 	}
-	query := fmt.Sprintf("SELECT * FROM %s LIMIT $1 OFFSET $2", props.TableName)
+	
+	props.Column = strings.TrimSpace(props.Column)
+	
+	orderByClause := ""
+	if props.Column != "" {
+		order := "ASC"
+		if strings.ToLower(props.Order) == "desc"{
+			order = "DESC"
+		}
+		orderByClause = fmt.Sprintf("ORDER BY %s %s", props.Column, order)
+	}
+	
+	query := fmt.Sprintf("SELECT * FROM %s %s LIMIT $1 OFFSET $2", props.TableName , orderByClause)
+	
+	
+	logger.Info("Query : %s", query		)
 	rows, err := q.db.QueryxContext(ctx, query, props.Limit, props.Offset)
 	if err != nil {
+		logger.Error(err.Error())
 		return nil, err
 	}
 	defer rows.Close()
@@ -126,7 +143,7 @@ func (q *Queries) InsertRow(ctx context.Context, props InsertDataProps) error {
 	logger.Info("Args: %v", qParts.Args)
 	_, err = q.db.ExecContext(ctx, query, qParts.Args...)
 	if err != nil {
-		logger.Error("%s", err)
+		logger.Errorln(err)
 		return err
 	}
 
@@ -193,7 +210,7 @@ func (q *Queries) DeleteRow(ctx context.Context, props UpdateOrDeleteRowProps) e
 	logger.Info("Query: %s", query)
 	_, err = q.db.ExecContext(ctx, query, args...)
 	if err != nil {
-		logger.Error("%s", err)
+		logger.Errorln(err)
 		return err
 	}
 
@@ -241,7 +258,7 @@ func (q *Queries) UpdateRow(ctx context.Context, props UpdateOrDeleteRowProps) e
 	fullargs := append(args, wcArgs...)
 	_, err = q.db.ExecContext(ctx, query, fullargs...)
 	if err != nil {
-		logger.Error("%s", err)
+		logger.Errorln(err)
 		return err
 	}
 
@@ -270,13 +287,13 @@ func (q *Queries) CreateTable(ctx context.Context, props CreateTableProps) error
 	logger.Info("CREATE Query: %s", query)
 	result, err := q.db.ExecContext(ctx, query)
 	if err != nil {
-		logger.Error("%s", err)
+		logger.Errorln(err)
 		return err
 	}
 
 	_, err = result.RowsAffected()
 	if err != nil {
-		logger.Error("%s", err)
+		logger.Errorln(err)
 		return err
 	}
 
@@ -291,7 +308,7 @@ func (q *Queries) DeleteTable(ctx context.Context, tableName string) error {
 	tables, err := q.ListTables(ctx)
 	found := false
 	if err != nil {
-		logger.Error("%s", err)
+		logger.Errorln(err)
 		return err
 	}
 	for _, t := range tables {
@@ -308,7 +325,7 @@ func (q *Queries) DeleteTable(ctx context.Context, tableName string) error {
 	logger.Info("Query: %s", query)
 	_, err = q.db.ExecContext(ctx, query)
 	if err != nil {
-		logger.Error("%s", err)
+		logger.Errorln(err)
 		return err
 	}
 

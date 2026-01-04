@@ -208,6 +208,10 @@ func Error(format string, args ...any) {
 	writeToFile(plain)
 }
 
+func Errorln(args ...interface{}) {
+    msg := fmt.Sprintln(args...)
+    Error("%s", strings.TrimSuffix(msg, "\n"))
+}
 func Debug(format string, args ...any) {
 	if !checkLevel(LevelDebug) {
 		return

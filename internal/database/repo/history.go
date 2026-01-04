@@ -60,16 +60,16 @@ func (q *Queries) InsertHistory(ctx context.Context, message string) {
 	if err != nil {
 		if IsTableNotExistError(err) {
 			if err := q.CreateHistoryTable(ctx); err != nil {
-				logger.Error("%s", err)
+				logger.Errorln(err)
 				return
 			}
 			_, err = q.db.ExecContext(ctx, query, message)
 			if err != nil {
-				logger.Error("%s", err)
+				logger.Errorln(err)
 				return
 			}
 		} else {
-			logger.Error("%s", err)
+			logger.Errorln(err)
 			return
 		}
 	}
@@ -78,7 +78,7 @@ func (q *Queries) DeleteHistory(ctx context.Context, id int) error {
 	query := fmt.Sprintf("DELETE FROM %s WHERE id = $1", historyTableName)
 	_, err := q.db.ExecContext(ctx, query, id)
 	if err != nil {
-		logger.Error("%s", err)
+		logger.Errorln(err)
 		return err
 	}
 	return nil
@@ -96,7 +96,7 @@ func (q *Queries) CreateHistoryTable(ctx context.Context) error {
 	}
 	_, err := q.db.ExecContext(ctx, query)
 	if err != nil {
-		logger.Error("%s", err)
+		logger.Errorln(err)
 		return err
 	}
 	return nil
@@ -114,7 +114,7 @@ func (q *Queries) ListHistory(ctx context.Context, limit, offset int) ([]History
 	}
 	rows, err := q.db.QueryxContext(ctx, query, limit, offset)
 	if err != nil {
-		logger.Error("%s", err)
+		logger.Errorln(err)
 		return nil, err
 	}
 	defer rows.Close()

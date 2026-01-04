@@ -1,35 +1,19 @@
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { Plus, Loader2, MoreHorizontal } from "lucide-react";
+import { Plus,   } from "lucide-react";
 import axios from "axios";
 import api from "@/lib/axios";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { AppPagination } from "@/components/app-pagination";
-import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { DeletAlert } from "@/components/delete-alert";
+import { RowOrderForm } from "@/components/row-order-form";
+import type { Column, Table } from "@/lib/types";
+import { Rows, RowsSkeleton } from "@/components/rows";
 
-interface Column {
-  columnName: string;
-  dataType: string;
-}
-
-interface Table {
-  table_name: string;
-  table_schema: string;
-}
 
 type CellValue = string | number | boolean | null;
 type RowData = CellValue[];
@@ -42,6 +26,8 @@ interface TableData {
   Rows: RowData[];
 }
 
+
+
 export function TableRows() {
   const { tableName } = useParams<{ tableName: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -50,19 +36,22 @@ export function TableRows() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedRows, setSelectedRows] = useState<Record<number, boolean>>({});
-
   const page = parseInt(searchParams.get("page") || "1");
+  const col = searchParams.get("col");
+  const order = searchParams.get("order") || "asc";
 
   const fetchData = React.useCallback(async () => {
     if (!tableName) return;
-
     setLoading(true);
     setError(null);
+    
+    
     try {
-      const response = await api.get(`/table/${tableName}?page=${page}`);
+    
+      const response = await api.get(`/table/${tableName}?page=${page}${col ? `&column=${col}&order=${order}` : ''}`);
       if (response.data.success) {
         setData(response.data.data);
-        setSelectedRows({}); // Reset selection on page change
+        setSelectedRows({}); 
       }
     } catch (err) {
       if (axios.isAxiosError(err)) {
@@ -75,7 +64,7 @@ export function TableRows() {
     } finally {
       setLoading(false);
     }
-  }, [tableName, page, refresh]); // eslint-disable-line
+  }, [tableName, searchParams, refresh]); // eslint-disable-line
 
   const deleteRow = async (hash: string) => {
     try {
@@ -97,6 +86,11 @@ export function TableRows() {
       }
     }
   };
+
+  // Reset search params when table name changes
+  useEffect(() => {
+    setSearchParams({}, { replace: true });
+  }, [tableName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchData();
@@ -124,13 +118,6 @@ export function TableRows() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -167,130 +154,23 @@ export function TableRows() {
         </div>
 
         <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-          <CardHeader className="px-6 py-4 border-b border-border/50">
+          <CardHeader className="px-6 py-4 flex justify-between items-center flex-wrap border-b border-border/50">
             <CardTitle className="text-lg font-medium">Table Data</CardTitle>
+            <RowOrderForm cols={data.Cols} initialValue={{col, order}} setUrlParams={setSearchParams} />
           </CardHeader>
           <CardContent className="p-4">
-            <div className="rounded-md border overflow-auto  relative">
-              <div
-                className="grid min-w-full"
-                style={{
-                  gridTemplateColumns: `40px ${data.Cols.map(() => "minmax(150px, 1fr)").join(" ")} 80px`,
-                }}
-              >
-                {/* Checkbox Header */}
-                <div className="h-10 px-2 flex items-center justify-center border-b bg-muted/50 sticky top-0 z-20">
-                  <Checkbox
-                    checked={
-                      isAllSelected
-                        ? true
-                        : isSomeSelected
-                          ? "indeterminate"
-                          : false
-                    }
-                    onCheckedChange={toggleAllSelection}
-                    aria-label="Select all"
-                  />
-                </div>
-
-                {/* Data Columns Headers */}
-                {data.Cols.map((col) => (
-                  <div
-                    key={col.columnName}
-                    className="h-10 px-2 text-left align-middle font-medium text-muted-foreground flex items-center border-b bg-muted/50 sticky top-0 z-20"
-                  >
-                    {col.columnName}
-                  </div>
-                ))}
-
-                {/* Actions Header */}
-                <div className="h-10 px-2 text-right align-middle font-medium text-muted-foreground flex items-center justify-end border-b bg-muted/50 sticky top-0 right-0 z-30 shadow-[-1px_0_0_0_var(--border)]">
-                  Actions
-                </div>
-
-                {/* Body Rows */}
-                {data.Rows.length > 0 ? (
-                  data.Rows.map((row, rowIndex) => {
-                    const hash = String(row[0] ?? "");
-                    const isSelected = !!selectedRows[rowIndex];
-
-                    return (
-                      <React.Fragment key={rowIndex}>
-                        {/* Checkbox Cell */}
-                        <div
-                          className={cn(
-                            "p-2 flex items-center justify-center border-b bg-card group-hover:bg-muted/50 transition-colors",
-                            isSelected && "bg-muted",
-                          )}
-                        >
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => toggleRowSelection(rowIndex)}
-                            aria-label="Select row"
-                          />
-                        </div>
-
-                        {row
-                          .slice(1)
-                          .map((cell: CellValue, cellIndex: number) => (
-                            <div
-                              key={cellIndex}
-                              className={cn(
-                                "p-2 align-middle flex items-center border-b bg-card group-hover:bg-muted/50 transition-colors lowercase",
-                                isSelected && "bg-muted",
-                              )}
-                            >
-                              {cell === null ? "NULL" : String(cell)}
-                            </div>
-                          ))}
-
-                        {/* Actions Cell */}
-                        <div
-                          className={cn(
-                            "p-2 align-middle flex items-center justify-end border-b bg-card group-hover:bg-muted/50 transition-colors sticky right-0 z-10 shadow-[-1px_0_0_0_var(--border)]",
-                            isSelected && "bg-muted",
-                          )}
-                        >
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              align="end"
-                              className="px-4 py-2"
-                            >
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem>
-                                <Link
-                                  to={`/table/${data.ActiveTable}/form?hash=${hash}&page=${data.Page}`}
-                                >
-                                  <DropdownMenuItem>Edit Row</DropdownMenuItem>
-                                </Link>
-                              </DropdownMenuItem>
-                              <Button
-                                variant="danger"
-                                className="w-full"
-                                onClick={() => deleteRow(hash)}
-                              >
-                                Delete Row
-                              </Button>
-                              <DropdownMenuSeparator />
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </React.Fragment>
-                    );
-                  })
-                ) : (
-                  <div className="col-span-full h-24 flex items-center justify-center">
-                    No results.
-                  </div>
-                )}
-              </div>
-            </div>
+          {loading ? <RowsSkeleton/>
+          :
+          <Rows
+            data={data}
+            selectedRows={selectedRows}
+            isAllSelected={isAllSelected}
+            isSomeSelected={isSomeSelected}
+            toggleAllSelection={toggleAllSelection}
+            toggleRowSelection={toggleRowSelection}
+            deleteRow={deleteRow}
+          />
+          }
             <div className="flex items-center justify-between py-4">
               <div className="text-muted-foreground flex-1 text-sm">
                 {Object.values(selectedRows).filter(Boolean).length} of{" "}

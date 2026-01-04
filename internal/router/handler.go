@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/biisal/db-gui/internal/apperr"
 	"github.com/biisal/db-gui/internal/database"
 	"github.com/biisal/db-gui/internal/database/repo"
 	"github.com/biisal/db-gui/internal/logger"
@@ -69,7 +70,29 @@ func (h DbHandler) TableRows(w http.ResponseWriter, r *http.Request) {
 		pageInt = 1
 	}
 	pageInt = max(pageInt, 1)
-	rows, err := h.service.ListRows(r.Context(), tableName, pageInt)
+	
+	colParam := strings.TrimSpace(r.URL.Query().Get("column"))
+	order := r.URL.Query().Get("order")
+	
+	colFound := false
+	if colParam != "" {
+		cols , err := h.service.ListCols(r.Context() , tableName)
+		if err != nil {
+			resopnse.Error(w, http.StatusInternalServerError, err)
+		}
+		for _ , col:= range cols{
+			if col.ColumnName == colParam{
+				colFound = true
+				break
+			}
+		}
+		if !colFound {
+			resopnse.Error(w, http.StatusBadRequest , fmt.Errorf(apperr.ErrorInvalidColumn))
+			return 
+		}		
+		
+	}
+	rows, err := h.service.ListRows(r.Context(), tableName, pageInt, colParam, order)
 	if err != nil {
 		logger.Error("%s", err)
 		logger.Error("Failed to fetch rows from table '%s'", tableName)

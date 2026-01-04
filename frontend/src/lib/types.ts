@@ -1,3 +1,7 @@
+export interface Column {
+  columnName: string;
+  dataType: string;
+}
 export interface Table {
   tableName: string;
   tableSchema: string;
