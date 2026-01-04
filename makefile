@@ -2,8 +2,7 @@ ensure-psql:
 	@systemctl is-active --quiet postgresql || sudo systemctl start postgresql
 
 run:
-	cd ./frontend && pnpm run build
-	go run ./cmd/server
+	./bin/rowsql
 
 frontend-dev:
 	cd ./frontend/ && pnpm run dev
@@ -16,6 +15,6 @@ dev:
 
 build:
 	cd ./frontend && pnpm run build
-	go build -o rowsql ./cmd/server
+	go build -o bin/rowsql ./cmd/server
 
 .PHONY: frontend-dev backend-dev dev run ensure-psql

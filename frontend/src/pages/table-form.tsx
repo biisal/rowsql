@@ -268,6 +268,7 @@ export const TabelForm = () => {
                 >
                   {form.formState.isSubmitting ? 'Creating...' : 'Create Table'}
                 </Button>
+                {import.meta.env.DEV && 
                 <Button
                   type="button"
                   variant="outline"
@@ -282,6 +283,7 @@ export const TabelForm = () => {
                 >
                   Debug
                 </Button>
+                }
               </CardFooter>
             </FieldGroup>
           </form>

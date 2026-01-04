@@ -14,7 +14,7 @@ import (
 const (
 	DRIVER_POSTGRES        = "pgx"
 	DRIVER_MYSQL           = "mysql"
-	DRIVER_SQLITE          = "sqlite3"
+	DRIVER_SQLITE          = "sqlite"
 	ENV_DEVELOPMENT string = "development"
 	ENV_PRODUCTION  string = "production"
 )

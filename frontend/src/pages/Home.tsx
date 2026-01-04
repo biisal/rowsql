@@ -120,11 +120,14 @@ export function Home() {
   return (
     <div className="flex-1 p-8 overflow-y-auto">
       <div className="max-w-6xl mx-auto space-y-8 animate-fade-in-up">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-background to-background border border-border/50 p-8 md:p-12">
+        <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-primary/10 via-background to-background border border-border/50 p-8 md:p-12">
           <div className="relative z-10 max-w-2xl space-y-6">
+          <div className="flex items-center flex-wrap">
+          <img src="/logo.png" className="h-20 w-20"/>
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">
-              Welcome to <span className="text-primary">RowSQL</span>
+              Welcome to <span className="bg-gradient-to-br  to-primary via-primary from-secondary-foreground bg-clip-text text-transparent">RowSQL</span>
             </h1>
+          </div>
             <p className="text-lg text-muted-foreground leading-relaxed">
               Your modern, powerful interface for database management. Monitor
               performance, manage schemas, and query data with ease.

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Database, Table as TableIcon, Plus, Clock } from "lucide-react";
+import { Table as TableIcon, Plus, Clock } from "lucide-react";
 import {
   Sidebar as ShadcnSidebar,
   SidebarContent,
@@ -48,7 +48,7 @@ export function Sidebar({
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild isActive={isHome}>
               <Link to="/" className="flex items-center gap-2">
-                <Database className="w-5 h-5" />
+              <img src="/logo.png" alt="Logo" className="w-12 h-12" />
                 <span className="text-lg font-bold uppercase tracking-widest">
                   RowSQL
                 </span>

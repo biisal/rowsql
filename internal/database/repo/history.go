@@ -4,13 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/biisal/db-gui/configs"
 	"github.com/biisal/db-gui/internal/logger"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/mattn/go-sqlite3"
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
 type History struct {
@@ -35,10 +37,10 @@ func IsTableNotExistError(err error) bool {
 		return mysqlErr.Number == 1146
 	}
 
-	var sqliteErr sqlite3.Error
+	var sqliteErr *sqlite.Error
 	if errors.As(err, &sqliteErr) {
-		return sqliteErr.Code == sqlite3.ErrError &&
-			sqliteErr.ExtendedCode == 1
+		return sqliteErr.Code() == sqlite3.SQLITE_ERROR &&
+			strings.Contains(strings.ToLower(err.Error()), "no such table")
 	}
 
 	return false
