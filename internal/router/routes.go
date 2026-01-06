@@ -1,3 +1,4 @@
+// Package router contains the handler for the database
 package router
 
 import (
@@ -12,7 +13,8 @@ const apiPrefix = "/api/v1"
 func route(method methodType, path string) string {
 	return fmt.Sprintf("%s %s%s", method, apiPrefix, path)
 }
-func MountRouter(handler DbHandler) (*http.ServeMux, error) {
+
+func MountRouter(handler DBHandler) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
 
 	mux.Handle("/", frontend.ReactHandler("/"))

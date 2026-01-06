@@ -15,11 +15,11 @@ import (
 	resopnse "github.com/biisal/db-gui/internal/response"
 )
 
-type DbHandler struct {
-	service DbService
+type DBHandler struct {
+	service DBService
 }
 
-type BaseHtmlData struct {
+type BaseHTMLData struct {
 	Tables      []repo.ListTablesRow
 	Cols        []repo.ListDataCol
 	ActiveTable string
@@ -29,30 +29,30 @@ type ErrorMessage struct {
 	Message string
 }
 
-func NewHandler(service DbService) DbHandler {
-	return DbHandler{
+func NewHandler(service DBService) DBHandler {
+	return DBHandler{
 		service,
 	}
 }
 
-func (h DbHandler) getBaseData(ctx context.Context, tableName ...string) (*BaseHtmlData, error) {
+func (h DBHandler) getBaseData(ctx context.Context, tableName ...string) (*BaseHTMLData, error) {
 	tables, err := h.service.ListTables(ctx)
 	if err != nil {
 		logger.Error("%s", err)
 		return nil, err
 	}
 	if len(tableName) == 0 {
-		return &BaseHtmlData{Tables: tables}, nil
+		return &BaseHTMLData{Tables: tables}, nil
 	}
 	cols, err := h.service.ListCols(ctx, tableName[0])
 	if err != nil {
 		logger.Error("%s", err)
 		return nil, err
 	}
-	return &BaseHtmlData{Tables: tables, Cols: cols, ActiveTable: tableName[0]}, nil
+	return &BaseHTMLData{Tables: tables, Cols: cols, ActiveTable: tableName[0]}, nil
 }
 
-func (h DbHandler) ListTables(w http.ResponseWriter, r *http.Request) {
+func (h DBHandler) ListTables(w http.ResponseWriter, r *http.Request) {
 	tables, err := h.service.ListTables(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -62,7 +62,7 @@ func (h DbHandler) ListTables(w http.ResponseWriter, r *http.Request) {
 	resopnse.Success(w, http.StatusOK, tables)
 }
 
-func (h DbHandler) TableRows(w http.ResponseWriter, r *http.Request) {
+func (h DBHandler) TableRows(w http.ResponseWriter, r *http.Request) {
 	tableName := r.PathValue("tableName")
 	page := r.URL.Query().Get("page")
 	pageInt, err := strconv.Atoi(page)
@@ -70,31 +70,31 @@ func (h DbHandler) TableRows(w http.ResponseWriter, r *http.Request) {
 		pageInt = 1
 	}
 	pageInt = max(pageInt, 1)
-	
+
 	colParam := strings.TrimSpace(r.URL.Query().Get("column"))
 	order := r.URL.Query().Get("order")
-	
+
 	colFound := false
 	if colParam != "" {
-		cols , err := h.service.ListCols(r.Context() , tableName)
+		var cols []repo.ListDataCol
+		cols, err = h.service.ListCols(r.Context(), tableName)
 		if err != nil {
 			resopnse.Error(w, http.StatusInternalServerError, err)
 		}
-		for _ , col:= range cols{
-			if col.ColumnName == colParam{
+		for _, col := range cols {
+			if col.ColumnName == colParam {
 				colFound = true
 				break
 			}
 		}
 		if !colFound {
-			resopnse.Error(w, http.StatusBadRequest , fmt.Errorf(apperr.ErrorInvalidColumn))
-			return 
-		}		
-		
+			resopnse.Error(w, http.StatusBadRequest, fmt.Errorf(apperr.ErrorInvalidColumn))
+			return
+		}
+
 	}
 	rows, err := h.service.ListRows(r.Context(), tableName, pageInt, colParam, order)
 	if err != nil {
-		logger.Error("%s", err)
 		logger.Error("Failed to fetch rows from table '%s'", tableName)
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
@@ -107,22 +107,26 @@ func (h DbHandler) TableRows(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := struct {
-		Page        int
-		Rows        repo.ListDataRow
-		Cols        []repo.ListDataCol
-		ActiveTable string
-	}{
-		pageInt,
-		rows,
-		cols,
-		tableName,
+	count, err := h.service.GetRowCount(r.Context(), tableName)
+	if err != nil {
+		logger.Error("%s", err)
+		resopnse.Error(w, http.StatusInternalServerError, err)
+		return
 	}
+
 	logger.Debug("Loaded page %d for table '%s'", pageInt, tableName)
-	resopnse.Success(w, http.StatusOK, data)
+	resopnse.Success(w, http.StatusOK,
+		ListRowsResponse{
+			Page:        pageInt,
+			Rows:        rows,
+			Cols:        cols,
+			RowCount:    count,
+			ActiveTable: tableName,
+		},
+	)
 }
 
-func (h DbHandler) RowInsertForm(w http.ResponseWriter, r *http.Request) {
+func (h DBHandler) RowInsertForm(w http.ResponseWriter, r *http.Request) {
 	tableName := r.PathValue("tableName")
 	tables, err := h.service.ListTables(r.Context())
 	if err != nil {
@@ -150,7 +154,6 @@ func (h DbHandler) RowInsertForm(w http.ResponseWriter, r *http.Request) {
 	}
 	var initialRow []any
 	if hash != "" {
-		var err error
 		action = "Update"
 		initialRow, err = h.service.GetRow(r.Context(), tableName, hash, pageInt)
 		if err != nil {
@@ -173,7 +176,7 @@ func (h DbHandler) RowInsertForm(w http.ResponseWriter, r *http.Request) {
 	}
 	data := struct {
 		Action string
-		BaseHtmlData
+		BaseHTMLData
 	}{
 		action,
 		*basseData,
@@ -181,9 +184,9 @@ func (h DbHandler) RowInsertForm(w http.ResponseWriter, r *http.Request) {
 	resopnse.Success(w, http.StatusOK, data)
 }
 
-func (h DbHandler) InsertOrUpdateRow(w http.ResponseWriter, r *http.Request) {
+func (h DBHandler) InsertOrUpdateRow(w http.ResponseWriter, r *http.Request) {
 	tableName := r.PathValue("tableName")
-	var form = make(map[string]repo.FormValue)
+	form := make(map[string]repo.FormValue)
 	if err := json.NewDecoder(r.Body).Decode(&form); err != nil {
 		logger.Error("%s", err)
 		resopnse.Error(w, http.StatusInternalServerError, err)
@@ -214,7 +217,7 @@ func (h DbHandler) InsertOrUpdateRow(w http.ResponseWriter, r *http.Request) {
 		TableName: tableName,
 		Values:    form,
 	}); err != nil {
-		logger.Error("%s", err)
+		logger.Errorln(err.Error())
 		logger.Error("Failed to insert row in table '%s'", tableName)
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
@@ -223,7 +226,7 @@ func (h DbHandler) InsertOrUpdateRow(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h DbHandler) DeleteRow(w http.ResponseWriter, r *http.Request) {
+func (h DBHandler) DeleteRow(w http.ResponseWriter, r *http.Request) {
 	tableName := r.PathValue("tableName")
 	hash := r.PathValue("hash")
 	page := r.URL.Query().Get("page")
@@ -241,7 +244,7 @@ func (h DbHandler) DeleteRow(w http.ResponseWriter, r *http.Request) {
 	resopnse.Success(w, http.StatusOK, nil)
 }
 
-func (h DbHandler) NewTableFormFileds(w http.ResponseWriter, r *http.Request) {
+func (h DBHandler) NewTableFormFileds(w http.ResponseWriter, r *http.Request) {
 	fields := h.service.GetTableFormDataTypes()
 	if fields == nil {
 		resopnse.Error(w, http.StatusInternalServerError, fmt.Errorf("no data found"))
@@ -251,8 +254,8 @@ func (h DbHandler) NewTableFormFileds(w http.ResponseWriter, r *http.Request) {
 	resopnse.Success(w, http.StatusOK, fields)
 }
 
-func (h DbHandler) CreeteNewTable(w http.ResponseWriter, r *http.Request) {
-	var req = struct {
+func (h DBHandler) CreeteNewTable(w http.ResponseWriter, r *http.Request) {
+	req := struct {
 		TableName string           `json:"tableName"`
 		Inputs    []database.Input `json:"inputs"`
 	}{}
@@ -270,7 +273,6 @@ func (h DbHandler) CreeteNewTable(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Success("Table '%s' created successfully with %d columns", req.TableName, len(req.Inputs))
 	resopnse.Success(w, http.StatusCreated, nil)
-
 }
 
 type DeleteTableRequest struct {
@@ -278,7 +280,7 @@ type DeleteTableRequest struct {
 	VerificationQuiry string `json:"verificationQuery"`
 }
 
-func (h *DbHandler) DeleteTable(w http.ResponseWriter, r *http.Request) {
+func (h *DBHandler) DeleteTable(w http.ResponseWriter, r *http.Request) {
 	var req DeleteTableRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		logger.Error("%s", err)
@@ -296,7 +298,7 @@ func (h *DbHandler) DeleteTable(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *DbHandler) ListHistory(w http.ResponseWriter, r *http.Request) {
+func (h *DBHandler) ListHistory(w http.ResponseWriter, r *http.Request) {
 	page := r.URL.Query().Get("page")
 	pageInt, err := strconv.Atoi(page)
 	if err != nil {
@@ -316,7 +318,7 @@ func (h *DbHandler) ListHistory(w http.ResponseWriter, r *http.Request) {
 	resopnse.Success(w, http.StatusOK, history)
 }
 
-func (h *DbHandler) ListRecentHistory(w http.ResponseWriter, r *http.Request) {
+func (h *DBHandler) ListRecentHistory(w http.ResponseWriter, r *http.Request) {
 	history, err := h.service.ListHistory(r.Context(), 1)
 	if err != nil {
 		logger.Error("Failed to list recent history: %v", err)

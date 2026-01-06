@@ -1,4 +1,5 @@
-package resopnse
+// Package response provides functions for creating JSON responses.
+package response
 
 import (
 	"encoding/json"

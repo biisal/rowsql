@@ -1,3 +1,4 @@
+// Package frontend is the frontend of the application
 package frontend
 
 import (
@@ -20,7 +21,7 @@ func ReactHandler(path string) http.Handler {
 		log.Fatal(err)
 	}
 
-	var filesystem = http.FS(fsys)
+	filesystem := http.FS(fsys)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fPath := strings.TrimPrefix(r.URL.Path, path)
 		checkPath := strings.TrimPrefix(fPath, "/")
@@ -33,5 +34,4 @@ func ReactHandler(path string) http.Handler {
 		}
 		http.FileServer(filesystem).ServeHTTP(w, r)
 	})
-
 }

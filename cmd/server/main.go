@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	var cfg = configs.MustLoad()
+	cfg := configs.MustLoad()
 	if err := mount(cfg); err != nil {
 		log.Fatal(err)
 	}

@@ -1,6 +1,6 @@
 package database
 
-var MySqlNumericDataTypes = []NumericDataType{
+var MySQLNumericDataTypes = []NumericDataType{
 	{Type: "BIT", HasSize: true, HasDigit: false, HasAutoIncrement: false},
 	{Type: "TINYINT", HasSize: true, HasDigit: false, HasAutoIncrement: true},
 	{Type: "BOOL", HasSize: false, HasDigit: false, HasAutoIncrement: false},
@@ -18,7 +18,7 @@ var MySqlNumericDataTypes = []NumericDataType{
 	{Type: "DEC", HasSize: true, HasDigit: true, HasAutoIncrement: false},
 }
 
-var MySqlStringDataTypes = []StringDataType{
+var MySQLStringDataTypes = []StringDataType{
 	{Type: "CHAR", HasSize: true, HasValues: false},
 	{Type: "VARCHAR", HasSize: true, HasValues: false},
 	{Type: "BINARY", HasSize: true, HasValues: false},

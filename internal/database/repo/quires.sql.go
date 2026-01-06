@@ -8,13 +8,16 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/biisal/db-gui/configs"
 	"github.com/biisal/db-gui/internal/database"
 	"github.com/biisal/db-gui/internal/logger"
 	"github.com/biisal/db-gui/internal/utils"
 )
 
-const ErrorInvalidTable = "invalid table name"
-const ErrorNotFound = "not found"
+const (
+	ErrorInvalidTable = "invalid table name"
+	ErrorNotFound     = "not found"
+)
 
 func (q *Queries) isAllowedTable(table string) bool {
 	for _, t := range q.Tables {
@@ -82,29 +85,37 @@ func (q *Queries) ListTables(ctx context.Context) ([]ListTablesRow, error) {
 	return items, nil
 }
 
+func placeHolder(driver string, n int) string {
+	if driver == configs.DriverMySQL {
+		return "?"
+	}
+	return fmt.Sprintf("$%d", n)
+}
+
 func (q *Queries) ListRows(ctx context.Context, props ListDataProps) (ListDataRow, error) {
 	if !q.isAllowedTable(props.TableName) {
+		logger.Errorln(ErrorInvalidTable)
 		return nil, fmt.Errorf(ErrorInvalidTable)
 	}
-	
+
 	props.Column = strings.TrimSpace(props.Column)
-	
+
 	orderByClause := ""
 	if props.Column != "" {
 		order := "ASC"
-		if strings.ToLower(props.Order) == "desc"{
+		if strings.ToLower(props.Order) == "desc" {
 			order = "DESC"
 		}
 		orderByClause = fmt.Sprintf("ORDER BY %s %s", props.Column, order)
 	}
-	
-	query := fmt.Sprintf("SELECT * FROM %s %s LIMIT $1 OFFSET $2", props.TableName , orderByClause)
-	
-	
-	logger.Info("Query : %s", query		)
+
+	driver := q.db.DriverName()
+	query := fmt.Sprintf("SELECT * FROM %s %s LIMIT %s OFFSET %s", props.TableName, orderByClause, placeHolder(driver, 1), placeHolder(driver, 2))
+
+	logger.Info("Query : %s", query)
 	rows, err := q.db.QueryxContext(ctx, query, props.Limit, props.Offset)
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Errorln(err.Error())
 		return nil, err
 	}
 	defer rows.Close()
@@ -112,6 +123,7 @@ func (q *Queries) ListRows(ctx context.Context, props ListDataProps) (ListDataRo
 	for rows.Next() {
 		row, err := rows.SliceScan()
 		if err != nil {
+			logger.Errorln(err.Error())
 			return nil, err
 		}
 
@@ -120,13 +132,34 @@ func (q *Queries) ListRows(ctx context.Context, props ListDataProps) (ListDataRo
 				row[i] = string(b)
 			}
 		}
-		row_hash := utils.MakeRowHash(row)
-		q.cache.Set(row_hash, row)
-		row = append([]any{row_hash}, row...)
+		rowHash := utils.MakeRowHash(row)
+		q.cache.Set(rowHash, row)
+		row = append([]any{rowHash}, row...)
 		data = append(data, row)
 	}
 
+	if err := rows.Err(); err != nil {
+		logger.Errorln(err.Error())
+		return nil, err
+	}
+
 	return data, nil
+}
+
+func (q *Queries) GetRowCount(ctx context.Context, tableName string) (int, error) {
+	if !q.isAllowedTable(tableName) {
+		return 0, fmt.Errorf(ErrorInvalidTable)
+	}
+
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s", tableName)
+	var count int
+	err := q.db.QueryRowxContext(ctx, countQuery).Scan(&count)
+	if err != nil {
+		logger.Errorln(err.Error())
+		return 0, err
+	}
+
+	return count, nil
 }
 
 func (q *Queries) InsertRow(ctx context.Context, props InsertDataProps) error {
@@ -138,7 +171,16 @@ func (q *Queries) InsertRow(ctx context.Context, props InsertDataProps) error {
 	if err != nil {
 		return err
 	}
-	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", props.TableName, qParts.Columns, qParts.Placeholders)
+	var query string
+	if qParts.Columns == "" {
+		if q.db.DriverName() == configs.DriverMySQL {
+			query = fmt.Sprintf("INSERT INTO %s VALUES (%s)", props.TableName, qParts.Placeholders)
+		} else {
+			query = fmt.Sprintf("INSERT INTO %s DEFAULT VALUES", props.TableName)
+		}
+	} else {
+		query = fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", props.TableName, qParts.Columns, qParts.Placeholders)
+	}
 	logger.Info("Query: %s", query)
 	logger.Info("Args: %v", qParts.Args)
 	_, err = q.db.ExecContext(ctx, query, qParts.Args...)
@@ -178,9 +220,9 @@ func (q *Queries) GetRow(ctx context.Context, tableName, hash string, offest, li
 				data[i] = string(b)
 			}
 		}
-		row_hash := utils.MakeRowHash(data)
-		if row_hash == hash {
-			q.cache.Set(row_hash, data)
+		rowHash := utils.MakeRowHash(data)
+		if rowHash == hash {
+			q.cache.Set(rowHash, data)
 			logger.Info("found data in db: %v", data)
 			return data, nil
 		}
@@ -206,6 +248,10 @@ func (q *Queries) DeleteRow(ctx context.Context, props UpdateOrDeleteRowProps) e
 		return err
 	}
 	clause, args, err := buildQueryWhereClause(cols, row, q.db.DriverName(), 1)
+	if err != nil {
+		logger.Errorln(err.Error())
+		return err
+	}
 	query := fmt.Sprintf("DELETE FROM %s WHERE %s", props.TableName, clause)
 	logger.Info("Query: %s", query)
 	_, err = q.db.ExecContext(ctx, query, args...)
@@ -300,8 +346,11 @@ func (q *Queries) CreateTable(ctx context.Context, props CreateTableProps) error
 	historyMsg := fmt.Sprintf("Created table '%s'", props.TableName)
 	q.InsertHistory(ctx, historyMsg)
 
-	return nil
+	// TODO: get table info and add to q.Tables
+	// temp refresh
+	q.ListTables(ctx)
 
+	return nil
 }
 
 func (q *Queries) DeleteTable(ctx context.Context, tableName string) error {

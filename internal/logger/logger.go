@@ -1,3 +1,4 @@
+// Package logger provides functions for logging messages.
 package logger
 
 import (
@@ -59,7 +60,7 @@ func SetupFile(logFilePath string, disableColor ...bool) error {
 		logFilePath = strings.Replace(logFilePath, "~", homeDir, 1)
 	}
 
-	f, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	f, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
 	if err != nil {
 		if os.IsNotExist(err) {
 			Info("The filepath `%s` doesn't exist\nDo you want to create it? [y/n]", logFilePath)
@@ -72,7 +73,7 @@ func SetupFile(logFilePath string, disableColor ...bool) error {
 			if mkErr := os.MkdirAll(dir, os.ModePerm); mkErr != nil {
 				return fmt.Errorf("failed to create log directory: %w", mkErr)
 			}
-			f, err = os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+			f, err = os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
 			if err != nil {
 				return fmt.Errorf("failed to create log file: %w", err)
 			}
@@ -209,9 +210,10 @@ func Error(format string, args ...any) {
 }
 
 func Errorln(args ...interface{}) {
-    msg := fmt.Sprintln(args...)
-    Error("%s", strings.TrimSuffix(msg, "\n"))
+	msg := fmt.Sprintln(args...)
+	Error("%s", strings.TrimSuffix(msg, "\n"))
 }
+
 func Debug(format string, args ...any) {
 	if !checkLevel(LevelDebug) {
 		return

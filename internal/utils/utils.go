@@ -1,3 +1,4 @@
+// Package utils provides utility functions for the db-gui application.
 package utils
 
 import (
@@ -15,7 +16,7 @@ func IsSafeIdentifier(s string) bool {
 		return false
 	}
 	for _, c := range s {
-		if !(c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
+		if c != '_' && (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') {
 			return false
 		}
 	}
@@ -33,12 +34,12 @@ func DetectDriver(connectionString string) (string, error) {
 	case strings.HasPrefix(lower, "postgres://") ||
 		strings.HasPrefix(lower, "postgresql://") ||
 		strings.Contains(lower, "host=") && strings.Contains(lower, "dbname="):
-		return configs.DRIVER_POSTGRES, nil
+		return configs.DriverPostgres, nil
 
 	case strings.HasPrefix(lower, "mysql://") ||
 		strings.Contains(lower, "tcp(") ||
 		strings.Contains(lower, "parseTime="):
-		return configs.DRIVER_MYSQL, nil
+		return configs.DriverMySQL, nil
 
 	case strings.HasPrefix(lower, "sqlite://") ||
 		strings.HasPrefix(lower, "file:") ||
@@ -46,10 +47,10 @@ func DetectDriver(connectionString string) (string, error) {
 		strings.HasSuffix(lower, ".sqlite") ||
 		strings.HasSuffix(lower, ".sqlite3") ||
 		lower == ":memory:":
-		return configs.DRIVER_SQLITE, nil
+		return configs.DriverSQLite, nil
 
 	default:
-		return "", fmt.Errorf("unable to detect driver from connection string! Make sure your connection string is coorect and try again.")
+		return "", fmt.Errorf("unable to detect driver from connection string! Make sure your connection string is coorect and try again")
 	}
 }
 

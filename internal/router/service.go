@@ -10,7 +10,7 @@ import (
 	"github.com/biisal/db-gui/internal/database/repo"
 )
 
-type DbService interface {
+type DBService interface {
 	ListTables(ctx context.Context) ([]repo.ListTablesRow, error)
 	ListCols(ctx context.Context, tableName string) ([]repo.ListDataCol, error)
 	ListRows(ctx context.Context, tableName string, page int, column string, order string) (repo.ListDataRow, error)
@@ -18,6 +18,7 @@ type DbService interface {
 	GetRow(ctx context.Context, tableName string, hash string, page int) ([]any, error)
 	UpdateRow(ctx context.Context, values map[string]repo.FormValue, tableName, hash string, page int) error
 	CreateTable(ctx context.Context, tableName string, inputs []database.Input) error
+	GetRowCount(ctx context.Context, tableName string) (int, error)
 	DeleteRow(ctx context.Context, tableName string, hash string, page int) error
 	GetTableFormDataTypes() *FormDatatype
 	DeleteTable(ctx context.Context, tableName, verificationQuery string) error
@@ -29,7 +30,7 @@ type svc struct {
 	maxItemsPerPage int
 }
 
-func NewService(repo *repo.Queries, maxItemsPerPage int) DbService {
+func NewService(repo *repo.Queries, maxItemsPerPage int) DBService {
 	return &svc{
 		repo, maxItemsPerPage,
 	}
@@ -44,6 +45,7 @@ func getLimitOffset(page int, maxItemsPerPage int) (offset, limit int) {
 func (s *svc) ListTables(ctx context.Context) ([]repo.ListTablesRow, error) {
 	return s.repo.ListTables(ctx)
 }
+
 func (s *svc) ListCols(ctx context.Context, tableName string) ([]repo.ListDataCol, error) {
 	return s.repo.ListCols(ctx, tableName)
 }
@@ -58,7 +60,10 @@ func (s *svc) ListRows(ctx context.Context, tableName string, page int, column s
 		Column:    column,
 		Order:     order,
 	})
-	
+}
+
+func (s *svc) GetRowCount(ctx context.Context, tableName string) (int, error) {
+	return s.repo.GetRowCount(ctx, tableName)
 }
 
 func (s *svc) InsertRow(ctx context.Context, props repo.InsertDataProps) error {
@@ -104,19 +109,19 @@ type FormDatatype struct {
 }
 
 func (s *svc) GetTableFormDataTypes() *FormDatatype {
-	var driver = s.repo.GetDriver()
+	driver := s.repo.GetDriver()
 	switch driver {
-	case configs.DRIVER_MYSQL:
+	case configs.DriverMySQL:
 		return &FormDatatype{
-			NumericDataType: database.MySqlNumericDataTypes,
-			StringDataType:  database.MySqlStringDataTypes,
+			NumericDataType: database.MySQLNumericDataTypes,
+			StringDataType:  database.MySQLStringDataTypes,
 		}
-	case configs.DRIVER_POSTGRES:
+	case configs.DriverPostgres:
 		return &FormDatatype{
 			NumericDataType: database.PostgresNumericDataTypes,
 			StringDataType:  database.PostgresStringDataTypes,
 		}
-	case configs.DRIVER_SQLITE:
+	case configs.DriverSQLite:
 		return &FormDatatype{
 			NumericDataType: database.SqliteNumericDataTypes,
 			StringDataType:  database.SqliteStringDataTypes,
@@ -126,7 +131,7 @@ func (s *svc) GetTableFormDataTypes() *FormDatatype {
 }
 
 func (s *svc) DeleteTable(ctx context.Context, tableName, verificationQuery string) error {
-	var q = strings.Join(strings.Fields(verificationQuery), " ")
+	q := strings.Join(strings.Fields(verificationQuery), " ")
 	targetQuiry := "DROP TABLE IF EXISTS " + tableName
 	if q != targetQuiry {
 		return fmt.Errorf("failed to verify! input should be correct: `%s`", targetQuiry)

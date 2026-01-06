@@ -1,3 +1,4 @@
+// Package database provides utilities for connecting to a PostgreSQL database.
 package database
 
 import (
@@ -6,6 +7,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func CreateDbPool(ctx context.Context, dbString string) (*pgxpool.Pool, error) {
+func CreateDBPool(ctx context.Context, dbString string) (*pgxpool.Pool, error) {
 	return pgxpool.New(ctx, dbString)
 }

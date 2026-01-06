@@ -23,19 +23,19 @@ func mount(cfg *configs.Config) error {
 		return err
 	}
 	defer logger.Close()
-	if cfg.Env == configs.ENV_DEVELOPMENT {
+	if cfg.Env == configs.EnvDevelopment {
 		logger.SetLogLevel(logger.LevelDebug)
 	}
 
 	logger.Info("All logs will be written in %s", cfg.LogFilePath)
 
-	driver, err := utils.DetectDriver(cfg.DBSTRING)
+	driver, err := utils.DetectDriver(cfg.DBString)
 	if err != nil {
 		return err
 	}
 	logger.Info("Database driver detected: %s", driver)
 	cfg.Driver = driver
-	dbConn, err := sqlx.ConnectContext(ctx, driver, cfg.DBSTRING)
+	dbConn, err := sqlx.ConnectContext(ctx, driver, cfg.DBString)
 	if err != nil {
 		return err
 	}

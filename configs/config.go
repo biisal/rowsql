@@ -1,3 +1,4 @@
+// Package configs contains the configuration for the application
 package configs
 
 import (
@@ -12,11 +13,11 @@ import (
 )
 
 const (
-	DRIVER_POSTGRES        = "pgx"
-	DRIVER_MYSQL           = "mysql"
-	DRIVER_SQLITE          = "sqlite"
-	ENV_DEVELOPMENT string = "development"
-	ENV_PRODUCTION  string = "production"
+	DriverPostgres        = "pgx"
+	DriverMySQL           = "mysql"
+	DriverSQLite          = "sqlite"
+	EnvDevelopment string = "development"
+	EnvProduction  string = "production"
 )
 
 type ServerConfig struct {
@@ -25,7 +26,7 @@ type ServerConfig struct {
 }
 
 type Config struct {
-	DBSTRING        string `env:"DBSTRING" env-required:"true"`
+	DBString        string `env:"DBSTRING" env-required:"true"`
 	Server          ServerConfig
 	Driver          string
 	MaxItemsPerPage int    `env:"MAX_ITEMS_PER_PAGE" env-default:"10"`
@@ -42,7 +43,7 @@ func MustLoad() *Config {
 	if err := cleanenv.ReadEnv(&cfg); err != nil {
 		log.Fatal(err)
 	}
-	if cfg.DBSTRING == "" {
+	if cfg.DBString == "" {
 		t := reflect.TypeFor[Config]()
 		field, _ := t.FieldByName("DBSTRING")
 		tagVal := field.Tag.Get("env")
@@ -52,9 +53,9 @@ func MustLoad() *Config {
 	if !strings.HasPrefix(cfg.Server.Port, ":") {
 		cfg.Server.Port = ":" + cfg.Server.Port
 	}
-	if cfg.Env != string(ENV_DEVELOPMENT) && cfg.Env != string(ENV_PRODUCTION) {
+	if cfg.Env != string(EnvDevelopment) && cfg.Env != string(EnvProduction) {
 		logger.Error("%s env can't be set! Make sure it's '%s' or '%s', Default '%s'",
-			cfg.Env, ENV_DEVELOPMENT, ENV_PRODUCTION, ENV_PRODUCTION)
+			cfg.Env, EnvDevelopment, EnvProduction, EnvProduction)
 		os.Exit(1)
 	}
 	return &cfg

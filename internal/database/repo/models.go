@@ -17,6 +17,7 @@ type ListDataProps struct {
 	Column    string `json:"column"`
 	Order     string `json:"order"`
 }
+
 type ListDataRow []any
 
 type QueryParts struct {

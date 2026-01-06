@@ -103,11 +103,11 @@ FROM pragma_table_info(?) AS p;
 
 func colsQuery(driver string, tableName string) (string, []any) {
 	switch driver {
-	case configs.DRIVER_POSTGRES:
+	case configs.DriverPostgres:
 		return pgColsQuery, []any{tableName}
-	case configs.DRIVER_MYSQL:
+	case configs.DriverMySQL:
 		return mysqlColsQuery, []any{tableName}
-	case configs.DRIVER_SQLITE:
+	case configs.DriverSQLite:
 		return sqliteColsQuery, []any{tableName, tableName}
 	default:
 		logger.Info("%s driver=%s", fallbackMsg, driver)
@@ -143,9 +143,9 @@ ORDER BY name;
 
 func tablesQuery(driver string) string {
 	switch driver {
-	case configs.DRIVER_POSTGRES, configs.DRIVER_MYSQL:
+	case configs.DriverPostgres, configs.DriverMySQL:
 		return pgMysqlTablesQuery
-	case configs.DRIVER_SQLITE:
+	case configs.DriverSQLite:
 		return sqliteTablesQuery
 	default:
 		logger.Info("%s driver=%s", fallbackMsg, driver)
@@ -158,11 +158,11 @@ func buildQueryParts(form map[string]FormValue, driver string) (*QueryParts, err
 	placeholders := make([]string, 0, len(form))
 	values := make([]any, 0, len(form))
 
-	isPostgres := driver == configs.DRIVER_POSTGRES
+	isPostgres := driver == configs.DriverPostgres
 
 	paramIndex := 1
 
-	var ph = "?"
+	ph := "?"
 	for col, field := range form {
 		if field.Value == "" {
 			continue
@@ -188,7 +188,11 @@ func buildQueryParts(form map[string]FormValue, driver string) (*QueryParts, err
 	}
 
 	if len(columns) == 0 {
-		return nil, fmt.Errorf("no data provided")
+		return &QueryParts{
+			Columns:      "",
+			Placeholders: "",
+			Args:         values,
+		}, nil
 	}
 
 	return &QueryParts{
@@ -207,7 +211,7 @@ func buildUpdateParts(form map[string]FormValue, driver string) (string, []any) 
 		if v.Value == "" {
 			continue
 		}
-		if driver == configs.DRIVER_POSTGRES {
+		if driver == configs.DriverPostgres {
 			ph = "$" + strconv.Itoa(index)
 		}
 		parts = append(parts, fmt.Sprintf("%s=%s", k, ph))
@@ -223,19 +227,19 @@ func buildQueryWhereClause(cols []ListDataCol, data []any, driver string, argsId
 	}
 
 	var mixed []string
-	var ph = "?"
+	ph := "?"
 	var args []any
 	for i, val := range cols {
 		if data[i] == "" {
 			continue
 		}
-		if driver == configs.DRIVER_POSTGRES {
+		if driver == configs.DriverPostgres {
 			ph = "$" + strconv.Itoa(argsIdx+i)
 		}
 		if val.IsUnique {
 			return fmt.Sprintf("%s=%s", val.ColumnName, ph), []any{data[i]}, nil
 		}
-		var colVal any = data[i]
+		colVal := data[i]
 		if val.DataType == "json" {
 			var jsonVal map[string]any
 			if err := json.Unmarshal([]byte(colVal.(string)), &jsonVal); err != nil {
@@ -250,12 +254,11 @@ func buildQueryWhereClause(cols []ListDataCol, data []any, driver string, argsId
 		args = append(args, colVal)
 	}
 	return strings.Join(mixed, " AND "), args, nil
-
 }
 
 func buildCreateTableQuiry(driver string, parts []database.Input) (string, error) {
 	logger.Info("Building create table query")
-	var s = strings.Builder{}
+	s := strings.Builder{}
 	partsLen := len(parts)
 	for i, input := range parts {
 		if input.ColName == "" {
@@ -281,9 +284,9 @@ func buildCreateTableQuiry(driver string, parts []database.Input) (string, error
 			}
 			text := "AUTO_INCREMENT"
 			switch driver {
-			case configs.DRIVER_POSTGRES:
+			case configs.DriverPostgres:
 				text = "SERIAL"
-			case configs.DRIVER_SQLITE:
+			case configs.DriverSQLite:
 				text = "AUTOINCREMENT"
 			}
 			fmt.Fprintf(&s, " %s", text)
@@ -294,5 +297,4 @@ func buildCreateTableQuiry(driver string, parts []database.Input) (string, error
 	}
 	logger.Info("Query: %s", s.String())
 	return s.String(), nil
-
 }
