@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { DeletAlert } from '@/components/delete-alert';
 import { RowOrderForm } from '@/components/row-order-form';
-import { Rows, RowsSkeleton } from '@/components/rows';
+import { Rows } from '@/components/rows';
 import type { TableData } from '@/lib/types';
 
 export function TableRows() {
@@ -19,7 +19,6 @@ export function TableRows() {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [refresh, setRefesh] = useState(0);
 	const [data, setData] = useState<TableData | null>(null);
-	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [selectedRows, setSelectedRows] = useState<Record<number, boolean>>({});
 	const page = parseInt(searchParams.get('page') || '1');
@@ -40,16 +39,27 @@ export function TableRows() {
 			}
 		} catch (err) {
 			if (axios.isAxiosError(err)) {
-				setError(err.message);
+				const { response } = err;
+				const error =
+					response?.data?.error || err.message || 'Something went wrong';
+				toast.error(error);
+				searchParams.delete('col');
+				searchParams.delete('order');
+				setSearchParams(searchParams);
+				//  TODO : better error handling
 			} else {
 				setError(
 					err instanceof Error ? err.message : 'An unknown error occurred',
 				);
 			}
-		} finally {
-			setLoading(false);
 		}
-	}, [tableName, searchParams, refresh]); // eslint-disable-line
+	}, [tableName, searchParams, setSearchParams, col, page, order, refresh]); //eslint-disable-line
+
+	useEffect(() => {
+		(async function () {
+			fetchData();
+		})();
+	}, [fetchData]);
 
 	const deleteRow = async (hash: string) => {
 		try {
@@ -61,11 +71,12 @@ export function TableRows() {
 			}
 			toast.error('Failed to delete row');
 		} catch (err) {
-			console.error(err);
 			if (axios.isAxiosError(err)) {
-				toast.error(err.message);
+				setError(
+					err.response?.data?.error || err.message || 'Something went wrong',
+				);
 			} else {
-				toast.error(
+				setError(
 					err instanceof Error ? err.message : 'An unknown error occurred',
 				);
 			}
@@ -76,10 +87,6 @@ export function TableRows() {
 	useEffect(() => {
 		setSearchParams({}, { replace: true });
 	}, [tableName]); // eslint-disable-line react-hooks/exhaustive-deps
-
-	useEffect(() => {
-		fetchData();
-	}, [fetchData]);
 
 	const toggleRowSelection = (index: number) => {
 		setSelectedRows((prev) => ({
@@ -147,21 +154,19 @@ export function TableRows() {
 						/>
 					</CardHeader>
 					<CardContent className="p-4">
-						{loading ? (
-							<RowsSkeleton />
-						) : (
-							<Rows
-								data={data}
-								selectedRows={selectedRows}
-								isAllSelected={isAllSelected}
-								isSomeSelected={isSomeSelected}
-								toggleAllSelection={toggleAllSelection}
-								toggleRowSelection={toggleRowSelection}
-								deleteRow={deleteRow}
-							/>
-						)}
-						<div className="flex items-center justify-between py-4">
-							<div className="text-muted-foreground flex-1 text-sm">
+						(
+						<Rows
+							data={data}
+							selectedRows={selectedRows}
+							isAllSelected={isAllSelected}
+							isSomeSelected={isSomeSelected}
+							toggleAllSelection={toggleAllSelection}
+							toggleRowSelection={toggleRowSelection}
+							deleteRow={deleteRow}
+						/>
+						)
+						<div className="flex items-center flex-col sm:flex-row justify-center md:justify-between  py-4">
+							<div className="text-muted-foreground flex-1  text-sm">
 								{Object.values(selectedRows).filter(Boolean).length} of{' '}
 								{data.rows.length} row(s) selected.
 							</div>
@@ -170,7 +175,7 @@ export function TableRows() {
 								onPageChange={(newPage) =>
 									setSearchParams({ page: String(newPage) })
 								}
-								hasNextPage={data.rows.length > 0}
+								hasNextPage={data.hasNextPage}
 								hasPreviousPage={page > 1}
 							/>
 						</div>

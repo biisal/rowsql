@@ -51,4 +51,6 @@ export interface TableData {
 	cols: Column[];
 	activeTable: string;
 	rows: RowData[];
+	rowCount: number;
+	hasNextPage: boolean;
 }

@@ -17,4 +17,5 @@ type ListRowsResponse struct {
 	Cols        []repo.ListDataCol `json:"cols"`
 	RowCount    int                `json:"rowCount"`
 	ActiveTable string             `json:"activeTable"`
+	HasNextPage bool               `json:"hasNextPage"`
 }

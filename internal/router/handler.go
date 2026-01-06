@@ -88,6 +88,7 @@ func (h DBHandler) TableRows(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if !colFound {
+			logger.Error("error: %s, table: %s, requested column: %s", apperr.ErrorInvalidColumn, tableName, colParam)
 			resopnse.Error(w, http.StatusBadRequest, fmt.Errorf(apperr.ErrorInvalidColumn))
 			return
 		}
@@ -122,6 +123,7 @@ func (h DBHandler) TableRows(w http.ResponseWriter, r *http.Request) {
 			Cols:        cols,
 			RowCount:    count,
 			ActiveTable: tableName,
+			HasNextPage: h.service.HasNextPage(r.Context(), count, pageInt),
 		},
 	)
 }

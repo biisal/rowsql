@@ -23,11 +23,12 @@ type DBService interface {
 	GetTableFormDataTypes() *FormDatatype
 	DeleteTable(ctx context.Context, tableName, verificationQuery string) error
 	ListHistory(ctx context.Context, page int) ([]repo.History, error)
+	HasNextPage(ctx context.Context, total, page int) bool
 }
 
 type svc struct {
-	repo            *repo.Queries
-	maxItemsPerPage int
+	repo  *repo.Queries
+	limit int
 }
 
 func NewService(repo *repo.Queries, maxItemsPerPage int) DBService {
@@ -36,10 +37,13 @@ func NewService(repo *repo.Queries, maxItemsPerPage int) DBService {
 	}
 }
 
-func getLimitOffset(page int, maxItemsPerPage int) (offset, limit int) {
-	offset = (page - 1) * maxItemsPerPage
-	limit = offset + maxItemsPerPage
+func (s *svc) getOffset(page int) (offset int) {
+	offset = (page - 1) * s.limit
 	return
+}
+
+func (s *svc) HasNextPage(ctx context.Context, total, page int) bool {
+	return total > (page+1)*s.limit
 }
 
 func (s *svc) ListTables(ctx context.Context) ([]repo.ListTablesRow, error) {
@@ -51,12 +55,10 @@ func (s *svc) ListCols(ctx context.Context, tableName string) ([]repo.ListDataCo
 }
 
 func (s *svc) ListRows(ctx context.Context, tableName string, page int, column string, order string) (repo.ListDataRow, error) {
-	offset, limit := getLimitOffset(page, s.maxItemsPerPage)
-
 	return s.repo.ListRows(ctx, repo.ListDataProps{
 		TableName: tableName,
-		Limit:     limit,
-		Offset:    offset,
+		Limit:     s.limit,
+		Offset:    s.getOffset(page),
 		Column:    column,
 		Order:     order,
 	})
@@ -71,17 +73,15 @@ func (s *svc) InsertRow(ctx context.Context, props repo.InsertDataProps) error {
 }
 
 func (s *svc) GetRow(ctx context.Context, tableName, hash string, page int) ([]any, error) {
-	offset, limit := getLimitOffset(page, s.maxItemsPerPage)
-	return s.repo.GetRow(ctx, tableName, hash, offset, limit)
+	return s.repo.GetRow(ctx, tableName, hash, s.getOffset(page), s.limit)
 }
 
 func (s *svc) UpdateRow(ctx context.Context, values map[string]repo.FormValue, tableName, hash string, page int) error {
-	offset, limit := getLimitOffset(page, s.maxItemsPerPage)
 	return s.repo.UpdateRow(ctx, repo.UpdateOrDeleteRowProps{
 		TableName: tableName,
 		Hash:      hash,
-		Limit:     limit,
-		Offset:    offset,
+		Limit:     s.limit,
+		Offset:    s.getOffset(page),
 		Values:    values,
 	})
 }
@@ -94,12 +94,11 @@ func (s *svc) CreateTable(ctx context.Context, tableName string, inputs []databa
 }
 
 func (s *svc) DeleteRow(ctx context.Context, tableName, hash string, page int) error {
-	limit, offset := getLimitOffset(page, s.maxItemsPerPage)
 	return s.repo.DeleteRow(ctx, repo.UpdateOrDeleteRowProps{
 		TableName: tableName,
 		Hash:      hash,
-		Limit:     limit,
-		Offset:    offset,
+		Limit:     s.limit,
+		Offset:    s.getOffset(page),
 	})
 }
 
@@ -140,6 +139,5 @@ func (s *svc) DeleteTable(ctx context.Context, tableName, verificationQuery stri
 }
 
 func (s *svc) ListHistory(ctx context.Context, page int) ([]repo.History, error) {
-	offset, limit := getLimitOffset(page, s.maxItemsPerPage)
-	return s.repo.ListHistory(ctx, limit, offset)
+	return s.repo.ListHistory(ctx, s.limit, s.getOffset(page))
 }
