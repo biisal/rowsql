@@ -256,45 +256,56 @@ func buildQueryWhereClause(cols []ListDataCol, data []any, driver string, argsId
 	return strings.Join(mixed, " AND "), args, nil
 }
 
+func getAutoIncrementKeyword(driver string) string {
+	switch driver {
+	case configs.DriverPostgres:
+		return "SERIAL"
+	case configs.DriverSQLite:
+		return "AUTOINCREMENT"
+	default:
+		return "AUTO_INCREMENT"
+	}
+}
+
+func formatColumnDefinition(input database.Input, driver string) (string, error) {
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "%s %s", input.ColName, input.DataType.Type)
+	if input.DataType.HasSize {
+		fmt.Fprintf(&sb, "(%d)", input.DataType.Size)
+	}
+	if input.IsUnique {
+		sb.WriteString(" UNIQUE")
+	}
+	if !input.IsNull {
+		sb.WriteString(" NOT NULL")
+	}
+	if input.IsPK {
+		sb.WriteString(" PRIMARY KEY")
+	}
+	if input.DataType.AutoIncrement {
+		if !input.IsPK {
+			logger.Error("Auto-increment can only be set on primary key columns")
+			return "", fmt.Errorf("auto-increment can only be set on primary key columns")
+		}
+		fmt.Fprintf(&sb, " %s", getAutoIncrementKeyword(driver))
+	}
+
+	return sb.String(), nil
+}
+
 func buildCreateTableQuiry(driver string, parts []database.Input) (string, error) {
 	logger.Info("Building create table query")
-	s := strings.Builder{}
-	partsLen := len(parts)
-	for i, input := range parts {
+	columnDefs := make([]string, 0, len(parts))
+	for _, input := range parts {
 		if input.ColName == "" {
 			continue
 		}
-		fmt.Fprintf(&s, "%s %s", input.ColName, input.DataType.Type)
-		if input.DataType.HasSize {
-			fmt.Fprintf(&s, "(%d)", input.DataType.Size)
+		formattedColDef, err := formatColumnDefinition(input, driver)
+		if err != nil {
+			return "", err
 		}
-		if input.IsUnique {
-			s.WriteString(" UNIQUE")
-		}
-		if !input.IsNull {
-			s.WriteString(" NOT NULL")
-		}
-		if input.IsPK {
-			s.WriteString(" PRIMARY KEY")
-		}
-		if input.DataType.AutoIncrement {
-			if !input.IsPK {
-				logger.Error("Auto-increment can only be set on primary key columns")
-				return "", fmt.Errorf("auto-increment can only be set on primary key columns")
-			}
-			text := "AUTO_INCREMENT"
-			switch driver {
-			case configs.DriverPostgres:
-				text = "SERIAL"
-			case configs.DriverSQLite:
-				text = "AUTOINCREMENT"
-			}
-			fmt.Fprintf(&s, " %s", text)
-		}
-		if i < partsLen-1 {
-			s.WriteString(",")
-		}
+		columnDefs = append(columnDefs, formattedColDef)
 	}
-	logger.Info("Query: %s", s.String())
-	return s.String(), nil
+	logger.Info("Query: %s", strings.Join(columnDefs, ", "))
+	return strings.Join(columnDefs, ", "), nil
 }

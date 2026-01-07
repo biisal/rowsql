@@ -53,4 +53,5 @@ export interface TableData {
 	rows: RowData[];
 	rowCount: number;
 	hasNextPage: boolean;
+	totalPages: number;
 }

@@ -52,8 +52,10 @@ export function TableRows() {
 					err instanceof Error ? err.message : 'An unknown error occurred',
 				);
 			}
+		} finally {
+			// TDOD: Lets c later
 		}
-	}, [tableName, searchParams, setSearchParams, col, page, order, refresh]); //eslint-disable-line
+	}, [tableName, searchParams, refresh]); //eslint-disable-line
 
 	useEffect(() => {
 		(async function () {
@@ -154,7 +156,6 @@ export function TableRows() {
 						/>
 					</CardHeader>
 					<CardContent className="p-4">
-						(
 						<Rows
 							data={data}
 							selectedRows={selectedRows}
@@ -164,7 +165,6 @@ export function TableRows() {
 							toggleRowSelection={toggleRowSelection}
 							deleteRow={deleteRow}
 						/>
-						)
 						<div className="flex items-center flex-col sm:flex-row justify-center md:justify-between  py-4">
 							<div className="text-muted-foreground flex-1  text-sm">
 								{Object.values(selectedRows).filter(Boolean).length} of{' '}
@@ -172,6 +172,7 @@ export function TableRows() {
 							</div>
 							<AppPagination
 								currentPage={page}
+								totalPages={data.totalPages}
 								onPageChange={(newPage) =>
 									setSearchParams({ page: String(newPage) })
 								}

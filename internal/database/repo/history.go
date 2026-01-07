@@ -119,7 +119,11 @@ func (q *Queries) ListHistory(ctx context.Context, limit, offset int) ([]History
 		logger.Errorln(err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logger.Errorln(err)
+		}
+	}()
 	var items []History
 	for rows.Next() {
 		var i History

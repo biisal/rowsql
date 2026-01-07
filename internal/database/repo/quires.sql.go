@@ -14,9 +14,9 @@ import (
 	"github.com/biisal/db-gui/internal/utils"
 )
 
-const (
-	ErrorInvalidTable = "invalid table name"
-	ErrorNotFound     = "not found"
+var (
+	ErrorInvalidTable = errors.New("invalid table name")
+	ErrorNotFound     = errors.New("not found")
 )
 
 func (q *Queries) isAllowedTable(table string) bool {
@@ -35,7 +35,11 @@ func (q *Queries) ListCols(ctx context.Context, tableName string) ([]ListDataCol
 		logger.Error("failed to query: %v", err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logger.Errorln(err)
+		}
+	}()
 	var items []ListDataCol
 	for rows.Next() {
 		var i ListDataCol
@@ -63,7 +67,11 @@ func (q *Queries) ListTables(ctx context.Context) ([]ListTablesRow, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logger.Errorln(err)
+		}
+	}()
 	var items []ListTablesRow
 	for rows.Next() {
 		var i ListTablesRow
@@ -80,7 +88,6 @@ func (q *Queries) ListTables(ctx context.Context) ([]ListTablesRow, error) {
 		logger.Error("failed to scan rows: %v", err)
 		return nil, err
 	}
-	logger.Info("Tables: %v", items)
 	q.Tables = items
 	return items, nil
 }
@@ -95,7 +102,7 @@ func placeHolder(driver string, n int) string {
 func (q *Queries) ListRows(ctx context.Context, props ListDataProps) (ListDataRow, error) {
 	if !q.isAllowedTable(props.TableName) {
 		logger.Errorln(ErrorInvalidTable)
-		return nil, fmt.Errorf(ErrorInvalidTable)
+		return nil, ErrorInvalidTable
 	}
 
 	props.Column = strings.TrimSpace(props.Column)
@@ -118,7 +125,11 @@ func (q *Queries) ListRows(ctx context.Context, props ListDataProps) (ListDataRo
 		logger.Errorln(err.Error())
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logger.Errorln(err)
+		}
+	}()
 	data := make(ListDataRow, 0)
 	for rows.Next() {
 		row, err := rows.SliceScan()
@@ -132,7 +143,11 @@ func (q *Queries) ListRows(ctx context.Context, props ListDataProps) (ListDataRo
 				row[i] = string(b)
 			}
 		}
-		rowHash := utils.MakeRowHash(row)
+		rowHash, err := utils.MakeRowHash(row)
+		if err != nil {
+			logger.Error("failed to hash row: %v", err)
+			continue
+		}
 		q.cache.Set(rowHash, row)
 		row = append([]any{rowHash}, row...)
 		data = append(data, row)
@@ -148,7 +163,7 @@ func (q *Queries) ListRows(ctx context.Context, props ListDataProps) (ListDataRo
 
 func (q *Queries) GetRowCount(ctx context.Context, tableName string) (int, error) {
 	if !q.isAllowedTable(tableName) {
-		return 0, fmt.Errorf(ErrorInvalidTable)
+		return 0, ErrorInvalidTable
 	}
 
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s", tableName)
@@ -164,7 +179,7 @@ func (q *Queries) GetRowCount(ctx context.Context, tableName string) (int, error
 
 func (q *Queries) InsertRow(ctx context.Context, props InsertDataProps) error {
 	if !q.isAllowedTable(props.TableName) {
-		return fmt.Errorf(ErrorInvalidTable)
+		return ErrorInvalidTable
 	}
 
 	qParts, err := buildQueryParts(props.Values, q.db.DriverName())
@@ -197,7 +212,7 @@ func (q *Queries) InsertRow(ctx context.Context, props InsertDataProps) error {
 
 func (q *Queries) GetRow(ctx context.Context, tableName, hash string, offest, limit int) ([]any, error) {
 	if !q.isAllowedTable(tableName) {
-		return nil, fmt.Errorf(ErrorInvalidTable)
+		return nil, ErrorInvalidTable
 	}
 
 	if row := q.cache.Get(hash); row != nil {
@@ -220,7 +235,11 @@ func (q *Queries) GetRow(ctx context.Context, tableName, hash string, offest, li
 				data[i] = string(b)
 			}
 		}
-		rowHash := utils.MakeRowHash(data)
+		rowHash, err := utils.MakeRowHash(data)
+		if err != nil {
+			logger.Error("failed to hash row: %v", err)
+			continue
+		}
 		if rowHash == hash {
 			q.cache.Set(rowHash, data)
 			logger.Info("found data in db: %v", data)
@@ -228,12 +247,12 @@ func (q *Queries) GetRow(ctx context.Context, tableName, hash string, offest, li
 		}
 		offest++
 	}
-	return nil, fmt.Errorf(ErrorNotFound)
+	return nil, ErrorNotFound
 }
 
 func (q *Queries) DeleteRow(ctx context.Context, props UpdateOrDeleteRowProps) error {
 	if !q.isAllowedTable(props.TableName) {
-		return fmt.Errorf(ErrorInvalidTable)
+		return ErrorInvalidTable
 	}
 	row := q.cache.Get(props.Hash)
 	if row == nil {
@@ -276,7 +295,7 @@ type UpdateOrDeleteRowProps struct {
 
 func (q *Queries) UpdateRow(ctx context.Context, props UpdateOrDeleteRowProps) error {
 	if !q.isAllowedTable(props.TableName) {
-		return fmt.Errorf(ErrorInvalidTable)
+		return ErrorInvalidTable
 	}
 	row := q.cache.Get(props.Hash)
 	if row == nil {
@@ -348,18 +367,20 @@ func (q *Queries) CreateTable(ctx context.Context, props CreateTableProps) error
 
 	// TODO: get table info and add to q.Tables
 	// temp refresh
-	q.ListTables(ctx)
+	if _, err := q.ListTables(ctx); err != nil {
+		logger.Errorln(err)
+	}
 
 	return nil
 }
 
 func (q *Queries) DeleteTable(ctx context.Context, tableName string) error {
 	tables, err := q.ListTables(ctx)
-	found := false
 	if err != nil {
 		logger.Errorln(err)
 		return err
 	}
+	found := false
 	for _, t := range tables {
 		if t.TableName == tableName {
 			found = true

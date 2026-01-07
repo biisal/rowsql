@@ -13,10 +13,12 @@ import (
 	"github.com/biisal/db-gui/internal/database/repo"
 	"github.com/biisal/db-gui/internal/logger"
 	resopnse "github.com/biisal/db-gui/internal/response"
+	"github.com/biisal/db-gui/internal/service"
 )
 
 type DBHandler struct {
-	service DBService
+	service    service.DBService
+	itemsLimit int
 }
 
 type BaseHTMLData struct {
@@ -29,9 +31,10 @@ type ErrorMessage struct {
 	Message string
 }
 
-func NewHandler(service DBService) DBHandler {
+func NewHandler(service service.DBService, itemsLimit int) DBHandler {
 	return DBHandler{
 		service,
+		itemsLimit,
 	}
 }
 
@@ -124,6 +127,7 @@ func (h DBHandler) TableRows(w http.ResponseWriter, r *http.Request) {
 			RowCount:    count,
 			ActiveTable: tableName,
 			HasNextPage: h.service.HasNextPage(r.Context(), count, pageInt),
+			TotalPages:  count / h.itemsLimit,
 		},
 	)
 }

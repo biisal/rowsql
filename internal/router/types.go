@@ -18,4 +18,5 @@ type ListRowsResponse struct {
 	RowCount    int                `json:"rowCount"`
 	ActiveTable string             `json:"activeTable"`
 	HasNextPage bool               `json:"hasNextPage"`
+	TotalPages  int                `json:"totalPages"`
 }

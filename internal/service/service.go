@@ -1,4 +1,5 @@
-package router
+// Package service provides the service layer for the application.
+package service
 
 import (
 	"context"
@@ -37,21 +38,36 @@ func NewService(repo *repo.Queries, maxItemsPerPage int) DBService {
 	}
 }
 
-func (s *svc) getOffset(page int) (offset int) {
-	offset = (page - 1) * s.limit
-	return
-}
-
-func (s *svc) HasNextPage(ctx context.Context, total, page int) bool {
-	return total > (page+1)*s.limit
-}
-
 func (s *svc) ListTables(ctx context.Context) ([]repo.ListTablesRow, error) {
 	return s.repo.ListTables(ctx)
 }
 
+func (s *svc) CreateTable(ctx context.Context, tableName string, inputs []database.Input) error {
+	return s.repo.CreateTable(ctx, repo.CreateTableProps{
+		TableName: tableName,
+		Inputs:    inputs,
+	})
+}
+
+func (s *svc) DeleteTable(ctx context.Context, tableName, verificationQuery string) error {
+	q := strings.Join(strings.Fields(verificationQuery), " ")
+	targetQuiry := "DROP TABLE IF EXISTS " + tableName
+	if q != targetQuiry {
+		return fmt.Errorf("failed to verify! input should be correct: `%s`", targetQuiry)
+	}
+	return s.repo.DeleteTable(ctx, tableName)
+}
+
 func (s *svc) ListCols(ctx context.Context, tableName string) ([]repo.ListDataCol, error) {
 	return s.repo.ListCols(ctx, tableName)
+}
+
+func (s *svc) GetRow(ctx context.Context, tableName, hash string, page int) ([]any, error) {
+	return s.repo.GetRow(ctx, tableName, hash, s.getOffset(page), s.limit)
+}
+
+func (s *svc) InsertRow(ctx context.Context, props repo.InsertDataProps) error {
+	return s.repo.InsertRow(ctx, props)
 }
 
 func (s *svc) ListRows(ctx context.Context, tableName string, page int, column string, order string) (repo.ListDataRow, error) {
@@ -64,18 +80,6 @@ func (s *svc) ListRows(ctx context.Context, tableName string, page int, column s
 	})
 }
 
-func (s *svc) GetRowCount(ctx context.Context, tableName string) (int, error) {
-	return s.repo.GetRowCount(ctx, tableName)
-}
-
-func (s *svc) InsertRow(ctx context.Context, props repo.InsertDataProps) error {
-	return s.repo.InsertRow(ctx, props)
-}
-
-func (s *svc) GetRow(ctx context.Context, tableName, hash string, page int) ([]any, error) {
-	return s.repo.GetRow(ctx, tableName, hash, s.getOffset(page), s.limit)
-}
-
 func (s *svc) UpdateRow(ctx context.Context, values map[string]repo.FormValue, tableName, hash string, page int) error {
 	return s.repo.UpdateRow(ctx, repo.UpdateOrDeleteRowProps{
 		TableName: tableName,
@@ -86,13 +90,6 @@ func (s *svc) UpdateRow(ctx context.Context, values map[string]repo.FormValue, t
 	})
 }
 
-func (s *svc) CreateTable(ctx context.Context, tableName string, inputs []database.Input) error {
-	return s.repo.CreateTable(ctx, repo.CreateTableProps{
-		TableName: tableName,
-		Inputs:    inputs,
-	})
-}
-
 func (s *svc) DeleteRow(ctx context.Context, tableName, hash string, page int) error {
 	return s.repo.DeleteRow(ctx, repo.UpdateOrDeleteRowProps{
 		TableName: tableName,
@@ -100,6 +97,10 @@ func (s *svc) DeleteRow(ctx context.Context, tableName, hash string, page int) e
 		Limit:     s.limit,
 		Offset:    s.getOffset(page),
 	})
+}
+
+func (s *svc) GetRowCount(ctx context.Context, tableName string) (int, error) {
+	return s.repo.GetRowCount(ctx, tableName)
 }
 
 type FormDatatype struct {
@@ -127,15 +128,6 @@ func (s *svc) GetTableFormDataTypes() *FormDatatype {
 		}
 	}
 	return nil
-}
-
-func (s *svc) DeleteTable(ctx context.Context, tableName, verificationQuery string) error {
-	q := strings.Join(strings.Fields(verificationQuery), " ")
-	targetQuiry := "DROP TABLE IF EXISTS " + tableName
-	if q != targetQuiry {
-		return fmt.Errorf("failed to verify! input should be correct: `%s`", targetQuiry)
-	}
-	return s.repo.DeleteTable(ctx, tableName)
 }
 
 func (s *svc) ListHistory(ctx context.Context, page int) ([]repo.History, error) {

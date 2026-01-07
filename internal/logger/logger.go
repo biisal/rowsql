@@ -86,14 +86,15 @@ func SetupFile(logFilePath string, disableColor ...bool) error {
 	return nil
 }
 
-func Close() error {
+func Close() {
 	mu.Lock()
 	defer mu.Unlock()
 
 	if file != nil && file != os.Stdout {
-		return file.Close()
+		if err := file.Close(); err != nil {
+			fmt.Printf("failed to close log file: %v\n", err)
+		}
 	}
-	return nil
 }
 
 func SetNoColor(disable bool) {
@@ -104,7 +105,9 @@ func SetNoColor(disable bool) {
 
 func writeToFile(message string) {
 	if file != nil && file != os.Stdout {
-		fmt.Fprintln(file, message)
+		if _, err := fmt.Fprintln(file, message); err != nil {
+			fmt.Printf("failed to write to log file: %v\n", err)
+		}
 	}
 }
 
