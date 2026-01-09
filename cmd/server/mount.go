@@ -8,7 +8,6 @@ import (
 	"github.com/biisal/db-gui/internal/database/repo"
 	"github.com/biisal/db-gui/internal/logger"
 	"github.com/biisal/db-gui/internal/router"
-	"github.com/biisal/db-gui/internal/router/middleware"
 	"github.com/biisal/db-gui/internal/service"
 	"github.com/biisal/db-gui/internal/utils"
 	_ "github.com/go-sql-driver/mysql"
@@ -51,7 +50,7 @@ func mount(cfg *configs.Config) error {
 	dbHandler := router.NewHandler(dbService, cfg.MaxItemsPerPage)
 
 	mux, err := router.MountRouter(dbHandler)
-	corsMux := middleware.CORS()(mux)
+	corsMux := router.CORS()(mux)
 	if err != nil {
 		return err
 	}

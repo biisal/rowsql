@@ -12,7 +12,6 @@ func New(db *sqlx.DB, driver string, maxItemsPerPage int) *Queries {
 		driver:          driver,
 		cache:           NewRowCache(100),
 		maxItemsPerPage: maxItemsPerPage,
-		Tables:          nil,
 	}
 }
 
@@ -21,7 +20,6 @@ type Queries struct {
 	driver          string
 	cache           *RowCache
 	maxItemsPerPage int
-	Tables          []ListTablesRow
 }
 
 func (q *Queries) WithTx(tx *sqlx.Tx) *Queries {
@@ -31,9 +29,5 @@ func (q *Queries) WithTx(tx *sqlx.Tx) *Queries {
 }
 
 func (q *Queries) Init(ctx context.Context) (err error) {
-	q.Tables, err = q.ListTables(ctx)
-	if err != nil {
-		return err
-	}
 	return q.CreateHistoryTable(ctx)
 }

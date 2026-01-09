@@ -1,10 +1,10 @@
-// Package middleware provides middleware functions for the application.
-package middleware
+package router
 
 import (
 	"net/http"
 
 	"github.com/biisal/db-gui/internal/logger"
+	"github.com/biisal/db-gui/internal/response"
 )
 
 func CORS() func(next http.Handler) http.Handler {
@@ -25,4 +25,20 @@ func CORS() func(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func (h *DBHandler) withTable(handlerFunc http.HandlerFunc) http.Handler {
+	return h.middlewareCheckTableExists(http.HandlerFunc(handlerFunc))
+}
+
+func (h *DBHandler) middlewareCheckTableExists(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tableName := r.PathValue("tableName")
+		if err := h.service.CheckTableExits(r.Context(), tableName); err != nil {
+			logger.Error("%s", err)
+			response.Error(w, http.StatusNotFound, err)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }

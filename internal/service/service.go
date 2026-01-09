@@ -12,6 +12,7 @@ import (
 )
 
 type DBService interface {
+	CheckTableExits(ctx context.Context, tableName string) error
 	ListTables(ctx context.Context) ([]repo.ListTablesRow, error)
 	ListCols(ctx context.Context, tableName string) ([]repo.ListDataCol, error)
 	ListRows(ctx context.Context, tableName string, page int, column string, order string) (repo.ListDataRow, error)
@@ -36,6 +37,10 @@ func NewService(repo *repo.Queries, maxItemsPerPage int) DBService {
 	return &svc{
 		repo, maxItemsPerPage,
 	}
+}
+
+func (s *svc) CheckTableExits(ctx context.Context, tableName string) error {
+	return s.repo.CheckTableExitsInDB(ctx, tableName)
 }
 
 func (s *svc) ListTables(ctx context.Context) ([]repo.ListTablesRow, error) {

@@ -11,7 +11,7 @@ import (
 type Response struct {
 	Error   string `json:"error,omitempty"`
 	Success bool   `json:"success"`
-	Data    any    `json:"data"`
+	Data    any    `json:"data,omitempty"`
 }
 
 func Success(w http.ResponseWriter, status int, data any) {

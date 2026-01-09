@@ -42,7 +42,6 @@ export const RowOrderForm = ({
 			return prev;
 		});
 	}, [selectedCol, selectedOrder, setUrlParams]);
-
 	return (
 		<div className="flex flex-col gap-1">
 			<p className="text-sm font-medium text-muted-foreground">Order by:</p>

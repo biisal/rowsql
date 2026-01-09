@@ -106,7 +106,7 @@ func SetNoColor(disable bool) {
 func writeToFile(message string) {
 	if file != nil && file != os.Stdout {
 		if _, err := fmt.Fprintln(file, message); err != nil {
-			fmt.Printf("failed to write to log file: %v\n", err)
+			fmt.Printf("failed to write to log file: %v", err)
 		}
 	}
 }
@@ -212,9 +212,28 @@ func Error(format string, args ...any) {
 	writeToFile(plain)
 }
 
-func Errorln(args ...interface{}) {
+func Errorln(args ...any) {
+	if !checkLevel(LevelError) {
+		return
+	}
+	mu.Lock()
+	defer mu.Unlock()
 	msg := fmt.Sprintln(args...)
-	Error("%s", strings.TrimSuffix(msg, "\n"))
+	msg = strings.TrimSuffix(msg, "\n")
+	caller := getCaller(2)
+	if noColor {
+		logMsg := fmt.Sprintf("ERROR:    [%s] [%s] %s\n", timestamp(), caller, msg)
+		fmt.Print(logMsg)
+		writeToFile(logMsg)
+		return
+	}
+	ts := color.New(color.FgHiBlack).Sprintf("[%s]", timestamp())
+	level := color.New(color.FgRed, color.Bold).Sprint("ERROR:   ")
+	callerInfo := color.New(color.FgYellow).Sprintf("[%s]", caller)
+	colored := fmt.Sprintf("%s %s %s %s\n", level, ts, callerInfo, msg)
+	plain := fmt.Sprintf("ERROR:    [%s] [%s] %s\n", timestamp(), caller, msg)
+	fmt.Print(colored)
+	writeToFile(plain)
 }
 
 func Debug(format string, args ...any) {

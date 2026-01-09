@@ -17,13 +17,15 @@ func route(method methodType, path string) string {
 func MountRouter(handler DBHandler) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
 
-	mux.Handle("/", frontend.ReactHandler("/"))
+	mux.Handle("GET /", frontend.ReactHandler("/"))
 
 	mux.HandleFunc(route(GET, "/tables"), handler.ListTables)
-	mux.HandleFunc(route(GET, "/table/{tableName}"), handler.TableRows)
-	mux.HandleFunc(route(GET, "/table/{tableName}/form"), handler.RowInsertForm)
-	mux.HandleFunc(route(POST, "/table/{tableName}/form"), handler.InsertOrUpdateRow)
-	mux.HandleFunc(route(DELETE, "/table/{tableName}/row/{hash}"), handler.DeleteRow)
+	mux.Handle(route(GET, "/table/{tableName}"), handler.withTable(handler.ListRows))
+	mux.Handle(route(GET, "/table/{tableName}/form"), handler.withTable(handler.RowInsertForm))
+	mux.Handle(route(GET, "/table/{tableName}/columns"), handler.withTable(handler.ListColumns))
+	mux.Handle(route(POST, "/table/{tableName}/form"), handler.withTable(handler.InsertOrUpdateRow))
+	mux.Handle(route(DELETE, "/table/{tableName}/row/{hash}"), handler.withTable(handler.DeleteRow))
+
 	mux.HandleFunc(route(GET, "/table/form/new"), handler.NewTableFormFileds)
 	mux.HandleFunc(route(POST, "/table/form/new"), handler.CreeteNewTable)
 	mux.HandleFunc(route(DELETE, "/table"), handler.DeleteTable)

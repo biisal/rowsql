@@ -55,6 +55,16 @@ func (h DBHandler) getBaseData(ctx context.Context, tableName ...string) (*BaseH
 	return &BaseHTMLData{Tables: tables, Cols: cols, ActiveTable: tableName[0]}, nil
 }
 
+func (h DBHandler) ListColumns(w http.ResponseWriter, r *http.Request) {
+	cols, err := h.service.ListCols(r.Context(), r.PathValue("tableName"))
+	if err != nil {
+		logger.Error("%s", err)
+		resopnse.Error(w, http.StatusInternalServerError, err)
+		return
+	}
+	resopnse.Success(w, http.StatusOK, cols)
+}
+
 func (h DBHandler) ListTables(w http.ResponseWriter, r *http.Request) {
 	tables, err := h.service.ListTables(r.Context())
 	if err != nil {
@@ -65,7 +75,7 @@ func (h DBHandler) ListTables(w http.ResponseWriter, r *http.Request) {
 	resopnse.Success(w, http.StatusOK, tables)
 }
 
-func (h DBHandler) TableRows(w http.ResponseWriter, r *http.Request) {
+func (h DBHandler) ListRows(w http.ResponseWriter, r *http.Request) {
 	tableName := r.PathValue("tableName")
 	page := r.URL.Query().Get("page")
 	pageInt, err := strconv.Atoi(page)
@@ -92,7 +102,7 @@ func (h DBHandler) TableRows(w http.ResponseWriter, r *http.Request) {
 		}
 		if !colFound {
 			logger.Error("error: %s, table: %s, requested column: %s", apperr.ErrorInvalidColumn, tableName, colParam)
-			resopnse.Error(w, http.StatusBadRequest, fmt.Errorf(apperr.ErrorInvalidColumn))
+			resopnse.Error(w, http.StatusBadRequest, apperr.ErrorInvalidColumn)
 			return
 		}
 
@@ -134,23 +144,7 @@ func (h DBHandler) TableRows(w http.ResponseWriter, r *http.Request) {
 
 func (h DBHandler) RowInsertForm(w http.ResponseWriter, r *http.Request) {
 	tableName := r.PathValue("tableName")
-	tables, err := h.service.ListTables(r.Context())
-	if err != nil {
-		logger.Error("%s", err)
-		resopnse.Error(w, http.StatusInternalServerError, err)
-		return
-	}
-	found := false
-	for _, table := range tables {
-		if table.TableName == strings.TrimSpace(tableName) {
-			found = true
-		}
-	}
-	if !found {
-		logger.Warning("Table '%s' not found", tableName)
-		resopnse.Error(w, http.StatusNotFound, fmt.Errorf("table %s not found", tableName))
-		return
-	}
+
 	action := "Insert"
 	hash := strings.TrimSpace(r.URL.Query().Get("hash"))
 	page := r.URL.Query().Get("page")
@@ -192,6 +186,7 @@ func (h DBHandler) RowInsertForm(w http.ResponseWriter, r *http.Request) {
 
 func (h DBHandler) InsertOrUpdateRow(w http.ResponseWriter, r *http.Request) {
 	tableName := r.PathValue("tableName")
+	ctx := r.Context()
 	form := make(map[string]repo.FormValue)
 	if err := json.NewDecoder(r.Body).Decode(&form); err != nil {
 		logger.Error("%s", err)
@@ -200,15 +195,14 @@ func (h DBHandler) InsertOrUpdateRow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	page := r.URL.Query().Get("page")
-	hash := strings.TrimSpace(r.URL.Query().Get("hash"))
-
 	pageInt, err := strconv.Atoi(page)
 	if err != nil {
 		pageInt = 1
 	}
 
+	hash := strings.TrimSpace(r.URL.Query().Get("hash"))
 	if hash != "" {
-		if err := h.service.UpdateRow(r.Context(), form, tableName, hash, pageInt); err != nil {
+		if err := h.service.UpdateRow(ctx, form, tableName, hash, pageInt); err != nil {
 			logger.Error("%s", err)
 			logger.Error("Failed to update row in table '%s'", tableName)
 			resopnse.Error(w, http.StatusInternalServerError, err)
@@ -219,7 +213,7 @@ func (h DBHandler) InsertOrUpdateRow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.InsertRow(r.Context(), repo.InsertDataProps{
+	if err := h.service.InsertRow(ctx, repo.InsertDataProps{
 		TableName: tableName,
 		Values:    form,
 	}); err != nil {
