@@ -31,7 +31,7 @@ export function TableRows() {
 
 		try {
 			const response = await api.get(
-				`/table/${tableName}?page=${page}${col ? `&column=${col}&order=${order}` : ''}`,
+				`/tables/${tableName}?page=${page}${col ? `&column=${col}&order=${order}` : ''}`,
 			);
 			if (response.data.success) {
 				setData(response.data.data);
@@ -65,7 +65,7 @@ export function TableRows() {
 
 	const deleteRow = async (hash: string) => {
 		try {
-			const res = await api.delete(`/table/${tableName}/row/${hash}`);
+			const res = await api.delete(`/tables/${tableName}/row/${hash}`);
 			if (res.data.success) {
 				toast.success('Row deleted successfully');
 				setRefesh((r) => r + 1);
@@ -138,7 +138,7 @@ export function TableRows() {
 					</h1>
 					<div className="flex items-center justify-center gap-1">
 						<DeletAlert tableName={data.activeTable} />
-						<Link to={`/table/${data.activeTable}/form`}>
+						<Link to={`/tables/${data.activeTable}/rows/new`}>
 							<Button className="shadow-lg shadow-primary/20">
 								<Plus className="mr-2 h-4 w-4" /> Insert Record
 							</Button>

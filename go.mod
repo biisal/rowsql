@@ -1,4 +1,4 @@
-module github.com/biisal/db-gui
+module github.com/biisal/rowsql
 
 go 1.25.3
 

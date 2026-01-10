@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/biisal/db-gui/configs"
+	"github.com/biisal/rowsql/configs"
 )
 
 func main() {

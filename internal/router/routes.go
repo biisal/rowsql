@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/biisal/db-gui/frontend"
+	"github.com/biisal/rowsql/frontend"
 )
 
 const apiPrefix = "/api/v1"
@@ -20,15 +20,15 @@ func MountRouter(handler DBHandler) (*http.ServeMux, error) {
 	mux.Handle("GET /", frontend.ReactHandler("/"))
 
 	mux.HandleFunc(route(GET, "/tables"), handler.ListTables)
-	mux.Handle(route(GET, "/table/{tableName}"), handler.withTable(handler.ListRows))
-	mux.Handle(route(GET, "/table/{tableName}/form"), handler.withTable(handler.RowInsertForm))
-	mux.Handle(route(GET, "/table/{tableName}/columns"), handler.withTable(handler.ListColumns))
-	mux.Handle(route(POST, "/table/{tableName}/form"), handler.withTable(handler.InsertOrUpdateRow))
-	mux.Handle(route(DELETE, "/table/{tableName}/row/{hash}"), handler.withTable(handler.DeleteRow))
+	mux.Handle(route(GET, "/tables/{tableName}"), handler.withTable(handler.ListRows))
+	mux.Handle(route(GET, "/tables/{tableName}/form"), handler.withTable(handler.RowInsertForm))
+	mux.Handle(route(GET, "/tables/{tableName}/columns"), handler.withTable(handler.ListColumns))
+	mux.Handle(route(POST, "/tables/{tableName}/form"), handler.withTable(handler.InsertOrUpdateRow))
+	mux.Handle(route(DELETE, "/tables/{tableName}/row/{hash}"), handler.withTable(handler.DeleteRow))
 
-	mux.HandleFunc(route(GET, "/table/form/new"), handler.NewTableFormFileds)
-	mux.HandleFunc(route(POST, "/table/form/new"), handler.CreeteNewTable)
-	mux.HandleFunc(route(DELETE, "/table"), handler.DeleteTable)
+	mux.HandleFunc(route(GET, "/tables/form/new"), handler.NewTableFormFileds)
+	mux.HandleFunc(route(POST, "/tables/form/new"), handler.CreeteNewTable)
+	mux.HandleFunc(route(DELETE, "/tables"), handler.DeleteTable)
 	mux.HandleFunc(route(GET, "/history"), handler.ListHistory)
 	mux.HandleFunc(route(GET, "/history/recent"), handler.ListRecentHistory)
 

@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/biisal/db-gui/internal/logger"
+	"github.com/biisal/rowsql/internal/logger"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/joho/godotenv"
 )

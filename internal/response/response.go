@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/biisal/db-gui/internal/logger"
+	"github.com/biisal/rowsql/internal/logger"
 )
 
 type Response struct {

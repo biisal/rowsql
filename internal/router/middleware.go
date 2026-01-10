@@ -3,8 +3,8 @@ package router
 import (
 	"net/http"
 
-	"github.com/biisal/db-gui/internal/logger"
-	"github.com/biisal/db-gui/internal/response"
+	"github.com/biisal/rowsql/internal/logger"
+	"github.com/biisal/rowsql/internal/response"
 )
 
 func CORS() func(next http.Handler) http.Handler {

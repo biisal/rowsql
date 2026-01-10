@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/biisal/db-gui/configs"
-	"github.com/biisal/db-gui/internal/database"
-	"github.com/biisal/db-gui/internal/logger"
+	"github.com/biisal/rowsql/configs"
+	"github.com/biisal/rowsql/internal/database"
+	"github.com/biisal/rowsql/internal/logger"
 )
 
 const fallbackMsg = "Unknown driver – falling back to SQLite"

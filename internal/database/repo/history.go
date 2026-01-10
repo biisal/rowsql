@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/biisal/db-gui/configs"
-	"github.com/biisal/db-gui/internal/logger"
+	"github.com/biisal/rowsql/configs"
+	"github.com/biisal/rowsql/internal/logger"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5/pgconn"
 	"modernc.org/sqlite"

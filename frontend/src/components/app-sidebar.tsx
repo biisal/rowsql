@@ -26,7 +26,7 @@ interface SidebarProps extends React.ComponentProps<typeof ShadcnSidebar> {
 	isAppending: boolean;
 }
 
-export function Sidebar({
+export function AppSidebar({
 	tables,
 	refreshing: loading,
 	isAppending,
@@ -35,7 +35,7 @@ export function Sidebar({
 	const location = useLocation();
 
 	const isActiveTable = (tableName: string) => {
-		return location.pathname === `/table/${tableName}`;
+		return location.pathname === `/tables/${tableName}`;
 	};
 
 	const isHome = location.pathname === '/';
@@ -74,7 +74,7 @@ export function Sidebar({
 											asChild
 											isActive={isActiveTable(table.tableName)}
 										>
-											<Link to={`/table/${table.tableName}`}>
+											<Link to={`/tables/${table.tableName}`}>
 												<TableIcon />
 												<span>{table.tableName}</span>
 											</Link>
@@ -102,7 +102,7 @@ export function Sidebar({
 							asChild
 							className="bg-primary text-primary-foreground hover:bg-primary/90 justify-center shadow-lg shadow-primary/20"
 						>
-							<Link to="/table/form/new">
+							<Link to="/new-table">
 								<Plus />
 								<span>Add Table</span>
 							</Link>

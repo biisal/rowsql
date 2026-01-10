@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/biisal/db-gui/configs"
-	"github.com/biisal/db-gui/internal/logger"
+	"github.com/biisal/rowsql/configs"
+	"github.com/biisal/rowsql/internal/logger"
 )
 
 func IsSafeIdentifier(s string) bool {

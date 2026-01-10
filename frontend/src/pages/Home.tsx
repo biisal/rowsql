@@ -136,7 +136,7 @@ export function Home() {
 							performance, manage schemas, and query data with ease.
 						</p>
 						<div className="flex flex-wrap gap-4 pt-2">
-							<Link to="/table/create/new">
+							<Link to="/tables/create/new">
 								<button className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
 									<Plus className="w-5 h-5" /> Create New Table
 								</button>
@@ -225,7 +225,7 @@ export function Home() {
 							</CardDescription>
 						</CardHeader>
 						<CardContent className="grid gap-4">
-							<Link to="/table/create/new">
+							<Link to="/tables/create/new">
 								<div className="flex items-center justify-between p-4 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors cursor-pointer group">
 									<div className="flex items-center gap-4">
 										<div className="p-2 rounded-md bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
@@ -260,7 +260,7 @@ export function Home() {
 							</Link>
 
 							{!tablesRefreshing && tables.length > 0 && (
-								<Link to={`/table/${tables[0].tableName}`}>
+								<Link to={`/tables/${tables[0].tableName}`}>
 									<div className="flex items-center justify-between p-4 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors cursor-pointer group">
 										<div className="flex items-center gap-4">
 											<div className="p-2 rounded-md bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">

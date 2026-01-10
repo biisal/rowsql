@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/biisal/db-gui/configs"
-	"github.com/biisal/db-gui/internal/database"
-	"github.com/biisal/db-gui/internal/database/repo"
+	"github.com/biisal/rowsql/configs"
+	"github.com/biisal/rowsql/internal/database"
+	"github.com/biisal/rowsql/internal/database/repo"
 )
 
 type DBService interface {

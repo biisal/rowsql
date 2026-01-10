@@ -1,6 +1,6 @@
 package router
 
-import "github.com/biisal/db-gui/internal/database/repo"
+import "github.com/biisal/rowsql/internal/database/repo"
 
 type methodType string
 

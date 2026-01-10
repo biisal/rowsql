@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/biisal/db-gui/internal/apperr"
-	"github.com/biisal/db-gui/internal/database"
-	"github.com/biisal/db-gui/internal/database/repo"
-	"github.com/biisal/db-gui/internal/logger"
-	resopnse "github.com/biisal/db-gui/internal/response"
-	"github.com/biisal/db-gui/internal/service"
+	"github.com/biisal/rowsql/internal/apperr"
+	"github.com/biisal/rowsql/internal/database"
+	"github.com/biisal/rowsql/internal/database/repo"
+	"github.com/biisal/rowsql/internal/logger"
+	resopnse "github.com/biisal/rowsql/internal/response"
+	"github.com/biisal/rowsql/internal/service"
 )
 
 type DBHandler struct {
