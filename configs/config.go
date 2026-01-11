@@ -34,10 +34,24 @@ type Config struct {
 	LogFilePath     string `env:"LOG_FILE_PATH" env-default:"rowsql.log"`
 }
 
+func getEnvPath() string {
+	userHome, err := os.UserHomeDir()
+	if err != nil {
+		logger.Error("Error getting user home directory: %s", err)
+		os.Exit(1)
+	}
+	path := userHome + "/.rowsql/.env"
+	if err = os.MkdirAll(path, 0o755); err != nil {
+		logger.Error("Error creating .rowsql directory: %s", err)
+		os.Exit(1)
+	}
+	return userHome + path
+}
+
 func MustLoad() *Config {
 	var cfg Config
 
-	if err := godotenv.Load(".env"); err != nil {
+	if err := godotenv.Load(getEnvPath()); err != nil {
 		log.Fatal(err)
 	}
 	if err := cleanenv.ReadEnv(&cfg); err != nil {
