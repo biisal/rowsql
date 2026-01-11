@@ -31,7 +31,7 @@ type Config struct {
 	Driver          string
 	MaxItemsPerPage int    `env:"MAX_ITEMS_PER_PAGE" env-default:"10"`
 	Env             string `env:"ENV" env-default:"production"`
-	LogFilePath     string `env:"LOG_FILE_PATH" env-default:"rowsql.log"`
+	LogFilePath     string `env:"LOG_FILE_PATH" env-default:"~/.rowsql/rowsql.log"`
 }
 
 func getEnvPath() string {
@@ -40,12 +40,12 @@ func getEnvPath() string {
 		logger.Error("Error getting user home directory: %s", err)
 		os.Exit(1)
 	}
-	path := userHome + "/.rowsql/.env"
+	path := userHome + "/.rowsql"
 	if err = os.MkdirAll(path, 0o755); err != nil {
 		logger.Error("Error creating .rowsql directory: %s", err)
 		os.Exit(1)
 	}
-	return userHome + path
+	return path + "/.env"
 }
 
 func MustLoad() *Config {
