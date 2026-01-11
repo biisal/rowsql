@@ -2,12 +2,14 @@
 package configs
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"reflect"
 	"strings"
 
 	"github.com/biisal/rowsql/internal/logger"
+	"github.com/fatih/color"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/joho/godotenv"
 )
@@ -34,6 +36,24 @@ type Config struct {
 	LogFilePath     string `env:"LOG_FILE_PATH" env-default:"~/.rowsql/rowsql.log"`
 }
 
+func promptForDefaultEnv(path string) {
+	color.Cyan("No .env found in %s\nDo you want to create one with default values? (y/n): ", path)
+	var choice string
+	fmt.Scan(&choice)
+	if strings.ToLower(choice) == "y" {
+		file, err := os.Create(path)
+		if err != nil {
+			logger.Error("Error creating .env file: %s", err)
+			os.Exit(1)
+		}
+		file.WriteString("DBSTRING=test.db\nPORT=8000")
+		defer file.Close()
+	} else {
+		logger.Error("No .env file found")
+		os.Exit(1)
+	}
+}
+
 func getEnvPath() string {
 	userHome, err := os.UserHomeDir()
 	if err != nil {
@@ -45,7 +65,17 @@ func getEnvPath() string {
 		logger.Error("Error creating .rowsql directory: %s", err)
 		os.Exit(1)
 	}
-	return path + "/.env"
+	fullPath := path + "/.env"
+	_, err = os.OpenFile(fullPath, os.O_RDONLY, 0o644)
+	if err != nil {
+		if os.IsNotExist(err) {
+			promptForDefaultEnv(fullPath)
+		} else {
+			logger.Error("Error opening .env file: %s", err)
+			os.Exit(1)
+		}
+	}
+	return fullPath
 }
 
 func MustLoad() *Config {

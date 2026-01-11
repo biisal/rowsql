@@ -87,6 +87,7 @@ const useTableStore = create<TablesStore>((set, get) => ({
 		return false;
 	},
 	refreshTables: async (isAppending) => {
+		console.log('Refreshing tables...');
 		if (isAppending) {
 			set({ tableAppending: true });
 		} else {

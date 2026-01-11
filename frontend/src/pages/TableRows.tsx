@@ -40,22 +40,17 @@ export function TableRows() {
 		} catch (err) {
 			if (axios.isAxiosError(err)) {
 				const { response } = err;
-				const error =
+				const errorMessage =
 					response?.data?.error || err.message || 'Something went wrong';
-				toast.error(error);
-				searchParams.delete('col');
-				searchParams.delete('order');
-				setSearchParams(searchParams);
-				//  TODO : better error handling
+				toast.error(errorMessage);
+				setError(errorMessage);
 			} else {
 				setError(
 					err instanceof Error ? err.message : 'An unknown error occurred',
 				);
 			}
-		} finally {
-			// TDOD: Lets c later
 		}
-	}, [tableName, searchParams, refresh]); //eslint-disable-line
+	}, [tableName, page, col, order, refresh]);
 
 	useEffect(() => {
 		(async function () {
@@ -138,7 +133,7 @@ export function TableRows() {
 					</h1>
 					<div className="flex items-center justify-center gap-1">
 						<DeletAlert tableName={data.activeTable} />
-						<Link to={`/tables/${data.activeTable}/rows/new`}>
+						<Link to={`/tables/${data.activeTable}/rows/`}>
 							<Button className="shadow-lg shadow-primary/20">
 								<Plus className="mr-2 h-4 w-4" /> Insert Record
 							</Button>
@@ -174,7 +169,11 @@ export function TableRows() {
 								currentPage={page}
 								totalPages={data.totalPages}
 								onPageChange={(newPage) =>
-									setSearchParams({ page: String(newPage) })
+									setSearchParams((prev) => {
+										const newParams = new URLSearchParams(prev);
+										newParams.set('page', String(newPage));
+										return newParams;
+									})
 								}
 								hasNextPage={data.hasNextPage}
 								hasPreviousPage={page > 1}

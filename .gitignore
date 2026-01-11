@@ -12,3 +12,5 @@ chinook.zip
 .DS_Store
 # Added by goreleaser init:
 dist/
+node_modules/
+pnpm-lock.yaml

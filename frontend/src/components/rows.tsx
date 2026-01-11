@@ -120,7 +120,7 @@ export const Rows = ({
 											<DropdownMenuLabel>Actions</DropdownMenuLabel>
 											<DropdownMenuItem asChild>
 												<Link
-													to={`/tables/${data.activeTable}/form?hash=${hash}&page=${data.page}`}
+													to={`/tables/${data.activeTable}/rows?hash=${hash}&page=${data.page}`}
 												>
 													Edit Row
 												</Link>

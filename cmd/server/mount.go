@@ -19,6 +19,12 @@ import (
 func mount(cfg *configs.Config) error {
 	ctx := context.Background()
 
+	logFilePath, err := utils.ReplaceTildeWithHomeDir(cfg.LogFilePath)
+	if err != nil {
+		return err
+	}
+	cfg.LogFilePath = logFilePath
+
 	if err := logger.SetupFile(cfg.LogFilePath); err != nil {
 		return err
 	}
@@ -29,7 +35,7 @@ func mount(cfg *configs.Config) error {
 
 	logger.Info("All logs will be written in %s", cfg.LogFilePath)
 
-	driver, err := utils.DetectDriver(cfg.DBString)
+	driver, err := utils.DetectDriver(&cfg.DBString)
 	if err != nil {
 		return err
 	}
@@ -37,12 +43,14 @@ func mount(cfg *configs.Config) error {
 	cfg.Driver = driver
 	dbConn, err := sqlx.ConnectContext(ctx, driver, cfg.DBString)
 	if err != nil {
+		logger.Errorln("Failed to connect to database:", err)
 		return err
 	}
 
 	dbRepo := repo.New(dbConn, driver, cfg.MaxItemsPerPage)
 
 	if err = dbRepo.Init(ctx); err != nil {
+		logger.Errorln("Failed to initialize database repository:", err)
 		return err
 	}
 
@@ -52,6 +60,7 @@ func mount(cfg *configs.Config) error {
 	mux, err := router.MountRouter(dbHandler)
 	corsMux := router.CORS()(mux)
 	if err != nil {
+		logger.Errorln("Failed to mount router:", err)
 		return err
 	}
 
@@ -61,6 +70,7 @@ func mount(cfg *configs.Config) error {
 	}
 	logger.Success("Running server on port %s", cfg.Server.Port)
 	if err := server.ListenAndServe(); err != nil {
+		logger.Errorln("Failed to start server:", err)
 		return err
 	}
 	return nil

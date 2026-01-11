@@ -28,27 +28,41 @@ export const RowOrderForm = ({
 	initialValue,
 }: RowOrderFormProps) => {
 	const [selectedCol, setSelectedCol] = useState<string | null>(
-		(initialValue && initialValue.col) ||
-			(cols && cols.length > 0 ? cols[0].columnName : null),
+		initialValue?.col ?? (cols && cols.length > 0 ? cols[0].columnName : null),
 	);
 	const [selectedOrder, setSelectedOrder] = useState<string | null>(
-		(initialValue && initialValue.order) || 'asc',
+		initialValue?.order ?? 'asc',
 	);
 
 	useEffect(() => {
+		setSelectedCol(initialValue?.col ?? (cols && cols.length > 0 ? cols[0].columnName : null));
+		setSelectedOrder(initialValue?.order ?? 'asc');
+	}, [initialValue?.col, initialValue?.order, cols]);
+
+	const handleColChange = (value: string) => {
+		setSelectedCol(value);
 		setUrlParams((prev) => {
-			prev.set('col', selectedCol || '');
-			prev.set('order', selectedOrder || '');
-			return prev;
+			const newParams = new URLSearchParams(prev);
+			newParams.set('col', value);
+			return newParams;
 		});
-	}, [selectedCol, selectedOrder, setUrlParams]);
+	};
+
+	const handleOrderChange = (value: string) => {
+		setSelectedOrder(value);
+		setUrlParams((prev) => {
+			const newParams = new URLSearchParams(prev);
+			newParams.set('order', value);
+			return newParams;
+		});
+	};
 	return (
 		<div className="flex flex-col gap-1">
 			<p className="text-sm font-medium text-muted-foreground">Order by:</p>
 			<div className="flex items-center justify-center gap-4 flex-wrap">
-				<Select onValueChange={(value) => setSelectedCol(value)}>
+				<Select value={selectedCol || undefined} onValueChange={handleColChange}>
 					<SelectTrigger className="w-[180px]">
-						<SelectValue placeholder={selectedCol || 'Select a column'} />
+						<SelectValue placeholder="Select a column" />
 						<SelectContent>
 							<SelectGroup>
 								<SelectLabel>Columns</SelectLabel>
@@ -62,12 +76,12 @@ export const RowOrderForm = ({
 					</SelectTrigger>
 				</Select>
 
-				<Select onValueChange={(value) => setSelectedOrder(value)}>
+				<Select value={selectedOrder || undefined} onValueChange={handleOrderChange}>
 					<SelectTrigger className="w-[180px]">
-						<SelectValue placeholder={'Select a Order'} />
+						<SelectValue placeholder="Select order" />
 						<SelectContent>
 							<SelectGroup>
-								<SelectLabel>{selectedOrder || 'Select a Order'}</SelectLabel>
+								<SelectLabel>Order</SelectLabel>
 								<SelectItem value={'asc'}>Ascending</SelectItem>
 								<SelectItem value={'desc'}>Descending</SelectItem>
 							</SelectGroup>

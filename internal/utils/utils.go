@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/biisal/rowsql/configs"
@@ -23,12 +24,25 @@ func IsSafeIdentifier(s string) bool {
 	return true
 }
 
-func DetectDriver(connectionString string) (string, error) {
-	if connectionString == "" {
+func ReplaceTildeWithHomeDir(text string) (string, error) {
+	if strings.HasPrefix(text, "~") {
+		homeDir, homeErr := os.UserHomeDir()
+		if homeErr != nil {
+			logger.Error("failed to get user home directory: %s", homeErr)
+			return "", homeErr
+		}
+		text = strings.Replace(text, "~", homeDir, 1)
+	}
+	return text, nil
+}
+
+func DetectDriver(connectionString *string) (string, error) {
+	tempConn := *connectionString
+	if tempConn == "" {
 		return "", fmt.Errorf("connection string is empty")
 	}
 
-	lower := strings.ToLower(connectionString)
+	lower := strings.ToLower(tempConn)
 
 	switch {
 	case strings.HasPrefix(lower, "postgres://") ||
@@ -47,6 +61,12 @@ func DetectDriver(connectionString string) (string, error) {
 		strings.HasSuffix(lower, ".sqlite") ||
 		strings.HasSuffix(lower, ".sqlite3") ||
 		lower == ":memory:":
+		refinedDriver, err := ReplaceTildeWithHomeDir(tempConn)
+		if err != nil {
+			return "", err
+		}
+		*connectionString = refinedDriver
+
 		return configs.DriverSQLite, nil
 
 	default:

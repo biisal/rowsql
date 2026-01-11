@@ -18,7 +18,7 @@ import type {
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { createTable } from '@/lib/store/use-table';
+import useTableStore, { createTable } from '@/lib/store/use-table';
 import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -56,6 +56,7 @@ type FormValues = z.infer<typeof formSchema>;
 export const TableForm = () => {
 	const queryClient = useQueryClient();
 	const navigate = useNavigate();
+	const { refreshTables } = useTableStore();
 
 	const createTableMutation = useMutation({
 		mutationFn: createTable,
@@ -64,6 +65,7 @@ export const TableForm = () => {
 			toast.success('Table created successfully');
 			queryClient.invalidateQueries({ queryKey: ['tables'] });
 			navigate(`/tables/${tableName}`);
+			refreshTables(true);
 		},
 		onError: (err: AxiosError<ErrorResponse>) => {
 			toast.error(

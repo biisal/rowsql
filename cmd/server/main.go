@@ -9,6 +9,7 @@ import (
 func main() {
 	cfg := configs.MustLoad()
 	if err := mount(cfg); err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to mount app:", err)
+		return
 	}
 }

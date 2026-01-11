@@ -52,14 +52,6 @@ func SetupFile(logFilePath string, disableColor ...bool) error {
 		noColor = disableColor[0]
 	}
 
-	if strings.HasPrefix(logFilePath, "~") {
-		homeDir, homeErr := os.UserHomeDir()
-		if homeErr != nil {
-			return fmt.Errorf("failed to get user home directory: %w", homeErr)
-		}
-		logFilePath = strings.Replace(logFilePath, "~", homeDir, 1)
-	}
-
 	f, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
 	if err != nil {
 		if os.IsNotExist(err) {

@@ -30,7 +30,7 @@ createRoot(document.getElementById('root')!).render(
 						<Route path="/new-table" element={<TableForm />} />
 						<Route path="/tables/:tableName" element={<TableRows />} />
 						<Route path="/tables/:tableName/edit" element={<TableEditForm />} />
-						<Route path="/tables/:tableName/rows/new" element={<RowForm />} />
+						<Route path="/tables/:tableName/rows/" element={<RowForm />} />
 
 						<Route path="/about" element={<AboutPage />} />
 						<Route path="/history" element={<History />} />
