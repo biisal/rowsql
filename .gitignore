@@ -10,3 +10,5 @@ frontend/bun.lock
 bin/
 chinook.zip
 .DS_Store
+# Added by goreleaser init:
+dist/
