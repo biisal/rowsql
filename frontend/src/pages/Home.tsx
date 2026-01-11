@@ -136,7 +136,7 @@ export function Home() {
 							performance, manage schemas, and query data with ease.
 						</p>
 						<div className="flex flex-wrap gap-4 pt-2">
-							<Link to="/tables/create/new">
+							<Link to="/new-table">
 								<button className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
 									<Plus className="w-5 h-5" /> Create New Table
 								</button>
