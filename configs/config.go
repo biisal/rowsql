@@ -82,7 +82,7 @@ func MustLoad(envPath ...string) *Config {
 	var cfg Config
 
 	var path string
-	if len(envPath) > 0 {
+	if len(envPath) > 0 && envPath[0] != "" {
 		path = envPath[0]
 	} else {
 		path = getEnvPath()
