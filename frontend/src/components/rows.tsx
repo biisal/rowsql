@@ -94,7 +94,7 @@ export const Rows = ({
 									<div
 										key={cellIndex}
 										className={cn(
-											'p-2 align-middle flex items-center border-b bg-card group-hover:bg-muted/50 transition-colors lowercase',
+											'p-2 align-middle flex items-center border-b bg-card group-hover:bg-muted/50 transition-colors',
 											isSelected && 'bg-muted',
 										)}
 									>
