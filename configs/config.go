@@ -78,10 +78,17 @@ func getEnvPath() string {
 	return fullPath
 }
 
-func MustLoad() *Config {
+func MustLoad(envPath ...string) *Config {
 	var cfg Config
 
-	if err := godotenv.Load(getEnvPath()); err != nil {
+	var path string
+	if len(envPath) > 0 {
+		path = envPath[0]
+	} else {
+		path = getEnvPath()
+	}
+
+	if err := godotenv.Load(path); err != nil {
 		log.Fatal(err)
 	}
 	if err := cleanenv.ReadEnv(&cfg); err != nil {
