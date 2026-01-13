@@ -1,4 +1,7 @@
-package repo
+// Package models conatains the models of database qureies and forms
+package models
+
+import "time"
 
 type ListDataCol struct {
 	IsUnique         bool   `json:"isUnique"`
@@ -32,4 +35,15 @@ type FormValue struct {
 type InsertDataProps struct {
 	TableName string
 	Values    map[string]FormValue
+}
+
+type ListTablesRow struct {
+	TableSchema string `json:"tableSchema"`
+	TableName   string `json:"tableName"`
+}
+
+type History struct {
+	ID      int       `json:"id"`
+	Message string    `json:"message"`
+	Time    time.Time `json:"time"`
 }

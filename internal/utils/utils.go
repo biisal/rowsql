@@ -36,6 +36,27 @@ func ReplaceTildeWithHomeDir(text string) (string, error) {
 	return text, nil
 }
 
+func isPostgresConnString(connString string) bool {
+	return strings.HasPrefix(connString, "postgres://") ||
+		strings.HasPrefix(connString, "postgresql://") ||
+		strings.Contains(connString, "host=") && strings.Contains(connString, "dbname=")
+}
+
+func isSQLiteConnString(connString string) bool {
+	return strings.HasPrefix(connString, "sqlite://") ||
+		strings.HasPrefix(connString, "file:") ||
+		strings.HasSuffix(connString, ".db") ||
+		strings.HasSuffix(connString, ".sqlite") ||
+		strings.HasSuffix(connString, ".sqlite3") ||
+		connString == ":memory:"
+}
+
+func isMySQLConnString(connString string) bool {
+	return strings.HasPrefix(connString, "mysql://") ||
+		strings.Contains(connString, "tcp(") ||
+		strings.Contains(connString, "parseTime=")
+}
+
 func DetectDriver(connectionString *string) (string, error) {
 	tempConn := *connectionString
 	if tempConn == "" {
@@ -45,32 +66,24 @@ func DetectDriver(connectionString *string) (string, error) {
 	lower := strings.ToLower(tempConn)
 
 	switch {
-	case strings.HasPrefix(lower, "postgres://") ||
-		strings.HasPrefix(lower, "postgresql://") ||
-		strings.Contains(lower, "host=") && strings.Contains(lower, "dbname="):
+	case isPostgresConnString(lower):
 		return configs.DriverPostgres, nil
 
-	case strings.HasPrefix(lower, "mysql://") ||
-		strings.Contains(lower, "tcp(") ||
-		strings.Contains(lower, "parseTime="):
+	case isMySQLConnString(lower):
 		return configs.DriverMySQL, nil
 
-	case strings.HasPrefix(lower, "sqlite://") ||
-		strings.HasPrefix(lower, "file:") ||
-		strings.HasSuffix(lower, ".db") ||
-		strings.HasSuffix(lower, ".sqlite") ||
-		strings.HasSuffix(lower, ".sqlite3") ||
-		lower == ":memory:":
+	case isSQLiteConnString(lower):
 		refinedDriver, err := ReplaceTildeWithHomeDir(tempConn)
 		if err != nil {
 			return "", err
 		}
 		*connectionString = refinedDriver
-
 		return configs.DriverSQLite, nil
 
 	default:
-		return "", fmt.Errorf("unable to detect driver from connection string! Make sure your connection string is coorect and try again")
+		err := fmt.Errorf("unable to detect driver from connection string! Make sure your connection string is coorect and try again")
+		logger.Errorln(err)
+		return "", err
 	}
 }
 

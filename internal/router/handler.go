@@ -10,7 +10,7 @@ import (
 
 	"github.com/biisal/rowsql/internal/apperr"
 	"github.com/biisal/rowsql/internal/database"
-	"github.com/biisal/rowsql/internal/database/repo"
+	"github.com/biisal/rowsql/internal/database/models"
 	"github.com/biisal/rowsql/internal/logger"
 	resopnse "github.com/biisal/rowsql/internal/response"
 	"github.com/biisal/rowsql/internal/service"
@@ -22,8 +22,8 @@ type DBHandler struct {
 }
 
 type BaseHTMLData struct {
-	Tables      []repo.ListTablesRow
-	Cols        []repo.ListDataCol
+	Tables      []models.ListTablesRow
+	Cols        []models.ListDataCol
 	ActiveTable string
 }
 
@@ -89,7 +89,7 @@ func (h DBHandler) ListRows(w http.ResponseWriter, r *http.Request) {
 
 	colFound := false
 	if colParam != "" {
-		var cols []repo.ListDataCol
+		var cols []models.ListDataCol
 		cols, err = h.service.ListCols(r.Context(), tableName)
 		if err != nil {
 			resopnse.Error(w, http.StatusInternalServerError, err)
@@ -187,7 +187,7 @@ func (h DBHandler) RowInsertForm(w http.ResponseWriter, r *http.Request) {
 func (h DBHandler) InsertOrUpdateRow(w http.ResponseWriter, r *http.Request) {
 	tableName := r.PathValue("tableName")
 	ctx := r.Context()
-	form := make(map[string]repo.FormValue)
+	form := make(map[string]models.FormValue)
 	if err := json.NewDecoder(r.Body).Decode(&form); err != nil {
 		logger.Error("%s", err)
 		resopnse.Error(w, http.StatusInternalServerError, err)
@@ -213,7 +213,7 @@ func (h DBHandler) InsertOrUpdateRow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.InsertRow(ctx, repo.InsertDataProps{
+	if err := h.service.InsertRow(ctx, models.InsertDataProps{
 		TableName: tableName,
 		Values:    form,
 	}); err != nil {

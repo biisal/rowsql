@@ -3,23 +3,26 @@ package repo
 import (
 	"context"
 
+	"github.com/biisal/rowsql/internal/database/queries"
 	"github.com/jmoiron/sqlx"
 )
-
-func New(db *sqlx.DB, driver string, maxItemsPerPage int) *Queries {
-	return &Queries{
-		db:              db,
-		driver:          driver,
-		cache:           NewRowCache(100),
-		maxItemsPerPage: maxItemsPerPage,
-	}
-}
 
 type Queries struct {
 	db              sqlx.ExtContext
 	driver          string
+	queryBuilder    *queries.Builder
 	cache           *RowCache
 	maxItemsPerPage int
+}
+
+func New(db *sqlx.DB, driver string, queryBuilder *queries.Builder, maxItemsPerPage int) *Queries {
+	return &Queries{
+		db:              db,
+		driver:          driver,
+		queryBuilder:    queryBuilder,
+		cache:           NewRowCache(100),
+		maxItemsPerPage: maxItemsPerPage,
+	}
 }
 
 func (q *Queries) WithTx(tx *sqlx.Tx) *Queries {

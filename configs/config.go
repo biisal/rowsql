@@ -39,15 +39,25 @@ type Config struct {
 func promptForDefaultEnv(path string) {
 	color.Cyan("No .env found in %s\nDo you want to create one with default values? (y/n): ", path)
 	var choice string
-	fmt.Scan(&choice)
+	if _, err := fmt.Scan(&choice); err != nil {
+		logger.Errorln(err)
+		os.Exit(0)
+	}
 	if strings.ToLower(choice) == "y" {
 		file, err := os.Create(path)
 		if err != nil {
 			logger.Error("Error creating .env file: %s", err)
 			os.Exit(1)
 		}
-		file.WriteString("DBSTRING=test.db\nPORT=8000")
-		defer file.Close()
+		if _, err = file.WriteString("DBSTRING=test.db\nPORT=8000"); err != nil {
+			logger.Errorln(err)
+			os.Exit(0)
+		}
+		defer func() {
+			if err := file.Close(); err != nil {
+				logger.Errorln(err)
+			}
+		}()
 	} else {
 		logger.Error("No .env file found")
 		os.Exit(1)

@@ -6,21 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/biisal/rowsql/configs"
+	"github.com/biisal/rowsql/internal/database/models"
 	"github.com/biisal/rowsql/internal/logger"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5/pgconn"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
 )
-
-type History struct {
-	ID      int       `json:"id"`
-	Message string    `json:"message"`
-	Time    time.Time `json:"time"`
-}
 
 const historyTableName = "rowsql_history"
 
@@ -105,7 +99,7 @@ func (q *Queries) CreateHistoryTable(ctx context.Context) error {
 	return nil
 }
 
-func (q *Queries) ListHistory(ctx context.Context, limit, offset int) ([]History, error) {
+func (q *Queries) ListHistory(ctx context.Context, limit, offset int) ([]models.History, error) {
 	var query string
 	if q.db.DriverName() == configs.DriverPostgres {
 		query = fmt.Sprintf("SELECT id, message, time FROM %s ORDER BY id DESC LIMIT $1 OFFSET $2", historyTableName)
@@ -124,9 +118,9 @@ func (q *Queries) ListHistory(ctx context.Context, limit, offset int) ([]History
 			logger.Errorln(err)
 		}
 	}()
-	var items []History
+	var items []models.History
 	for rows.Next() {
-		var i History
+		var i models.History
 		if err := rows.Scan(&i.ID, &i.Message, &i.Time); err != nil {
 			logger.Error("failed to scan rows in list cols: %v", err)
 			return nil, err

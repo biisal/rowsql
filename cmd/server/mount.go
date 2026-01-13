@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/biisal/rowsql/configs"
+	"github.com/biisal/rowsql/internal/database/queries"
 	"github.com/biisal/rowsql/internal/database/repo"
 	"github.com/biisal/rowsql/internal/logger"
 	"github.com/biisal/rowsql/internal/router"
@@ -25,7 +26,7 @@ func mount(cfg *configs.Config) error {
 	}
 	cfg.LogFilePath = logFilePath
 
-	if err := logger.SetupFile(cfg.LogFilePath); err != nil {
+	if err = logger.SetupFile(cfg.LogFilePath); err != nil {
 		return err
 	}
 	defer logger.Close()
@@ -47,7 +48,9 @@ func mount(cfg *configs.Config) error {
 		return err
 	}
 
-	dbRepo := repo.New(dbConn, driver, cfg.MaxItemsPerPage)
+	queiryBuilder := queries.NewBuilder(cfg.Driver)
+
+	dbRepo := repo.New(dbConn, driver, queiryBuilder, cfg.MaxItemsPerPage)
 
 	if err = dbRepo.Init(ctx); err != nil {
 		logger.Errorln("Failed to initialize database repository:", err)

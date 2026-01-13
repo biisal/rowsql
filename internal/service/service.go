@@ -8,23 +8,24 @@ import (
 
 	"github.com/biisal/rowsql/configs"
 	"github.com/biisal/rowsql/internal/database"
+	"github.com/biisal/rowsql/internal/database/models"
 	"github.com/biisal/rowsql/internal/database/repo"
 )
 
 type DBService interface {
 	CheckTableExits(ctx context.Context, tableName string) error
-	ListTables(ctx context.Context) ([]repo.ListTablesRow, error)
-	ListCols(ctx context.Context, tableName string) ([]repo.ListDataCol, error)
-	ListRows(ctx context.Context, tableName string, page int, column string, order string) (repo.ListDataRow, error)
-	InsertRow(ctx context.Context, props repo.InsertDataProps) error
+	ListTables(ctx context.Context) ([]models.ListTablesRow, error)
+	ListCols(ctx context.Context, tableName string) ([]models.ListDataCol, error)
+	ListRows(ctx context.Context, tableName string, page int, column string, order string) (models.ListDataRow, error)
+	InsertRow(ctx context.Context, props models.InsertDataProps) error
 	GetRow(ctx context.Context, tableName string, hash string, page int) ([]any, error)
-	UpdateRow(ctx context.Context, values map[string]repo.FormValue, tableName, hash string, page int) error
+	UpdateRow(ctx context.Context, values map[string]models.FormValue, tableName, hash string, page int) error
 	CreateTable(ctx context.Context, tableName string, inputs []database.Input) error
 	GetRowCount(ctx context.Context, tableName string) (int, error)
 	DeleteRow(ctx context.Context, tableName string, hash string, page int) error
 	GetTableFormDataTypes() *FormDatatype
 	DeleteTable(ctx context.Context, tableName, verificationQuery string) error
-	ListHistory(ctx context.Context, page int) ([]repo.History, error)
+	ListHistory(ctx context.Context, page int) ([]models.History, error)
 	HasNextPage(ctx context.Context, total, page int) bool
 }
 
@@ -43,7 +44,7 @@ func (s *svc) CheckTableExits(ctx context.Context, tableName string) error {
 	return s.repo.CheckTableExitsInDB(ctx, tableName)
 }
 
-func (s *svc) ListTables(ctx context.Context) ([]repo.ListTablesRow, error) {
+func (s *svc) ListTables(ctx context.Context) ([]models.ListTablesRow, error) {
 	return s.repo.ListTables(ctx)
 }
 
@@ -63,7 +64,7 @@ func (s *svc) DeleteTable(ctx context.Context, tableName, verificationQuery stri
 	return s.repo.DeleteTable(ctx, tableName)
 }
 
-func (s *svc) ListCols(ctx context.Context, tableName string) ([]repo.ListDataCol, error) {
+func (s *svc) ListCols(ctx context.Context, tableName string) ([]models.ListDataCol, error) {
 	return s.repo.ListCols(ctx, tableName)
 }
 
@@ -71,12 +72,12 @@ func (s *svc) GetRow(ctx context.Context, tableName, hash string, page int) ([]a
 	return s.repo.GetRow(ctx, tableName, hash, s.getOffset(page), s.limit)
 }
 
-func (s *svc) InsertRow(ctx context.Context, props repo.InsertDataProps) error {
+func (s *svc) InsertRow(ctx context.Context, props models.InsertDataProps) error {
 	return s.repo.InsertRow(ctx, props)
 }
 
-func (s *svc) ListRows(ctx context.Context, tableName string, page int, column string, order string) (repo.ListDataRow, error) {
-	return s.repo.ListRows(ctx, repo.ListDataProps{
+func (s *svc) ListRows(ctx context.Context, tableName string, page int, column string, order string) (models.ListDataRow, error) {
+	return s.repo.ListRows(ctx, models.ListDataProps{
 		TableName: tableName,
 		Limit:     s.limit,
 		Offset:    s.getOffset(page),
@@ -85,7 +86,7 @@ func (s *svc) ListRows(ctx context.Context, tableName string, page int, column s
 	})
 }
 
-func (s *svc) UpdateRow(ctx context.Context, values map[string]repo.FormValue, tableName, hash string, page int) error {
+func (s *svc) UpdateRow(ctx context.Context, values map[string]models.FormValue, tableName, hash string, page int) error {
 	return s.repo.UpdateRow(ctx, repo.UpdateOrDeleteRowProps{
 		TableName: tableName,
 		Hash:      hash,
@@ -135,6 +136,6 @@ func (s *svc) GetTableFormDataTypes() *FormDatatype {
 	return nil
 }
 
-func (s *svc) ListHistory(ctx context.Context, page int) ([]repo.History, error) {
+func (s *svc) ListHistory(ctx context.Context, page int) ([]models.History, error) {
 	return s.repo.ListHistory(ctx, s.limit, s.getOffset(page))
 }

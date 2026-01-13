@@ -2,13 +2,15 @@ package repo
 
 import (
 	"context"
+
+	"github.com/biisal/rowsql/internal/database/models"
 )
 
 type Querier interface {
-	ListTables(ctx context.Context) ([]ListTablesRow, error)
-	ListCols(ctx context.Context, tableName string) ([]ListDataCol, error)
-	ListRows(ctx context.Context, props ListDataProps) (ListDataRow, error)
-	InsertRow(ctx context.Context, props InsertDataProps) error
+	ListTables(ctx context.Context) ([]models.ListTablesRow, error)
+	ListCols(ctx context.Context, tableName string) ([]models.ListDataCol, error)
+	ListRows(ctx context.Context, props models.ListDataProps) (models.ListDataRow, error)
+	InsertRow(ctx context.Context, props models.InsertDataProps) error
 	GetRow(ctx context.Context, tableName, hash string, offset, limit int) ([]any, error)
 	GetDriver() string
 }

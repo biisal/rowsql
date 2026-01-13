@@ -1,6 +1,8 @@
 package router
 
-import "github.com/biisal/rowsql/internal/database/repo"
+import (
+	"github.com/biisal/rowsql/internal/database/models"
+)
 
 type methodType string
 
@@ -12,11 +14,11 @@ const (
 )
 
 type ListRowsResponse struct {
-	Page        int                `json:"page"`
-	Rows        repo.ListDataRow   `json:"rows"`
-	Cols        []repo.ListDataCol `json:"cols"`
-	RowCount    int                `json:"rowCount"`
-	ActiveTable string             `json:"activeTable"`
-	HasNextPage bool               `json:"hasNextPage"`
-	TotalPages  int                `json:"totalPages"`
+	Page        int                  `json:"page"`
+	Rows        models.ListDataRow   `json:"rows"`
+	Cols        []models.ListDataCol `json:"cols"`
+	RowCount    int                  `json:"rowCount"`
+	ActiveTable string               `json:"activeTable"`
+	HasNextPage bool                 `json:"hasNextPage"`
+	TotalPages  int                  `json:"totalPages"`
 }
