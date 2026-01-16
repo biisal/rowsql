@@ -286,6 +286,7 @@ func (q *Queries) UpdateRow(ctx context.Context, props UpdateOrDeleteRowProps) e
 	}
 
 	query, args, err := q.queryBuilder.UpdateRow(props.TableName, props.Values, cols, row)
+	logger.Info("Query to Update : %s", query)
 	if err != nil {
 		return err
 	}
@@ -337,25 +338,9 @@ func (q *Queries) CreateTable(ctx context.Context, props CreateTableProps) error
 }
 
 func (q *Queries) DeleteTable(ctx context.Context, tableName string) error {
-	tables, err := q.ListTables(ctx)
-	if err != nil {
-		logger.Errorln(err)
-		return err
-	}
-	found := false
-	for _, t := range tables {
-		if t.TableName == tableName {
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		return fmt.Errorf("table %s not found", tableName)
-	}
 	query := q.queryBuilder.DeleteTable(tableName)
 	logger.Info("Query: %s", query)
-	_, err = q.db.ExecContext(ctx, query)
+	_, err := q.db.ExecContext(ctx, query)
 	if err != nil {
 		logger.Errorln(err)
 		return err

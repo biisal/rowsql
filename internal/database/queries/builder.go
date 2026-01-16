@@ -293,8 +293,18 @@ func (b *Builder) DeleteRow(tableName string, columns []models.ListDataCol, rows
 	if err != nil {
 		return "", nil, err
 	}
+	query := ""
+	switch b.driver {
+	case configs.DriverMySQL:
+		query = fmt.Sprintf("DELETE FROM %s WHERE %s LIMIT 1", tableName, clause)
+	case configs.DriverPostgres:
+		query = fmt.Sprintf("DELETE FROM %s WHERE ctid IN (SELECT ctid FROM %s WHERE %s LIMIT 1)", tableName, tableName, clause)
+	case configs.DriverSQLite:
+		query = fmt.Sprintf("DELETE FROM %s WHERE rowid IN (SELECT rowid FROM %s WHERE %s LIMIT 1)", tableName, tableName, clause)
+	default:
+		return "", nil, errors.New("unsupported driver")
 
-	query := fmt.Sprintf("DELETE FROM %s WHERE %s", tableName, clause)
+	}
 	return query, args, nil
 }
 
@@ -343,10 +353,10 @@ func (b *Builder) CreateTable(tableName string, inputs []database.Input) (string
 	}
 	parts := strings.Join(columnDefs, ", ")
 
-	query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (%s) ;", tableName, parts)
+	query := fmt.Sprintf("CREATE TABLE %s (%s) ;", tableName, parts)
 	return query, nil
 }
 
 func (b *Builder) DeleteTable(tableName string) string {
-	return fmt.Sprintf("DROP TABLE IF EXISTS %s", tableName)
+	return fmt.Sprintf("DROP TABLE %s", tableName)
 }

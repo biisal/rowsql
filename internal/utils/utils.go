@@ -1,4 +1,4 @@
-// Package utils provides utility functions for the db-gui application.
+// Package utils provides utility functions for the rowsql application.
 package utils
 
 import (

@@ -34,10 +34,12 @@ type Config struct {
 	MaxItemsPerPage int    `env:"MAX_ITEMS_PER_PAGE" env-default:"10"`
 	Env             string `env:"ENV" env-default:"production"`
 	LogFilePath     string `env:"LOG_FILE_PATH" env-default:"~/.rowsql/rowsql.log"`
+	Logo            string
 }
 
-func promptForDefaultEnv(path string) {
-	color.Cyan("No .env found in %s\nDo you want to create one with default values? (y/n): ", path)
+func promptForDefaultEnv(dir, fileName string) {
+	path := dir + "/" + fileName
+	color.Cyan("No %s found in %s\nDo you want to create one with default values? (y/n): ", fileName, dir)
 	var choice string
 	if _, err := fmt.Scan(&choice); err != nil {
 		logger.Errorln(err)
@@ -46,7 +48,7 @@ func promptForDefaultEnv(path string) {
 	if strings.ToLower(choice) == "y" {
 		file, err := os.Create(path)
 		if err != nil {
-			logger.Error("Error creating .env file: %s", err)
+			logger.Error("Error creating %s file: %s", fileName, err)
 			os.Exit(1)
 		}
 		if _, err = file.WriteString("DBSTRING=test.db\nPORT=8000"); err != nil {
@@ -58,8 +60,9 @@ func promptForDefaultEnv(path string) {
 				logger.Errorln(err)
 			}
 		}()
+		logger.Info("Default %s file created in %s", fileName, path)
 	} else {
-		logger.Error("No .env file found")
+		logger.Error("No %s file found", fileName)
 		os.Exit(1)
 	}
 }
@@ -75,11 +78,12 @@ func getEnvPath() string {
 		logger.Error("Error creating .rowsql directory: %s", err)
 		os.Exit(1)
 	}
-	fullPath := path + "/.env"
+	fileName := ".env"
+	fullPath := path + "/" + fileName
 	_, err = os.OpenFile(fullPath, os.O_RDONLY, 0o644)
 	if err != nil {
 		if os.IsNotExist(err) {
-			promptForDefaultEnv(fullPath)
+			promptForDefaultEnv(path, fileName)
 		} else {
 			logger.Error("Error opening .env file: %s", err)
 			os.Exit(1)

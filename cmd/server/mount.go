@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/biisal/rowsql/configs"
@@ -11,11 +12,21 @@ import (
 	"github.com/biisal/rowsql/internal/router"
 	"github.com/biisal/rowsql/internal/service"
 	"github.com/biisal/rowsql/internal/utils"
+	"github.com/fatih/color"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 	_ "modernc.org/sqlite"
 )
+
+func printLogo() {
+	gitLink := color.HiGreenString("https://github.com/biisal/rowsql")
+	logo := fmt.Sprintf(`
+█▀█ █▀█ █░█░█ █▀ █▀█ █░░  ❤️ Thanks for using
+█▀▄ █▄█ ▀▄▀▄▀ ▄█ ▀▀█ █▄▄  ⭐ Star on GitHub: %s
+	`, gitLink)
+	fmt.Println(logo)
+}
 
 func mount(cfg *configs.Config) error {
 	ctx := context.Background()
