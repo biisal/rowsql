@@ -21,8 +21,7 @@ func main() {
 	cfg := configs.MustLoad(envPath)
 
 	if err := runAutoUpdate(command, version, &cfg.Update); err != nil {
-		logger.Error("Failed to check for updates: %s", err)
-		logger.Info("Continuing with current version...")
+		logger.ErrorWriteOnlyFile("Error while updating: %s", err)
 	}
 
 	if err := mount(cfg); err != nil {

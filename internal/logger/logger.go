@@ -228,6 +228,20 @@ func Errorln(args ...any) {
 	writeToFile(plain)
 }
 
+func ErrorWriteOnlyFile(format string, args ...any) {
+	if !checkLevel(LevelError) {
+		return
+	}
+	mu.Lock()
+	defer mu.Unlock()
+
+	msg := fmt.Sprintf(format, args...)
+	caller := getCaller(2)
+
+	plain := fmt.Sprintf("ERROR:    [%s] [%s] %s\n", timestamp(), caller, msg)
+	writeToFile(plain)
+}
+
 func Debug(format string, args ...any) {
 	if !checkLevel(LevelDebug) {
 		return
