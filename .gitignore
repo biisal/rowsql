@@ -14,3 +14,4 @@ chinook.zip
 dist/
 node_modules/
 pnpm-lock.yaml
+VERSION
