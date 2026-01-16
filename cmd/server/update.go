@@ -18,6 +18,7 @@ func runAutoUpdate(cmd string, currentVersion string) error {
 		return nil
 	}
 
+	colordVersion := color.HiGreenString(currentVersion)
 	ctx := context.Background()
 	latest, found, err := selfupdate.DetectLatest(ctx, selfupdate.ParseSlug("biisal/rowsql"))
 	if err != nil {
@@ -26,8 +27,8 @@ func runAutoUpdate(cmd string, currentVersion string) error {
 	if !found {
 		return fmt.Errorf("latest version for %s/%s could not be found from github repository", runtime.GOOS, runtime.GOARCH)
 	}
-	if latest.LessOrEqual(version) {
-		logger.Info("Current version (%s) is the latest", version)
+	if latest.LessOrEqual(colordVersion) {
+		logger.Info("Current version (%s) is the latest", colordVersion)
 		return nil
 	}
 	exe, err := selfupdate.ExecutablePath()
@@ -37,9 +38,10 @@ func runAutoUpdate(cmd string, currentVersion string) error {
 	if err := selfupdate.UpdateTo(context.Background(), latest.AssetURL, "rowsql", exe); err != nil {
 		return fmt.Errorf("error occurred while updating binary: %w", err)
 	}
-	logger.Success("Successfully updated to version %s", latest.Version())
 
-	color.Cyan("Please %s to restart the server", cmd)
+	logger.Success("Successfully updated to version %s", color.HiGreenString(latest.Version()))
+
+	color.Cyan("Please run %s to restart the server", cmd)
 	os.Exit(1)
 	return nil
 }
