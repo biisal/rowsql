@@ -11,7 +11,7 @@ import (
 )
 
 func runAutoUpdate(cmd string, currentVersion string) error {
-	if currentVersion == "dev" || currentVersion == "" {
+	if currentVersion == "" || currentVersion == "dev" || currentVersion == "latest" {
 		logger.Info("Development build: skipping auto-update")
 		return nil
 	}
@@ -31,7 +31,6 @@ func runAutoUpdate(cmd string, currentVersion string) error {
 
 	logger.Success("Successfully updated to version %s", color.HiGreenString(latest.Version()))
 	color.Cyan("Please run %s to restart the server", cmd)
-
 	os.Exit(0)
 	return nil
 }
