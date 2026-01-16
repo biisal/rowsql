@@ -27,9 +27,14 @@ type ServerConfig struct {
 	Port string `env:"PORT" env-required:"true"`
 }
 
+type AutoUpdateConfig struct {
+	DisableAutoUpdate bool `env:"DISABLE_AUTO_UPDATE" env-default:"false"`
+}
+
 type Config struct {
 	DBString        string `env:"DBSTRING" env-required:"true"`
 	Server          ServerConfig
+	Update          AutoUpdateConfig
 	Driver          string
 	MaxItemsPerPage int    `env:"MAX_ITEMS_PER_PAGE" env-default:"10"`
 	Env             string `env:"ENV" env-default:"production"`
