@@ -19,12 +19,15 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func printLogo() {
+func printLogo(version string) {
 	gitLink := color.HiGreenString("https://github.com/biisal/rowsql")
+	version = color.HiYellowString("You are using version %s", version)
+
 	logo := fmt.Sprintf(`
-█▀█ █▀█ █░█░█ █▀ █▀█ █░░  ❤️ Thanks for using
-█▀▄ █▄█ ▀▄▀▄▀ ▄█ ▀▀█ █▄▄  ⭐ Star on GitHub: %s
-	`, gitLink)
+                          ❤️ Thanks for using
+█▀█ █▀█ █░█░█ █▀ █▀█ █░░  ⭐ Star on GitHub: %s
+█▀▄ █▄█ ▀▄▀▄▀ ▄█ ▀▀█ █▄▄  %s
+`, gitLink, version)
 	fmt.Println(logo)
 }
 

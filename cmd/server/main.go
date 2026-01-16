@@ -8,12 +8,11 @@ import (
 
 // go build -ldflags="-X main.version=$(date +%d-%m-%Y)"
 var (
-	version = "14-01-2026"
+	version = "dev"
 )
 
 func main() {
-	log.Printf("rowsql version %s", version)
-	printLogo()
+	printLogo(version)
 	envPath := perseFlags()
 	cfg := configs.MustLoad(envPath)
 	if err := mount(cfg); err != nil {
