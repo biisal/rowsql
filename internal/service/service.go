@@ -9,6 +9,7 @@ import (
 	"github.com/biisal/rowsql/configs"
 	"github.com/biisal/rowsql/internal/database"
 	"github.com/biisal/rowsql/internal/database/models"
+	"github.com/biisal/rowsql/internal/database/queries"
 	"github.com/biisal/rowsql/internal/database/repo"
 )
 
@@ -30,13 +31,16 @@ type DBService interface {
 }
 
 type svc struct {
-	repo  *repo.Queries
-	limit int
+	repo    *repo.Queries
+	builder *queries.Builder
+	limit   int
 }
 
-func NewService(repo *repo.Queries, maxItemsPerPage int) DBService {
+func NewService(repo *repo.Queries, builder *queries.Builder, maxItemsPerPage int) DBService {
 	return &svc{
-		repo, maxItemsPerPage,
+		repo:    repo,
+		builder: builder,
+		limit:   maxItemsPerPage,
 	}
 }
 
@@ -57,9 +61,9 @@ func (s *svc) CreateTable(ctx context.Context, tableName string, inputs []databa
 
 func (s *svc) DeleteTable(ctx context.Context, tableName, verificationQuery string) error {
 	q := strings.Join(strings.Fields(verificationQuery), " ")
-	targetQuiry := "DROP TABLE IF EXISTS " + tableName
-	if q != targetQuiry {
-		return fmt.Errorf("failed to verify! input should be correct: `%s`", targetQuiry)
+	deleteTableQuery := s.builder.DeleteTable(tableName)
+	if q != deleteTableQuery {
+		return fmt.Errorf("failed to verify! input should be correct: `%s`", deleteTableQuery)
 	}
 	return s.repo.DeleteTable(ctx, tableName)
 }

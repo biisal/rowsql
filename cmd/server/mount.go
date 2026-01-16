@@ -62,16 +62,16 @@ func mount(cfg *configs.Config) error {
 		return err
 	}
 
-	queiryBuilder := queries.NewBuilder(cfg.Driver)
+	queryBuilder := queries.NewBuilder(cfg.Driver)
 
-	dbRepo := repo.New(dbConn, driver, queiryBuilder, cfg.MaxItemsPerPage)
+	dbRepo := repo.New(dbConn, driver, queryBuilder, cfg.MaxItemsPerPage)
 
 	if err = dbRepo.Init(ctx); err != nil {
 		logger.Errorln("Failed to initialize database repository:", err)
 		return err
 	}
 
-	dbService := service.NewService(dbRepo, cfg.MaxItemsPerPage)
+	dbService := service.NewService(dbRepo, queryBuilder, cfg.MaxItemsPerPage)
 	dbHandler := router.NewHandler(dbService, cfg.MaxItemsPerPage)
 
 	mux, err := router.MountRouter(dbHandler)
