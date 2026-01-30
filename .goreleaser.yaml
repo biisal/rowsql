@@ -50,6 +50,7 @@ changelog:
       - '^test:'
 
 release:
+  draft: false
   footer: >-
 
     ---
