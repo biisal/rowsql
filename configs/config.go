@@ -14,10 +14,12 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type Driver string
+
 const (
-	DriverPostgres        = "pgx"
-	DriverMySQL           = "mysql"
-	DriverSQLite          = "sqlite"
+	DriverPostgres Driver = "pgx"
+	DriverMySQL    Driver = "mysql"
+	DriverSQLite   Driver = "sqlite"
 	EnvDevelopment string = "development"
 	EnvProduction  string = "production"
 )
@@ -35,7 +37,7 @@ type Config struct {
 	DBString        string `env:"DBSTRING" env-required:"true"`
 	Server          ServerConfig
 	Update          AutoUpdateConfig
-	Driver          string
+	Driver          Driver
 	MaxItemsPerPage int    `env:"MAX_ITEMS_PER_PAGE" env-default:"10"`
 	Env             string `env:"ENV" env-default:"production"`
 	LogFilePath     string `env:"LOG_FILE_PATH" env-default:"~/.rowsql/rowsql.log"`

@@ -5,20 +5,30 @@ import (
 	"strings"
 
 	"github.com/biisal/rowsql/configs"
+	"github.com/biisal/rowsql/internal/apperr"
 	"github.com/biisal/rowsql/internal/database"
 	"github.com/biisal/rowsql/internal/logger"
 )
 
-func (b *Builder) getQuotedTableName(tableName string) string {
+func (b *Builder) getQuotedTableName(tableName string) (string, error) {
+	if !strings.Contains(tableName, " ") {
+		switch b.driver {
+		case configs.DriverPostgres, configs.DriverMySQL, configs.DriverSQLite:
+			return tableName, nil
+		default:
+			return "", apperr.ErrorInvalidDriver
+		}
+	}
 	switch b.driver {
 	case configs.DriverMySQL:
-		tableName = fmt.Sprintf("`%s`", tableName)
+		return fmt.Sprintf("`%s`", tableName), nil
 	case configs.DriverPostgres:
-		tableName = fmt.Sprintf("\"%s\"", tableName)
+		return fmt.Sprintf("\"%s\"", tableName), nil
 	case configs.DriverSQLite:
-		tableName = fmt.Sprintf("\"%s\"", tableName)
+		return fmt.Sprintf("\"%s\"", tableName), nil
+	default:
+		return "", apperr.ErrorInvalidDriver
 	}
-	return tableName
 }
 
 func (b *Builder) placeHolder(n int) string {

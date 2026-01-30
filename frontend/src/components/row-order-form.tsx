@@ -7,7 +7,7 @@ import {
 	SelectLabel,
 	SelectTrigger,
 	SelectValue,
-} from './ui/select';
+} from '@/components/ui/select';
 import type { Column } from '@/lib/types';
 import { type SetURLSearchParams } from 'react-router-dom';
 
@@ -29,7 +29,7 @@ export const RowOrderForm = ({
 }: RowOrderFormProps) => {
 	const [selectedCol, setSelectedCol] = useState<string | null>(
 		initialValue?.col ??
-			(columns && columns.length > 0 ? columns[0].columnName : null),
+		(columns && columns.length > 0 ? columns[0].columnName : null),
 	);
 	const [selectedOrder, setSelectedOrder] = useState<string | null>(
 		initialValue?.order ?? 'asc',
@@ -51,7 +51,7 @@ export const RowOrderForm = ({
 	useEffect(() => {
 		setSelectedCol(
 			initialValue?.col ??
-				(columns && columns.length > 0 ? columns[0].columnName : null),
+			(columns && columns.length > 0 ? columns[0].columnName : null),
 		);
 		setSelectedOrder(initialValue?.order ?? 'asc');
 	}, [initialValue?.col, initialValue?.order, columns]);

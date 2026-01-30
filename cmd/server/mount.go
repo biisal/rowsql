@@ -56,15 +56,15 @@ func mount(cfg *configs.Config) error {
 	}
 	logger.Info("Database driver detected: %s", driver)
 	cfg.Driver = driver
-	dbConn, err := sqlx.ConnectContext(ctx, driver, cfg.DBString)
+	dbConn, err := sqlx.ConnectContext(ctx, string(driver), cfg.DBString)
 	if err != nil {
 		logger.Errorln("Failed to connect to database:", err)
 		return err
 	}
 
-	queryBuilder := queries.NewBuilder(cfg.Driver)
+	queryBuilder := queries.NewBuilder(cfg.Driver, cfg.MaxItemsPerPage)
 
-	dbRepo := repo.New(dbConn, driver, queryBuilder, cfg.MaxItemsPerPage)
+	dbRepo := repo.New(dbConn, cfg.Driver, queryBuilder, cfg.MaxItemsPerPage)
 
 	if err = dbRepo.Init(ctx); err != nil {
 		logger.Errorln("Failed to initialize database repository:", err)

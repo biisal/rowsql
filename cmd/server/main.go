@@ -8,7 +8,6 @@ import (
 	"github.com/biisal/rowsql/internal/logger"
 )
 
-// go build -ldflags="-X main.version=$(date +%d-%m-%Y)"
 var (
 	version = "dev"
 )

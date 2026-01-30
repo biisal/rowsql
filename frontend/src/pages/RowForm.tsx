@@ -138,6 +138,9 @@ export function RowForm() {
 			const payload: Record<string, { value: string; type: string }> = {};
 
 			formData.Cols.forEach((col) => {
+				if (autoEnabled[col.columnName]?.checked) {
+					return;
+				}
 				const value = data[col.columnName];
 				payload[col.columnName] = {
 					value: value !== undefined && value !== null ? String(value) : '',
@@ -276,7 +279,7 @@ export function RowForm() {
 															</FieldLabel>
 														</div>
 													) : col.inputType === 'textarea' ||
-													  col.inputType === 'json' ? (
+														col.inputType === 'json' ? (
 														<Textarea
 															disabled={hasDefaults[col.columnName]?.checked}
 															{...field}
@@ -310,7 +313,7 @@ export function RowForm() {
 																			} else {
 																				field.onChange(
 																					autoEnabled[col.columnName]?.oldVal ||
-																						'',
+																					'',
 																				);
 																			}
 																		}}

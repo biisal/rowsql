@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 
+	"github.com/biisal/rowsql/configs"
 	"github.com/biisal/rowsql/internal/database/models"
 )
 
@@ -12,7 +13,7 @@ type Querier interface {
 	ListRows(ctx context.Context, props models.ListDataProps) (models.ListDataRow, error)
 	InsertRow(ctx context.Context, props models.InsertDataProps) error
 	GetRow(ctx context.Context, tableName, hash string, offset, limit int) ([]any, error)
-	GetDriver() string
+	GetDriver() configs.Driver
 }
 
 var _ Querier = (*Queries)(nil)

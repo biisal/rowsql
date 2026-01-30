@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/biisal/rowsql/configs"
+	"github.com/biisal/rowsql/internal/apperr"
 	"github.com/biisal/rowsql/internal/database"
 	"github.com/biisal/rowsql/internal/database/models"
 	"github.com/biisal/rowsql/internal/logger"
@@ -18,12 +19,14 @@ import (
 var ErrUnknownDriver = errors.New("unknown driver")
 
 type Builder struct {
-	driver string
+	driver   configs.Driver
+	maxLimit int
 }
 
-func NewBuilder(driver string) *Builder {
+func NewBuilder(driver configs.Driver, maxLimit int) *Builder {
 	return &Builder{
-		driver: driver,
+		driver:   driver,
+		maxLimit: maxLimit,
 	}
 }
 
@@ -181,19 +184,45 @@ func (b *Builder) ListTables() (string, error) {
 	return "", ErrUnknownDriver
 }
 
-func (b *Builder) ListRows(tableName, orderCol, orderBy string, limit, offset int) (string, []any) {
-	orderByClause := ""
+func (b *Builder) ListRows(tableName, orderCol, orderBy string, limit, offset int) (string, []any, error) {
+	if tableName == "" {
+		return "", nil, apperr.ErrorEmptyTableName
+	}
+	if limit < 0 || offset < 0 {
+		return "", nil, apperr.ErrorInvalidPagination
+	}
+	if limit > b.maxLimit {
+		return "", nil, apperr.ErrorLimitTooLarge(b.maxLimit)
+	}
+	tableName, err := b.getQuotedTableName(tableName)
+	if err != nil {
+		logger.Errorln(err.Error())
+		return "", nil, err
+	}
+	parts := []string{fmt.Sprintf("SELECT * FROM %s", tableName)}
 	if orderCol != "" {
 		order := "ASC"
 		if strings.ToLower(orderBy) == "desc" {
 			order = "DESC"
 		}
-		orderByClause = fmt.Sprintf("ORDER BY %s %s", orderCol, order)
+		parts = append(parts, fmt.Sprintf("ORDER BY %s %s", orderCol, order))
 	}
 
-	tableName = b.getQuotedTableName(tableName)
-	query := fmt.Sprintf("SELECT * FROM %s %s LIMIT %s OFFSET %s", tableName, orderByClause, b.placeHolder(1), b.placeHolder(2))
-	return query, []any{limit, offset}
+	var args = []any{}
+	if limit > 0 {
+		parts = append(parts, fmt.Sprintf("LIMIT %s", b.placeHolder(1)))
+		args = append(args, limit)
+	}
+	if offset > 0 {
+		placeholder := b.placeHolder(1)
+		if limit > 0 {
+			placeholder = b.placeHolder(2)
+		}
+		parts = append(parts, fmt.Sprintf("OFFSET %s", placeholder))
+		args = append(args, offset)
+	}
+
+	return strings.Join(parts, " "), args, nil
 }
 
 func (b *Builder) InsertRow(tableName string, form map[string]models.FormValue) (string, []any, error) {
@@ -201,14 +230,14 @@ func (b *Builder) InsertRow(tableName string, form map[string]models.FormValue) 
 	placeholders := make([]string, 0, len(form))
 	args := make([]any, 0, len(form))
 
-	isPostgres := b.driver == configs.DriverPostgres
+	isPostgresOrSqLite := b.driver == configs.DriverPostgres || b.driver == configs.DriverSQLite
 
 	paramIndex := 1
 
 	ph := "?"
 	for col, field := range form {
 		columns = append(columns, col)
-		if isPostgres {
+		if isPostgresOrSqLite {
 			ph = "$" + strconv.Itoa(paramIndex)
 		}
 		placeholders = append(placeholders, ph)
@@ -231,13 +260,16 @@ func (b *Builder) InsertRow(tableName string, form map[string]models.FormValue) 
 	qPlaceholders := ""
 
 	if len(columns) > 0 {
-		qColumns = strings.Join(columns, ",")
-		qPlaceholders = strings.Join(placeholders, ",")
+		qColumns = strings.Join(columns, ", ")
+		qPlaceholders = strings.Join(placeholders, ", ")
 
 	}
 
 	var query string
-	tableName = b.getQuotedTableName(tableName)
+	tableName, err := b.getQuotedTableName(tableName)
+	if err != nil {
+		return "", nil, err
+	}
 	logger.Info("qColumns: %s", qColumns)
 	if qColumns == "" {
 		if b.driver == configs.DriverMySQL {
@@ -302,7 +334,7 @@ func (b *Builder) DeleteRow(tableName string, columns []models.ListDataCol, rows
 	case configs.DriverSQLite:
 		query = fmt.Sprintf("DELETE FROM %s WHERE rowid IN (SELECT rowid FROM %s WHERE %s LIMIT 1)", tableName, tableName, clause)
 	default:
-		return "", nil, errors.New("unsupported driver")
+		return "", nil, apperr.ErrorInvalidDriver
 
 	}
 	return query, args, nil

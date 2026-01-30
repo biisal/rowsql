@@ -121,7 +121,10 @@ func (q *Queries) ListTables(ctx context.Context) ([]models.ListTablesRow, error
 }
 
 func (q *Queries) ListRows(ctx context.Context, props models.ListDataProps) (models.ListDataRow, error) {
-	query, args := q.queryBuilder.ListRows(props.TableName, props.Column, props.Order, props.Limit, props.Offset)
+	query, args, err := q.queryBuilder.ListRows(props.TableName, props.Column, props.Order, props.Limit, props.Offset)
+	if err != nil {
+		return nil, err
+	}
 
 	logger.Info("Query : %s", query)
 	rows, err := q.db.QueryxContext(ctx, query, args...)
@@ -352,6 +355,6 @@ func (q *Queries) DeleteTable(ctx context.Context, tableName string) error {
 	return nil
 }
 
-func (q *Queries) GetDriver() string {
-	return q.db.DriverName()
+func (q *Queries) GetDriver() configs.Driver {
+	return q.driver
 }

@@ -57,7 +57,7 @@ func isMySQLConnString(connString string) bool {
 		strings.Contains(connString, "parseTime=")
 }
 
-func DetectDriver(connectionString *string) (string, error) {
+func DetectDriver(connectionString *string) (configs.Driver, error) {
 	tempConn := *connectionString
 	if tempConn == "" {
 		return "", fmt.Errorf("connection string is empty")

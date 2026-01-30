@@ -44,12 +44,14 @@ func IsTableNotExistError(err error) bool {
 func (q *Queries) InsertHistory(ctx context.Context, message string) {
 	var query string
 
-	if q.db.DriverName() == configs.DriverPostgres {
+	switch q.driver {
+	case configs.DriverPostgres:
 		query = fmt.Sprintf("INSERT INTO %s (message, time) VALUES ($1, NOW()) RETURNING id", historyTableName)
-	} else if q.db.DriverName() == configs.DriverMySQL {
+	case configs.DriverMySQL:
 		query = fmt.Sprintf("INSERT INTO %s (message, time) VALUES (?, NOW()) RETURNING id", historyTableName)
-	} else if q.db.DriverName() == configs.DriverSQLite {
+	case configs.DriverSQLite:
 		query = fmt.Sprintf("INSERT INTO %s (message, time) VALUES (?, datetime('now')) RETURNING id", historyTableName)
+
 	}
 
 	_, err := q.db.ExecContext(ctx, query, message)
@@ -84,11 +86,12 @@ func (q *Queries) DeleteHistory(ctx context.Context, id int) error {
 func (q *Queries) CreateHistoryTable(ctx context.Context) error {
 	var query string
 
-	if q.db.DriverName() == configs.DriverPostgres {
+	switch q.driver {
+	case configs.DriverPostgres:
 		query = fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (id SERIAL PRIMARY KEY, message TEXT, time TIMESTAMP WITH TIME ZONE);", historyTableName)
-	} else if q.db.DriverName() == configs.DriverMySQL {
+	case configs.DriverMySQL:
 		query = fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (id INT AUTO_INCREMENT PRIMARY KEY, message TEXT, time TIMESTAMP DEFAULT CURRENT_TIMESTAMP);", historyTableName)
-	} else if q.db.DriverName() == configs.DriverSQLite {
+	case configs.DriverSQLite:
 		query = fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (id INTEGER PRIMARY KEY AUTOINCREMENT, message TEXT, time DATETIME DEFAULT CURRENT_TIMESTAMP);", historyTableName)
 	}
 	_, err := q.db.ExecContext(ctx, query)
@@ -101,12 +104,15 @@ func (q *Queries) CreateHistoryTable(ctx context.Context) error {
 
 func (q *Queries) ListHistory(ctx context.Context, limit, offset int) ([]models.History, error) {
 	var query string
-	if q.db.DriverName() == configs.DriverPostgres {
+
+	switch q.driver {
+	case configs.DriverPostgres:
 		query = fmt.Sprintf("SELECT id, message, time FROM %s ORDER BY id DESC LIMIT $1 OFFSET $2", historyTableName)
-	} else if q.db.DriverName() == configs.DriverMySQL {
+	case configs.DriverMySQL:
 		query = fmt.Sprintf("SELECT id, message, time FROM %s ORDER BY id DESC LIMIT ? OFFSET ?", historyTableName)
-	} else if q.db.DriverName() == configs.DriverSQLite {
+	case configs.DriverSQLite:
 		query = fmt.Sprintf("SELECT id, message, time FROM %s ORDER BY id DESC LIMIT ? OFFSET ?", historyTableName)
+
 	}
 	rows, err := q.db.QueryxContext(ctx, query, limit, offset)
 	if err != nil {
