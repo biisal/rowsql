@@ -15,3 +15,4 @@ dist/
 node_modules/
 pnpm-lock.yaml
 VERSION
+TESTING_PLAN.md
