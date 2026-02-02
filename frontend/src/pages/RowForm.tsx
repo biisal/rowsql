@@ -134,20 +134,36 @@ export function RowForm() {
 		console.log('=== FORM SUBMISSION STARTED ===');
 		console.log('Form submitted with values:', data);
 
+		interface RowData {
+			columnName: string;
+			value: string;
+			type: string;
+		}
+		interface Payload {
+			tableName: string;
+			data: RowData[]
+		}
+
 		try {
-			const payload: Record<string, { value: string; type: string }> = {};
+
+			const colList: RowData[] = []
 
 			formData.Cols.forEach((col) => {
 				if (autoEnabled[col.columnName]?.checked) {
 					return;
 				}
 				const value = data[col.columnName];
-				payload[col.columnName] = {
+				colList.push({
+					columnName: col.columnName,
 					value: value !== undefined && value !== null ? String(value) : '',
-					type: col.inputType,
-				};
+					type: col.inputType
+				})
 			});
 
+			const payload: Payload = {
+				tableName: tableName,
+				data: colList
+			}
 			console.log('Payload:', payload);
 
 			const url = hash

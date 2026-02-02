@@ -10,6 +10,13 @@ import (
 	"github.com/biisal/rowsql/internal/logger"
 )
 
+func (b *Builder) checkValidDriver() error {
+	if _, ok := configs.Drivers[b.driver]; !ok {
+		return apperr.ErrorInvalidDriver
+	}
+	return nil
+}
+
 func (b *Builder) getQuotedTableName(tableName string) (string, error) {
 	if !strings.Contains(tableName, " ") {
 		switch b.driver {
@@ -31,11 +38,14 @@ func (b *Builder) getQuotedTableName(tableName string) (string, error) {
 	}
 }
 
-func (b *Builder) placeHolder(n int) string {
-	if b.driver == configs.DriverMySQL {
-		return "?"
+func (b *Builder) placeHolder(n int) (string, error) {
+	if n <= 0 {
+		return "", apperr.ErrorInvalidPlaceHolderIndex
 	}
-	return fmt.Sprintf("$%d", n)
+	if b.driver == configs.DriverMySQL {
+		return "?", nil
+	}
+	return fmt.Sprintf("$%d", n), nil
 }
 
 func (b *Builder) getAutoIncrementKeyword() string {

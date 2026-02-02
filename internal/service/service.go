@@ -20,7 +20,7 @@ type DBService interface {
 	ListRows(ctx context.Context, tableName string, page int, column string, order string) (models.ListDataRow, error)
 	InsertRow(ctx context.Context, props models.InsertDataProps) error
 	GetRow(ctx context.Context, tableName string, hash string, page int) ([]any, error)
-	UpdateRow(ctx context.Context, values map[string]models.FormValue, tableName, hash string, page int) error
+	UpdateRow(ctx context.Context, values []models.RowItem, tableName, hash string, page int) error
 	CreateTable(ctx context.Context, tableName string, inputs []database.Input) error
 	GetRowCount(ctx context.Context, tableName string) (int, error)
 	DeleteRow(ctx context.Context, tableName string, hash string, page int) error
@@ -90,7 +90,7 @@ func (s *svc) ListRows(ctx context.Context, tableName string, page int, column s
 	})
 }
 
-func (s *svc) UpdateRow(ctx context.Context, values map[string]models.FormValue, tableName, hash string, page int) error {
+func (s *svc) UpdateRow(ctx context.Context, values []models.RowItem, tableName, hash string, page int) error {
 	return s.repo.UpdateRow(ctx, repo.UpdateOrDeleteRowProps{
 		TableName: tableName,
 		Hash:      hash,

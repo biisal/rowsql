@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"strconv"
 	"strings"
@@ -208,15 +209,25 @@ func (b *Builder) ListRows(tableName, orderCol, orderBy string, limit, offset in
 		parts = append(parts, fmt.Sprintf("ORDER BY %s %s", orderCol, order))
 	}
 
-	var args = []any{}
+	args := []any{}
 	if limit > 0 {
-		parts = append(parts, fmt.Sprintf("LIMIT %s", b.placeHolder(1)))
+		ph, err := b.placeHolder(1)
+		if err != nil {
+			return "", nil, err
+		}
+		parts = append(parts, fmt.Sprintf("LIMIT %s", ph))
 		args = append(args, limit)
 	}
 	if offset > 0 {
-		placeholder := b.placeHolder(1)
+		placeholder, err := b.placeHolder(1)
+		if err != nil {
+			return "", nil, err
+		}
 		if limit > 0 {
-			placeholder = b.placeHolder(2)
+			placeholder, err = b.placeHolder(2)
+			if err != nil {
+				return "", nil, err
+			}
 		}
 		parts = append(parts, fmt.Sprintf("OFFSET %s", placeholder))
 		args = append(args, offset)
@@ -225,7 +236,13 @@ func (b *Builder) ListRows(tableName, orderCol, orderBy string, limit, offset in
 	return strings.Join(parts, " "), args, nil
 }
 
-func (b *Builder) InsertRow(tableName string, form map[string]models.FormValue) (string, []any, error) {
+func (b *Builder) InsertRow(tableName string, form []models.RowItem) (string, []any, error) {
+	if err := b.checkValidDriver(); err != nil {
+		return "", nil, err
+	}
+	if tableName == "" {
+		return "", nil, apperr.ErrorEmptyTableName
+	}
 	columns := make([]string, 0, len(form))
 	placeholders := make([]string, 0, len(form))
 	args := make([]any, 0, len(form))
@@ -235,19 +252,32 @@ func (b *Builder) InsertRow(tableName string, form map[string]models.FormValue) 
 	paramIndex := 1
 
 	ph := "?"
-	for col, field := range form {
-		columns = append(columns, col)
+
+	seen := make(map[string]bool)
+
+	for _, field := range form {
+		if _, ok := seen[field.ColumnName]; ok {
+			return "", nil, apperr.ErrorDuplicateColumn
+		}
+		seen[field.ColumnName] = true
+		columns = append(columns, field.ColumnName)
 		if isPostgresOrSqLite {
 			ph = "$" + strconv.Itoa(paramIndex)
 		}
 		placeholders = append(placeholders, ph)
 
 		if field.Type == "json" {
-			var jsonVal map[string]any
+			var jsonVal any
 			if err := json.Unmarshal([]byte(field.Value), &jsonVal); err != nil {
 				logger.Errorln(err)
+				var syntaxErr *json.SyntaxError
+				if errors.As(err, &syntaxErr) || errors.Is(err, io.ErrUnexpectedEOF) {
+					return "", nil, apperr.ErrorInvalidJSON
+				}
 				return "", nil, err
+
 			}
+			logger.Info("jsonVal: %v", jsonVal)
 			args = append(args, jsonVal)
 		} else {
 			args = append(args, field.Value)
@@ -262,7 +292,6 @@ func (b *Builder) InsertRow(tableName string, form map[string]models.FormValue) 
 	if len(columns) > 0 {
 		qColumns = strings.Join(columns, ", ")
 		qPlaceholders = strings.Join(placeholders, ", ")
-
 	}
 
 	var query string
@@ -270,36 +299,63 @@ func (b *Builder) InsertRow(tableName string, form map[string]models.FormValue) 
 	if err != nil {
 		return "", nil, err
 	}
-	logger.Info("qColumns: %s", qColumns)
 	if qColumns == "" {
 		if b.driver == configs.DriverMySQL {
-			query = fmt.Sprintf("INSERT INTO %s VALUES (%s)", tableName, qPlaceholders)
+			query = fmt.Sprintf("INSERT INTO %s () VALUES ()", tableName)
 		} else {
 			query = fmt.Sprintf("INSERT INTO %s DEFAULT VALUES", tableName)
 		}
 	} else {
 		query = fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", tableName, qColumns, qPlaceholders)
 	}
+	logger.Info("Query: %s", query)
 	return query, args, nil
 }
 
-func (b *Builder) GetRow(tableName string, limit, offset int) (string, []any) {
-	query := fmt.Sprintf("SELECT * FROM %s LIMIT %s OFFSET %s", tableName, b.placeHolder(1), b.placeHolder(2))
-	return query, []any{limit, offset}
+func (b *Builder) GetRows(tableName string, limit, offset int) (string, []any, error) {
+	if err := b.checkValidDriver(); err != nil {
+		return "", nil, err
+	}
+	if limit <= 0 || offset < 0 {
+		return "", nil, apperr.ErrorInvalidPagination
+	}
+
+	tableName = strings.TrimSpace(tableName)
+	if tableName == "" {
+		return "", nil, apperr.ErrorInvalidTableName
+	}
+
+	args := []any{limit}
+	ph, err := b.placeHolder(1)
+	if err != nil {
+		return "", nil, err
+	}
+	parts := []string{fmt.Sprintf("SELECT * FROM %s LIMIT %s", tableName, ph)}
+	if offset > 0 {
+		ph, err = b.placeHolder(2)
+		if err != nil {
+			return "", nil, err
+		}
+		parts = append(parts, fmt.Sprintf("OFFSET %s", ph))
+		args = append(args, offset)
+	}
+
+	return strings.Join(parts, " "), args, nil
 }
 
 func (b *Builder) WhereCluse(cols []models.ListDataCol, rows []any, argsIdx int) (string, []any, error) {
 	if len(cols) != len(rows) {
-		return "", nil, fmt.Errorf("cols and rows aren't same in length")
+		return "", nil, apperr.ErrorNotSameRowColsSize
 	}
 
 	var mixed []string
-	ph := "?"
 	var args []any
 	for i, val := range cols {
-		if b.driver == configs.DriverPostgres {
-			ph = "$" + strconv.Itoa(argsIdx+i)
+		ph, err := b.placeHolder(argsIdx + i)
+		if err != nil {
+			return "", nil, err
 		}
+
 		if val.IsUnique {
 			return fmt.Sprintf("%s=%s", val.ColumnName, ph), []any{rows[i]}, nil
 		}
@@ -322,6 +378,7 @@ func (b *Builder) WhereCluse(cols []models.ListDataCol, rows []any, argsIdx int)
 
 func (b *Builder) DeleteRow(tableName string, columns []models.ListDataCol, rows []any, argIdx int) (string, []any, error) {
 	clause, args, err := b.WhereCluse(columns, rows, argIdx)
+	logger.Info("Clause: %s", clause)
 	if err != nil {
 		return "", nil, err
 	}
@@ -340,16 +397,16 @@ func (b *Builder) DeleteRow(tableName string, columns []models.ListDataCol, rows
 	return query, args, nil
 }
 
-func (b *Builder) UpdateRow(tableName string, form map[string]models.FormValue, columns []models.ListDataCol, row []any) (string, []any, error) {
+func (b *Builder) UpdateRow(tableName string, form []models.RowItem, columns []models.ListDataCol, row []any) (string, []any, error) {
 	parts := make([]string, 0, len(form))
 	ph := "?"
 	index := 1
 	args := make([]any, 0, len(form))
-	for k, v := range form {
+	for _, v := range form {
 		if b.driver == configs.DriverPostgres {
 			ph = "$" + strconv.Itoa(index)
 		}
-		parts = append(parts, fmt.Sprintf("%s=%s", k, ph))
+		parts = append(parts, fmt.Sprintf("%s=%s", v.ColumnName, ph))
 		args = append(args, v.Value)
 		index++
 	}

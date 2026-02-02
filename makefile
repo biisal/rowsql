@@ -21,4 +21,7 @@ build-linux:
 	cd ./frontend && pnpm run build
 	GOOS=linux GOARCH=amd64 go build -o bin/rowsql-linux ./cmd/server
 
+test:
+	go test ./...
+
 .PHONY: frontend-dev backend-dev dev run ensure-psql

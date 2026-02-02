@@ -24,6 +24,12 @@ const (
 	EnvProduction  string = "production"
 )
 
+var Drivers = map[Driver]Driver{
+	"pgx":    DriverPostgres,
+	"mysql":  DriverMySQL,
+	"sqlite": DriverSQLite,
+}
+
 type ServerConfig struct {
 	Host string `env:"HOST"`
 	Port string `env:"PORT" env-required:"true"`

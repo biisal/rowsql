@@ -187,12 +187,14 @@ func (h DBHandler) RowInsertForm(w http.ResponseWriter, r *http.Request) {
 func (h DBHandler) InsertOrUpdateRow(w http.ResponseWriter, r *http.Request) {
 	tableName := r.PathValue("tableName")
 	ctx := r.Context()
-	form := make(map[string]models.FormValue)
+	form := models.InsertRowRequest{}
+
 	if err := json.NewDecoder(r.Body).Decode(&form); err != nil {
 		logger.Error("%s", err)
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}
+	logger.Info("Request data: %+v", form)
 
 	page := r.URL.Query().Get("page")
 	pageInt, err := strconv.Atoi(page)
@@ -202,7 +204,7 @@ func (h DBHandler) InsertOrUpdateRow(w http.ResponseWriter, r *http.Request) {
 
 	hash := strings.TrimSpace(r.URL.Query().Get("hash"))
 	if hash != "" {
-		if err := h.service.UpdateRow(ctx, form, tableName, hash, pageInt); err != nil {
+		if err := h.service.UpdateRow(ctx, form.Data, tableName, hash, pageInt); err != nil {
 			logger.Error("%s", err)
 			logger.Error("Failed to update row in table '%s'", tableName)
 			resopnse.Error(w, http.StatusInternalServerError, err)
@@ -215,7 +217,7 @@ func (h DBHandler) InsertOrUpdateRow(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.service.InsertRow(ctx, models.InsertDataProps{
 		TableName: tableName,
-		Values:    form,
+		Values:    form.Data,
 	}); err != nil {
 		logger.Errorln(err.Error())
 		logger.Error("Failed to insert row in table '%s'", tableName)

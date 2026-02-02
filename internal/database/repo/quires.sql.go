@@ -206,14 +206,17 @@ func (q *Queries) GetRow(ctx context.Context, tableName, hash string, offest, li
 	}
 	logger.Info("not found in cache! Fetching from db limit=%d offset=%d", limit, offest)
 	for offest <= limit {
-		query, args := q.queryBuilder.GetRow(tableName, offest+1, offest)
+		query, args, err := q.queryBuilder.GetRows(tableName, offest+1, offest)
+		if err != nil {
+			return nil, err
+		}
 		logger.Info("Query: %s offset=%d tableName=%s", query, offest, tableName)
 		data, err := q.db.QueryRowxContext(ctx, query, args...).SliceScan()
 		if err != nil {
+			logger.Error("failed to query: %v", err)
 			if !errors.Is(err, sql.ErrNoRows) {
 				return nil, err
 			}
-			logger.Info("row not found! Continuing to next row")
 		}
 		for i, v := range data {
 			if b, ok := v.([]byte); ok {
@@ -267,7 +270,7 @@ func (q *Queries) DeleteRow(ctx context.Context, props UpdateOrDeleteRowProps) e
 
 type UpdateOrDeleteRowProps struct {
 	TableName string
-	Values    map[string]models.FormValue
+	Values    []models.RowItem
 	Hash      string
 	Limit     int
 	Offset    int

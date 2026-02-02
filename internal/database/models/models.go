@@ -32,9 +32,19 @@ type FormValue struct {
 	Value string `json:"value"`
 	Type  string `json:"type"`
 }
+
+type RowItem struct {
+	ColumnName string `json:"columnName"`
+	Value      string `json:"value"`
+	Type       string `json:"type"`
+}
+type InsertRowRequest struct {
+	TableName string    `json:"tableName"`
+	Data      []RowItem `json:"data"`
+}
 type InsertDataProps struct {
 	TableName string
-	Values    map[string]FormValue
+	Values    []RowItem
 }
 
 type ListTablesRow struct {
