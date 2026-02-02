@@ -11,12 +11,12 @@ import (
 type Queries struct {
 	db              sqlx.ExtContext
 	driver          configs.Driver
-	queryBuilder    *queries.Builder
+	queryBuilder    queries.Builder
 	cache           *RowCache
 	maxItemsPerPage int
 }
 
-func New(db *sqlx.DB, driver configs.Driver, queryBuilder *queries.Builder, maxItemsPerPage int) *Queries {
+func New(db *sqlx.DB, driver configs.Driver, queryBuilder queries.Builder, maxItemsPerPage int) *Queries {
 	return &Queries{
 		db:              db,
 		driver:          driver,

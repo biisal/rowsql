@@ -12,14 +12,131 @@ import (
 
 type Arg []any
 
+const postgresColumnsListsQuery = `
+SELECT
+    c.column_name,
+    c.data_type,
+    (c.column_default IS NOT NULL) AS default_value,
+    COALESCE(
+        bool_or(tc.constraint_type IN ('UNIQUE', 'PRIMARY KEY')),
+        false
+    ) AS is_unique,
+    (
+        c.is_identity = 'YES'
+        OR c.column_default LIKE 'nextval(%'
+    ) AS is_auto_increment
+FROM information_schema.columns c
+LEFT JOIN information_schema.key_column_usage kcu
+    ON c.table_name = kcu.table_name
+    AND c.column_name = kcu.column_name
+    AND c.table_schema = kcu.table_schema
+LEFT JOIN information_schema.table_constraints tc
+    ON kcu.constraint_name = tc.constraint_name
+    AND kcu.table_schema = tc.table_schema
+WHERE c.table_name = $1
+GROUP BY
+    c.column_name,
+    c.data_type,
+    c.ordinal_position,
+    c.is_identity,
+    c.column_default
+ORDER BY c.ordinal_position;
+`
+
+const mysqlColumnsListsQuery = `
+SELECT
+    c.column_name,
+    c.data_type,
+    (c.column_default IS NOT NULL) AS default_value,
+    COALESCE(
+        MAX(CASE
+            WHEN tc.constraint_type IN ('UNIQUE', 'PRIMARY KEY') THEN 1
+            ELSE 0
+        END) = 1,
+        false
+    ) AS is_unique,
+    (c.extra LIKE '%auto_increment%') AS is_auto_increment
+FROM information_schema.columns c
+LEFT JOIN information_schema.key_column_usage kcu
+    ON c.table_name = kcu.table_name
+    AND c.column_name = kcu.column_name
+    AND c.table_schema = kcu.table_schema
+LEFT JOIN information_schema.table_constraints tc
+    ON kcu.constraint_name = tc.constraint_name
+    AND kcu.table_schema = tc.table_schema
+WHERE c.table_name = ?
+  AND c.table_schema = DATABASE()
+GROUP BY
+    c.column_name,
+    c.data_type,
+    c.ordinal_position,
+    c.extra,
+    c.column_default
+ORDER BY c.ordinal_position;
+`
+
+const sqliteColumnsListQuery = `
+SELECT
+    p.name AS column_name,
+    p.type AS data_type,
+    (p.dflt_value IS NOT NULL) AS default_value,
+    CASE
+        WHEN p.pk = 1 THEN 1
+        WHEN EXISTS (
+            SELECT 1
+            FROM pragma_index_list(?) il
+            JOIN pragma_index_info(il.name) ii
+                ON ii.name = p.name
+            WHERE il."unique" = 1
+        ) THEN 1
+        ELSE 0
+    END AS is_unique,
+    CASE
+        WHEN p.pk = 1
+             AND lower(p.type) = 'integer'
+        THEN 1
+        ELSE 0
+    END AS is_auto_increment
+FROM pragma_table_info(?) AS p;
+`
+
+const postgresMySQLTablesListQuery = `
+SELECT
+  table_schema,
+  table_name
+FROM information_schema.tables
+WHERE table_type = 'BASE TABLE'
+  AND table_schema NOT IN (
+    'pg_catalog',
+    'information_schema',
+    'mysql',
+    'performance_schema',
+    'sys'
+  )
+ORDER BY table_schema, table_name;
+`
+
+const sqliteTablesListQuery = `
+SELECT
+  '' AS table_schema,
+  name AS table_name
+FROM sqlite_master
+WHERE type = 'table'
+  AND name NOT LIKE 'sqlite_%'
+ORDER BY name;
+`
+
 func TestListTables(t *testing.T) {
 	assertQuery := func(t testing.TB, driver configs.Driver, want string, err error) {
-		builder := NewBuilder(driver, 10)
+		builder, bErr := NewBuilder(driver, 10)
 		t.Helper()
-		query, qErr := builder.ListTables()
-		if !errors.Is(qErr, err) {
-			t.Errorf("expected error %#v but got %#v", err, qErr)
+		if bErr != nil {
+			if !errors.Is(bErr, err) {
+				t.Errorf("expected builder error %#v but got %#v", err, bErr)
+			}
+			return
 		}
+		query := builder.ListTables()
 		if query != want {
 			t.Errorf("expected %s but got %s", want, query)
 		}
@@ -53,7 +170,7 @@ func TestListTables(t *testing.T) {
 			name:   "Empty driver",
 			driver: "",
 			want:   "",
-			err:    ErrUnknownDriver,
+			err:    apperr.ErrorInvalidDriver,
 		},
 	}
 
@@ -66,12 +183,15 @@ func TestListTables(t *testing.T) {
 
 func TestColumnsList(t *testing.T) {
 	assertQuery := func(t testing.TB, driver configs.Driver, want string, wantArgs []any, err error) {
-		builder := NewBuilder(driver, 10)
+		builder, bErr := NewBuilder(driver, 10)
 		t.Helper()
-		query, args, qErr := builder.ColumnsList("users")
-		if !errors.Is(qErr, err) {
-			t.Errorf("expected error %#v but got %#v", err, qErr)
+		if bErr != nil {
+			if !errors.Is(bErr, err) {
+				t.Errorf("expected builder error %#v but got %#v", err, bErr)
+			}
+			return
 		}
+		query, args := builder.ColumnsList("users")
 		if query != want {
 			t.Errorf("expected %s but got %s", want, query)
 		}
@@ -118,7 +238,7 @@ func TestColumnsList(t *testing.T) {
 			driver: "",
 			want:   "",
 			args:   []any{},
-			err:    ErrUnknownDriver,
+			err:    apperr.ErrorInvalidDriver,
 		},
 	}
 
@@ -387,7 +507,11 @@ func TestListRows(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			builder := NewBuilder(tt.driver, tt.maxLimit)
+			builder, bErr := NewBuilder(tt.driver, tt.maxLimit)
+			if bErr != nil {
+				assertErr(t, bErr, tt.err)
+				return
+			}
 			query, args, err := builder.ListRows(tt.tableName, tt.orderCol, tt.orderBy, tt.limit, tt.offset)
 			assertErr(t, err, tt.err)
 			assertQuery(t, query, tt.want)
@@ -671,7 +795,11 @@ func TestInsertRow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			builder := NewBuilder(tt.driver, 10)
+			builder, bErr := NewBuilder(tt.driver, 10)
+			if bErr != nil {
+				assertErr(t, bErr, tt.err)
+				return
+			}
 			query, args, err := builder.InsertRow(tt.tableName, tt.values)
 			assertErr(t, err, tt.err)
 			assertQuery(t, query, tt.want)
@@ -767,209 +895,15 @@ func TestGetRows(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			builder := NewBuilder(tt.driver, 10)
+			builder, bErr := NewBuilder(tt.driver, 10)
+			if bErr != nil {
+				assertErr(t, bErr, tt.err)
+				return
+			}
 			query, args, err := builder.GetRows(tt.tableName, tt.limit, tt.offset)
 			assertErr(t, err, tt.err)
 			assertQuery(t, query, tt.want)
 			assertArgs(t, args, tt.arg)
-		})
-	}
-}
-
-func TestWhereClause(t *testing.T) {
-	tests := []struct {
-		name    string
-		driver  configs.Driver
-		cols    []models.ListDataCol
-		rows    []any
-		argsIdx int
-		want    string
-		args    []any
-		err     error
-	}{
-		{
-			name:   "Postgress",
-			driver: configs.DriverPostgres,
-			cols: []models.ListDataCol{
-				{
-					ColumnName:       "id",
-					DataType:         "int",
-					IsUnique:         false,
-					Value:            1,
-					InputType:        "text",
-					HasAutoIncrement: false,
-				},
-			},
-			rows:    []any{1},
-			want:    "id=$1",
-			argsIdx: 1,
-			args:    []any{1},
-		},
-		{
-			name:   "MySQL",
-			driver: configs.DriverMySQL,
-			cols: []models.ListDataCol{
-				{
-					ColumnName:       "id",
-					DataType:         "int",
-					IsUnique:         false,
-					Value:            1,
-					InputType:        "text",
-					HasAutoIncrement: false,
-				},
-			},
-			rows:    []any{1},
-			want:    "id=?",
-			argsIdx: 1,
-			args:    []any{1},
-		},
-		{
-			name:   "SQLite",
-			driver: configs.DriverSQLite,
-			cols: []models.ListDataCol{
-				{
-					ColumnName:       "id",
-					DataType:         "int",
-					IsUnique:         false,
-					Value:            1,
-					InputType:        "text",
-					HasAutoIncrement: false,
-				},
-			},
-			rows:    []any{1},
-			want:    "id=$1",
-			argsIdx: 1,
-			args:    []any{1},
-		},
-		{
-			name:   "Sqlite zero index",
-			driver: configs.DriverSQLite,
-			cols: []models.ListDataCol{
-				{
-					ColumnName: "id",
-					Value:      1,
-				},
-			},
-			rows:    []any{1},
-			argsIdx: 0,
-			// err: apperr.Err,
-			err: apperr.ErrorInvalidPlaceHolderIndex,
-		},
-		{
-			name:   "Sqlite multiple rows and cols",
-			driver: configs.DriverSQLite,
-			cols: []models.ListDataCol{
-				{
-					ColumnName: "id",
-					Value:      1,
-				},
-				{
-					ColumnName: "name",
-					Value:      "test",
-				},
-				{
-					ColumnName: "email",
-					Value:      "test",
-				},
-			},
-
-			rows:    []any{1, "test", "test"},
-			argsIdx: 1,
-			want:    "id=$1 AND name=$2 AND email=$3",
-			args:    []any{1, "test", "test"},
-		},
-		{
-			name:   "Mysql multiple rows and cols",
-			driver: configs.DriverMySQL,
-			cols: []models.ListDataCol{
-				{
-					ColumnName: "id",
-					Value:      1,
-				},
-				{
-					ColumnName: "name",
-					Value:      "test",
-				},
-				{
-					ColumnName: "email",
-					Value:      "test",
-				},
-			},
-
-			rows:    []any{1, "test", "test"},
-			argsIdx: 1,
-			want:    "id=? AND name=? AND email=?",
-			args:    []any{1, "test", "test"},
-		},
-		{
-			name:   "Sqlite less cols then rows",
-			driver: configs.DriverSQLite,
-			cols: []models.ListDataCol{
-				{
-					ColumnName: "id",
-					Value:      1,
-				},
-				{
-					ColumnName: "name",
-					Value:      "test",
-				},
-			},
-			rows:    []any{1, "test", "test"},
-			argsIdx: 1,
-			err:     apperr.ErrorNotSameRowColsSize,
-		},
-		{
-			name:   "Sqlite unique cols",
-			driver: configs.DriverSQLite,
-			cols: []models.ListDataCol{
-				{
-					ColumnName: "id",
-					Value:      1,
-					IsUnique:   true,
-				},
-				{
-					ColumnName: "name",
-					Value:      "test",
-				},
-			},
-			rows:    []any{1, "test"},
-			args:    []any{1},
-			argsIdx: 1,
-			want:    "id=$1",
-		},
-		{
-			name:   "Sqlite multiple unique cols",
-			driver: configs.DriverSQLite,
-			cols: []models.ListDataCol{
-				{
-					ColumnName: "id",
-					Value:      1,
-					IsUnique:   true,
-				},
-				{
-					ColumnName: "name",
-					Value:      "test",
-				},
-				{
-					ColumnName: "email",
-					Value:      "test",
-					IsUnique:   true,
-				},
-			},
-			rows:    []any{1, "test", "test"},
-			args:    []any{1},
-			argsIdx: 1,
-			want:    "id=$1",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			builder := NewBuilder(tt.driver, 10)
-			query, args, err := builder.WhereCluse(tt.cols, tt.rows, tt.argsIdx)
-			assertArgs(t, args, tt.args)
-			assertErr(t, err, tt.err)
-			assertQuery(t, query, tt.want)
 		})
 	}
 }

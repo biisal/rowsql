@@ -32,10 +32,7 @@ func (q *Queries) GetQuotedTableName(tableName string) string {
 }
 
 func (q *Queries) CheckTableExitsInDB(ctx context.Context, tableName string) error {
-	query, args, err := q.queryBuilder.CheckTableExitsQuery(tableName)
-	if err != nil {
-		return err
-	}
+	query, args := q.queryBuilder.CheckTableExitsQuery(tableName)
 	rows, err := q.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		logger.Error("failed to query: %v", err)
@@ -54,11 +51,7 @@ func (q *Queries) CheckTableExitsInDB(ctx context.Context, tableName string) err
 }
 
 func (q *Queries) ListCols(ctx context.Context, tableName string) ([]models.ListDataCol, error) {
-	query, args, err := q.queryBuilder.ColumnsList(tableName)
-	if err != nil {
-		logger.Error("failed to build query : %v", err)
-		return nil, err
-	}
+	query, args := q.queryBuilder.ColumnsList(tableName)
 	rows, err := q.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		logger.Error("failed to query: %v", err)
@@ -87,11 +80,7 @@ func (q *Queries) ListCols(ctx context.Context, tableName string) ([]models.List
 }
 
 func (q *Queries) ListTables(ctx context.Context) ([]models.ListTablesRow, error) {
-	query, err := q.queryBuilder.ListTables()
-	if err != nil {
-		logger.Error("failed to build query : %v", err)
-		return nil, err
-	}
+	query := q.queryBuilder.ListTables()
 	rows, err := q.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err

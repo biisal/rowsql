@@ -32,11 +32,11 @@ type DBService interface {
 
 type svc struct {
 	repo    *repo.Queries
-	builder *queries.Builder
+	builder queries.Builder
 	limit   int
 }
 
-func NewService(repo *repo.Queries, builder *queries.Builder, maxItemsPerPage int) DBService {
+func NewService(repo *repo.Queries, builder queries.Builder, maxItemsPerPage int) DBService {
 	return &svc{
 		repo:    repo,
 		builder: builder,

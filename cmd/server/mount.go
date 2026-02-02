@@ -62,7 +62,10 @@ func mount(cfg *configs.Config) error {
 		return err
 	}
 
-	queryBuilder := queries.NewBuilder(cfg.Driver, cfg.MaxItemsPerPage)
+	queryBuilder, err := queries.NewBuilder(cfg.Driver, cfg.MaxItemsPerPage)
+	if err != nil {
+		return err
+	}
 
 	dbRepo := repo.New(dbConn, cfg.Driver, queryBuilder, cfg.MaxItemsPerPage)
 
