@@ -18,6 +18,8 @@ var (
 	ErrorInvalidJSON             = errors.New("invalid JSON")
 	ErrorInvalidPlaceHolderIndex = errors.New("invalid placeholder provided! should be grather than 0")
 	ErrorNotSameRowColsSize      = errors.New("cols and rows aren't same in length")
+	ErrorNoRowsInArgs            = errors.New("no rows in args")
+	ErrorNoColumnsInArgs         = errors.New("no colums in args")
 )
 
 func ErrorLimitTooLarge(max int) error {

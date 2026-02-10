@@ -69,7 +69,7 @@ func (b *builder) ListRows(tableName, orderCol, orderBy string, limit, offset in
 	if limit > b.maxLimit {
 		return "", nil, apperr.ErrorLimitTooLarge(b.maxLimit)
 	}
-	tableName = b.dialect.QuoteTableName(tableName)
+	tableName = b.dialect.QuoteName(tableName)
 	if tableName == "" {
 		return "", nil, apperr.ErrorInvalidTableName
 	}
@@ -80,7 +80,7 @@ func (b *builder) ListRows(tableName, orderCol, orderBy string, limit, offset in
 		if strings.ToLower(orderBy) == "desc" {
 			order = "DESC"
 		}
-		parts = append(parts, fmt.Sprintf("ORDER BY %s %s", orderCol, order))
+		parts = append(parts, fmt.Sprintf("ORDER BY %s %s", b.dialect.QuoteName(orderCol), order))
 	}
 
 	args := []any{}
@@ -127,7 +127,7 @@ func (b *builder) InsertRow(tableName string, form []models.RowItem) (string, []
 			return "", nil, apperr.ErrorDuplicateColumn
 		}
 		seen[field.ColumnName] = true
-		columns = append(columns, field.ColumnName)
+		columns = append(columns, b.dialect.QuoteName(field.ColumnName))
 
 		ph, err := b.dialect.PlaceHolder(paramIndex)
 		if err != nil {
@@ -164,7 +164,7 @@ func (b *builder) InsertRow(tableName string, form []models.RowItem) (string, []
 	}
 
 	var query string
-	tableName = b.dialect.QuoteTableName(tableName)
+	tableName = b.dialect.QuoteName(tableName)
 
 	if qColumns == "" {
 		query = b.dialect.InsertDefaultValues(tableName)
@@ -204,29 +204,35 @@ func (b *builder) GetRows(tableName string, limit, offset int) (string, []any, e
 }
 
 func (b *builder) DeleteRow(tableName string, columns []models.ListDataCol, rows []any, argIdx int) (string, []any, error) {
+	tableName = strings.TrimSpace(tableName)
+	if tableName == "" {
+		return "", nil, apperr.ErrorEmptyTableName
+	}
 	clause, args, err := b.dialect.WhereCluse(columns, rows, argIdx)
 	logger.Info("Clause: %s", clause)
 	if err != nil {
+		logger.Error("Error in clause: %s", err)
 		return "", nil, err
 	}
 	query := b.dialect.DeleteRow(tableName, clause)
-	if query == "" {
-		return "", nil, apperr.ErrorInvalidDriver
-	}
 	return query, args, nil
 }
 
 func (b *builder) UpdateRow(tableName string, form []models.RowItem, columns []models.ListDataCol, row []any) (string, []any, error) {
+	tableName = strings.TrimSpace(tableName)
+	if tableName == "" {
+		return "", nil, apperr.ErrorInvalidTableName
+	}
 	parts := make([]string, 0, len(form))
 	index := 1
-	args := make([]any, 0, len(form))
+	args := []any{}
 	for _, v := range form {
 		ph, err := b.dialect.PlaceHolder(index)
 		if err != nil {
 			return "", nil, err
 		}
-
-		parts = append(parts, fmt.Sprintf("%s=%s", v.ColumnName, ph))
+		logger.Info("%s", b.dialect.QuoteName(v.ColumnName))
+		parts = append(parts, fmt.Sprintf("%s=%s", b.dialect.QuoteName(v.ColumnName), ph))
 		args = append(args, v.Value)
 		index++
 	}
@@ -237,7 +243,9 @@ func (b *builder) UpdateRow(tableName string, form []models.RowItem, columns []m
 	}
 
 	query := fmt.Sprintf("UPDATE %s SET %s WHERE %s", tableName, updateQuery, b.dialect.FilterOneRowClause(tableName, whereClause))
-	return query, append(args, whereClauseArgs...), nil
+	fullArgs := append(args, whereClauseArgs...)
+	logger.Info("Query: %q\nArgs: %#v", query, fullArgs)
+	return query, fullArgs, nil
 }
 
 func (b *builder) CreateTable(tableName string, inputs []database.Input) (string, error) {

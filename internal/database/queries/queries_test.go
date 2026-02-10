@@ -8,6 +8,7 @@ import (
 	"github.com/biisal/rowsql/configs"
 	"github.com/biisal/rowsql/internal/apperr"
 	"github.com/biisal/rowsql/internal/database/models"
+	"github.com/biisal/rowsql/internal/logger"
 )
 
 type Arg []any
@@ -21,10 +22,11 @@ SELECT
         bool_or(tc.constraint_type IN ('UNIQUE', 'PRIMARY KEY')),
         false
     ) AS is_unique,
-    (
+    COALESCE(
+	bool_or(
         c.is_identity = 'YES'
         OR c.column_default LIKE 'nextval(%'
-    ) AS is_auto_increment
+    ) , false) AS is_auto_increment
 FROM information_schema.columns c
 LEFT JOIN information_schema.key_column_usage kcu
     ON c.table_name = kcu.table_name
@@ -252,7 +254,7 @@ func TestColumnsList(t *testing.T) {
 func assertQuery(t testing.TB, got, want string) {
 	t.Helper()
 	if got != want {
-		t.Errorf("got %q want %q", got, want)
+		t.Errorf("\ngot : %q\nwant: %q", got, want)
 	}
 }
 
@@ -270,6 +272,7 @@ func assertErr(t testing.TB, got, want error) {
 	}
 	if got == nil {
 		t.Fatal("got no error but expected one")
+		return
 	}
 	if got.Error() != want.Error() {
 		t.Errorf("got %q , want %q", got.Error(), want.Error())
@@ -791,6 +794,46 @@ func TestInsertRow(t *testing.T) {
 			},
 			err: apperr.ErrorInvalidJSON,
 		},
+		{
+			name:      "sqlite space in column name",
+			driver:    configs.DriverSQLite,
+			tableName: "settings",
+			values: []models.RowItem{
+				{
+					ColumnName: "id",
+					Value:      `1`,
+					Type:       "int",
+				},
+				{
+					ColumnName: "this is a test",
+					Value:      `biisal`,
+					Type:       "string",
+				},
+			},
+			want: "INSERT INTO settings (id, \"this is a test\") VALUES ($1, $2)",
+			args: []any{"1", "biisal"},
+			err:  nil,
+		},
+		{
+			name:      "sqlite Empty column name",
+			driver:    configs.DriverSQLite,
+			tableName: "settings",
+			values: []models.RowItem{
+				{
+					ColumnName: "id",
+					Value:      `1`,
+					Type:       "int",
+				},
+				{
+					ColumnName: "",
+					Value:      `biisal`,
+					Type:       "string",
+				},
+			},
+			want: "INSERT INTO settings (id, '') VALUES ($1, $2)",
+			args: []any{"1", "biisal"},
+			err:  nil,
+		},
 	}
 
 	for _, tt := range tests {
@@ -904,6 +947,509 @@ func TestGetRows(t *testing.T) {
 			assertErr(t, err, tt.err)
 			assertQuery(t, query, tt.want)
 			assertArgs(t, args, tt.arg)
+		})
+	}
+}
+
+func TestDeleteRow(t *testing.T) {
+	tests := []struct {
+		name          string
+		driver        configs.Driver
+		tableName     string
+		want          string
+		args          Arg
+		err           error
+		cols          []models.ListDataCol
+		rows          []any
+		placeholerIdx int
+	}{
+		{
+			placeholerIdx: 1,
+			name:          "Psql",
+			driver:        configs.DriverPostgres,
+			tableName:     "users",
+			cols: []models.ListDataCol{
+				{
+					ColumnName: "id",
+				},
+				{
+					ColumnName: "name",
+				},
+			},
+			rows: []any{1, "test"},
+			want: "DELETE FROM users WHERE ctid IN (SELECT ctid FROM users WHERE id=$1 AND name=$2 LIMIT 1)",
+			args: Arg{1, "test"},
+		},
+		{
+			placeholerIdx: 1,
+			name:          "sqlite",
+			driver:        configs.DriverSQLite,
+			tableName:     "users",
+			cols: []models.ListDataCol{
+				{
+					ColumnName: "id",
+				},
+				{
+					ColumnName: "name",
+				},
+			},
+			rows: []any{1, "test"},
+			want: "DELETE FROM users WHERE rowid IN (SELECT rowid FROM users WHERE id=$1 AND name=$2 LIMIT 1)",
+			args: Arg{1, "test"},
+		},
+		{
+			placeholerIdx: 1,
+			name:          "Mysql",
+			driver:        configs.DriverMySQL,
+			tableName:     "users",
+			cols: []models.ListDataCol{
+				{
+					ColumnName: "id",
+				},
+				{
+					ColumnName: "name",
+				},
+			},
+			rows: []any{1, "test"},
+			want: "DELETE FROM users WHERE id=? AND name=? LIMIT 1",
+			args: Arg{1, "test"},
+		},
+		{
+			placeholerIdx: 1,
+			name:          "Unknown driver",
+			driver:        configs.Driver("unknown"),
+			tableName:     "users",
+			err:           apperr.ErrorInvalidDriver,
+			cols: []models.ListDataCol{
+				{
+					ColumnName: "id",
+				},
+				{
+					ColumnName: "name",
+				},
+			},
+			rows: []any{1, "test"},
+		},
+		{
+			placeholerIdx: 0,
+			name:          "invlid arg index",
+			driver:        configs.DriverPostgres,
+			tableName:     "users",
+			err:           apperr.ErrorInvalidPlaceHolderIndex,
+			cols: []models.ListDataCol{
+				{
+					ColumnName: "id",
+				},
+				{
+					ColumnName: "name",
+				},
+			},
+			rows: []any{1, "test"},
+		},
+		{
+			placeholerIdx: 1,
+			name:          "whitespace table name",
+			driver:        configs.DriverPostgres,
+			tableName:     "   ",
+			err:           apperr.ErrorEmptyTableName,
+			cols: []models.ListDataCol{
+				{
+					ColumnName: "id",
+				},
+				{
+					ColumnName: "name",
+				},
+			},
+			rows: []any{1, "test"},
+		},
+		{
+			placeholerIdx: 1,
+			name:          "no columns",
+			driver:        configs.DriverPostgres,
+			tableName:     "users",
+			rows:          []any{1},
+			err:           apperr.ErrorNotSameRowColsSize,
+		},
+		{
+			name:          "columns but no rows",
+			placeholerIdx: 1,
+			driver:        configs.DriverMySQL,
+			tableName:     "users",
+			cols: []models.ListDataCol{
+				{
+					ColumnName: "id",
+				},
+				{
+					ColumnName: "name",
+				},
+			},
+			err: apperr.ErrorNotSameRowColsSize,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			builder, err := NewBuilder(tt.driver, 10)
+			logger.Info("%#v , err: %v", builder, err)
+			if err != nil {
+				assertErr(t, err, tt.err)
+				return
+			}
+			query, args, err := builder.DeleteRow(tt.tableName, tt.cols, tt.rows, tt.placeholerIdx)
+			assertErr(t, err, tt.err)
+			assertQuery(t, query, tt.want)
+			assertArgs(t, args, tt.args)
+		})
+	}
+}
+
+func TestUpdateRow(t *testing.T) {
+	tests := []struct {
+		name      string
+		tableName string
+		driver    configs.Driver
+		form      []models.RowItem
+		colums    []models.ListDataCol
+		row       []any
+		err       error
+		args      Arg
+		want      string
+	}{
+		{
+			name:      "psql",
+			tableName: "users",
+			driver:    configs.DriverPostgres,
+			form: []models.RowItem{
+				{
+					ColumnName: "name",
+					Value:      "test",
+				},
+				{
+					ColumnName: "id",
+					Value:      "1",
+				},
+			},
+			colums: []models.ListDataCol{
+				{
+					ColumnName: "name",
+				}, {
+					ColumnName: "id",
+				},
+			},
+			row:  []any{"test", "1"},
+			want: "UPDATE users SET name=$1,id=$2 WHERE ctid IN (SELECT ctid FROM users WHERE name=$3 AND id=$4 LIMIT 1)",
+			args: Arg{"test", "1", "test", "1"},
+		},
+		{
+			name:      "mySql",
+			tableName: "users",
+			driver:    configs.DriverMySQL,
+			form: []models.RowItem{
+				{
+					ColumnName: "name",
+					Value:      "test",
+				},
+				{
+					ColumnName: "id",
+					Value:      "1",
+				},
+			},
+			colums: []models.ListDataCol{
+				{
+					ColumnName: "name",
+				}, {
+					ColumnName: "id",
+				},
+			},
+			row:  []any{"test", "1"},
+			want: "UPDATE users SET name=?,id=? WHERE name=? AND id=? LIMIT 1",
+			args: Arg{"test", "1", "test", "1"},
+		},
+		{
+			name:      "sqlite",
+			tableName: "users",
+			driver:    configs.DriverSQLite,
+			form: []models.RowItem{
+				{
+					ColumnName: "name",
+					Value:      "test",
+				},
+				{
+					ColumnName: "id",
+					Value:      "1",
+				},
+			},
+			colums: []models.ListDataCol{
+				{
+					ColumnName: "name",
+				}, {
+					ColumnName: "id",
+				},
+			},
+			row:  []any{"test", "1"},
+			want: "UPDATE users SET name=$1,id=$2 WHERE rowid IN (SELECT rowid FROM users WHERE name=$3 AND id=$4 LIMIT 1)",
+			args: Arg{"test", "1", "test", "1"},
+		},
+		{
+			name:      "Invalid driver",
+			tableName: "users",
+			driver:    configs.Driver("invalid"),
+			form: []models.RowItem{
+				{
+					ColumnName: "name",
+					Value:      "test",
+				},
+				{
+					ColumnName: "id",
+					Value:      "1",
+				},
+			},
+			colums: []models.ListDataCol{
+				{
+					ColumnName: "name",
+				}, {
+					ColumnName: "id",
+				},
+			},
+			row:  []any{"test", "1"},
+			want: "UPDATE users SET name=$1,id=$2 WHERE rowid IN (SELECT rowid FROM users WHERE name=$3 AND id=$4 LIMIT 1)",
+			args: Arg{"test", "1", "test", "1"},
+			err:  apperr.ErrorInvalidDriver,
+		},
+		{
+			name:      "no colums",
+			tableName: "users",
+			driver:    configs.DriverSQLite,
+			form: []models.RowItem{
+				{
+					ColumnName: "name",
+					Value:      "test",
+				},
+				{
+					ColumnName: "id",
+					Value:      "1",
+				},
+			},
+			row: []any{"test", "1"},
+			err: apperr.ErrorNotSameRowColsSize,
+		},
+		{
+			name:      "no data to update",
+			tableName: "users",
+			driver:    configs.DriverSQLite,
+			row:       []any{"test", "1"},
+			err:       apperr.ErrorNotSameRowColsSize,
+		},
+		{
+			name:      "empty tableName",
+			tableName: "",
+			form: []models.RowItem{
+				{
+					ColumnName: "name",
+					Value:      "test",
+				},
+				{
+					ColumnName: "id",
+					Value:      "1",
+				},
+			},
+			colums: []models.ListDataCol{
+				{
+					ColumnName: "name",
+				},
+				{
+					ColumnName: "id",
+					Value:      "1",
+				},
+			},
+			driver: configs.DriverSQLite,
+			row:    []any{"test", "1"},
+			err:    apperr.ErrorInvalidTableName,
+		},
+		{
+			name:      "sqlite update with unique value",
+			tableName: "users",
+			form: []models.RowItem{
+				{
+					ColumnName: "name",
+					Value:      "test",
+				},
+				{
+					ColumnName: "id",
+					Value:      "1",
+				},
+			},
+			colums: []models.ListDataCol{
+				{
+					ColumnName: "name",
+				},
+				{
+					ColumnName: "id",
+					IsUnique:   true,
+				},
+			},
+			driver: configs.DriverSQLite,
+			row:    []any{"test", "1"},
+			want:   "UPDATE users SET name=$1,id=$2 WHERE rowid IN (SELECT rowid FROM users WHERE id=$3 LIMIT 1)",
+			args:   Arg{"test", "1", "1"},
+		},
+
+		{
+			name:      "mysql update with unique value",
+			tableName: "users",
+			form: []models.RowItem{
+				{
+					ColumnName: "name",
+					Value:      "test",
+				},
+				{
+					ColumnName: "id",
+					Value:      "1",
+				},
+			},
+			colums: []models.ListDataCol{
+				{
+					ColumnName: "name",
+				},
+				{
+					ColumnName: "id",
+					IsUnique:   true,
+				},
+			},
+			driver: configs.DriverMySQL,
+			row:    []any{"test", "1"},
+			want:   "UPDATE users SET name=?,id=? WHERE id=? LIMIT 1",
+			args:   Arg{"test", "1", "1"},
+		},
+
+		{
+			name:      "psql update values with empty input",
+			tableName: "users",
+			form: []models.RowItem{
+				{
+					ColumnName: "name",
+					Value:      "",
+				},
+			},
+			colums: []models.ListDataCol{
+				{
+					ColumnName: "name",
+				},
+			},
+			driver: configs.DriverPostgres,
+			want:   "UPDATE users SET name=$1 WHERE ctid IN (SELECT ctid FROM users WHERE name=$2 LIMIT 1)",
+			row:    []any{""},
+			args:   Arg{"", ""},
+		},
+		{
+			name:      "sqlite update values with empty input",
+			tableName: "users",
+			form: []models.RowItem{
+				{
+					ColumnName: "name",
+					Value:      "",
+				},
+			},
+			colums: []models.ListDataCol{
+				{
+					ColumnName: "name",
+				},
+			},
+			driver: configs.DriverSQLite,
+			want:   "UPDATE users SET name=$1 WHERE rowid IN (SELECT rowid FROM users WHERE name=$2 LIMIT 1)",
+			row:    []any{""},
+			args:   Arg{"", ""},
+		},
+		{
+			name:      "sqlite update values space in column",
+			tableName: "users",
+			form: []models.RowItem{
+				{
+					ColumnName: "id",
+					Value:      "updated id",
+				},
+				{
+					ColumnName: "column with space",
+					Value:      "updated col",
+				},
+			},
+			colums: []models.ListDataCol{
+				{
+					ColumnName: "name",
+				},
+				{
+					ColumnName: "column with space",
+				},
+			},
+			driver: configs.DriverSQLite,
+			want:   "UPDATE users SET id=$1,\"column with space\"=$2 WHERE rowid IN (SELECT rowid FROM users WHERE name=$3 AND \"column with space\"=$4 LIMIT 1)",
+			args:   Arg{"updated id", "updated col", "old name", "old col"},
+			row:    []any{"old name", "old col"},
+		},
+		{name: "sqlite update values double quote in column",
+			tableName: "users",
+			form: []models.RowItem{
+				{
+					ColumnName: "id",
+					Value:      "updated id",
+				},
+				{
+					ColumnName: "column\" with space",
+					Value:      "updated col",
+				},
+			},
+			colums: []models.ListDataCol{
+				{
+					ColumnName: "name",
+				},
+				{
+					ColumnName: "column\" with space",
+				},
+			},
+			driver: configs.DriverSQLite,
+			want:   "UPDATE users SET id=$1,\"column\"\" with space\"=$2 WHERE rowid IN (SELECT rowid FROM users WHERE name=$3 AND \"column\"\" with space\"=$4 LIMIT 1)",
+			args:   Arg{"updated id", "updated col", "old name", "old col"},
+			row:    []any{"old name", "old col"},
+		},
+
+		{
+			name:      "sqlite update values single quote in column",
+			tableName: "users",
+			form: []models.RowItem{
+				{
+					ColumnName: "id",
+					Value:      "updated id",
+				},
+				{
+					ColumnName: "column' with space",
+					Value:      "updated col",
+				},
+			},
+			colums: []models.ListDataCol{
+				{
+					ColumnName: "name",
+				},
+				{
+					ColumnName: "column' with space",
+				},
+			},
+			driver: configs.DriverSQLite,
+			want:   "UPDATE users SET id=$1,\"column' with space\"=$2 WHERE rowid IN (SELECT rowid FROM users WHERE name=$3 AND \"column' with space\"=$4 LIMIT 1)",
+			args:   Arg{"updated id", "updated col", "old name", "old col"},
+			row:    []any{"old name", "old col"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			builder, err := NewBuilder(tt.driver, 10)
+			if err != nil {
+				assertErr(t, err, tt.err)
+				return
+			}
+			query, args, err := builder.UpdateRow(tt.tableName, tt.form, tt.colums, tt.row)
+			assertErr(t, err, tt.err)
+			assertArgs(t, args, tt.args)
+			assertQuery(t, query, tt.want)
 		})
 	}
 }

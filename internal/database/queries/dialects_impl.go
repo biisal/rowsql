@@ -18,6 +18,22 @@ func (d *PostgresDialect) Name() configs.Driver {
 	return configs.DriverPostgres
 }
 
+func quoteName(name string, format ...string) string {
+	if name == "" {
+		return "''"
+	}
+
+	if !strings.Contains(name, " ") {
+		return name
+	}
+	name = strings.ReplaceAll(name, "\"", "\"\"")
+	formator := "%q"
+	if len(format) > 0 {
+		formator = format[0]
+	}
+	return fmt.Sprintf(formator, name)
+}
+
 func whereClause(d Dialect, cols []models.ListDataCol, rows []any, argsIdx int) (string, []any, error) {
 	if len(cols) != len(rows) {
 		return "", nil, apperr.ErrorNotSameRowColsSize
@@ -30,11 +46,17 @@ func whereClause(d Dialect, cols []models.ListDataCol, rows []any, argsIdx int) 
 		if err != nil {
 			return "", nil, err
 		}
+		colName := d.QuoteName(val.ColumnName)
 
 		if val.IsUnique {
-			return fmt.Sprintf("%s=%s", val.ColumnName, ph), []any{rows[i]}, nil
+			ph, err = d.PlaceHolder(argsIdx)
+			if err != nil {
+				return "", nil, err
+			}
+			return fmt.Sprintf("%s=%s", colName, ph), []any{rows[i]}, nil
 		}
 		colVal := rows[i]
+
 		if val.DataType == "json" {
 			var jsonVal map[string]any
 			if err := json.Unmarshal([]byte(colVal.(string)), &jsonVal); err != nil {
@@ -42,9 +64,9 @@ func whereClause(d Dialect, cols []models.ListDataCol, rows []any, argsIdx int) 
 				return "", nil, err
 			}
 			colVal = jsonVal
-			mixed = append(mixed, fmt.Sprintf("%s::jsonb @> %s::jsonb", val.ColumnName, ph))
+			mixed = append(mixed, fmt.Sprintf("%s::jsonb @> %s::jsonb", colName, ph))
 		} else {
-			mixed = append(mixed, fmt.Sprintf("%s=%s", val.ColumnName, ph))
+			mixed = append(mixed, fmt.Sprintf("%s=%s", colName, ph))
 		}
 		args = append(args, colVal)
 	}
@@ -83,10 +105,11 @@ SELECT
         bool_or(tc.constraint_type IN ('UNIQUE', 'PRIMARY KEY')),
         false
     ) AS is_unique,
-    (
+    COALESCE(
+	bool_or(
         c.is_identity = 'YES'
         OR c.column_default LIKE 'nextval(%'
-    ) AS is_auto_increment
+    ) , false) AS is_auto_increment
 FROM information_schema.columns c
 LEFT JOIN information_schema.key_column_usage kcu
     ON c.table_name = kcu.table_name
@@ -113,11 +136,8 @@ func (d *PostgresDialect) PlaceHolder(n int) (string, error) {
 	return fmt.Sprintf("$%d", n), nil
 }
 
-func (d *PostgresDialect) QuoteTableName(tableName string) string {
-	if !strings.Contains(tableName, " ") {
-		return tableName
-	}
-	return fmt.Sprintf("%q", tableName)
+func (d *PostgresDialect) QuoteName(tableName string) string {
+	return quoteName(tableName)
 }
 
 func (d *PostgresDialect) AutoIncrementKeyword() string {
@@ -211,11 +231,8 @@ func (d *MySQLDialect) PlaceHolder(n int) (string, error) {
 	return "?", nil
 }
 
-func (d *MySQLDialect) QuoteTableName(tableName string) string {
-	if !strings.Contains(tableName, " ") {
-		return tableName
-	}
-	return fmt.Sprintf("`%s`", tableName)
+func (d *MySQLDialect) QuoteName(tableName string) string {
+	return quoteName(tableName, "`%s`")
 }
 
 func (d *MySQLDialect) AutoIncrementKeyword() string {
@@ -231,7 +248,7 @@ func (d *MySQLDialect) DeleteRow(tableName string, whereClause string) string {
 }
 
 func (d *MySQLDialect) FilterOneRowClause(tableName, whereClause string) string {
-	return "LIMIT 1"
+	return fmt.Sprintf("%s LIMIT 1", whereClause)
 }
 
 func (d *MySQLDialect) WhereCluse(cols []models.ListDataCol, rows []any, argsIdx int) (string, []any, error) {
@@ -295,11 +312,9 @@ func (d *SQLiteDialect) PlaceHolder(n int) (string, error) {
 	return fmt.Sprintf("$%d", n), nil
 }
 
-func (d *SQLiteDialect) QuoteTableName(tableName string) string {
-	if !strings.Contains(tableName, " ") {
-		return tableName
-	}
-	return fmt.Sprintf("\"%s\"", tableName)
+func (d *SQLiteDialect) QuoteName(tableName string) string {
+	return quoteName(tableName, "\"%s\"")
+	// return quoteName(tableName)
 }
 
 func (d *SQLiteDialect) AutoIncrementKeyword() string {

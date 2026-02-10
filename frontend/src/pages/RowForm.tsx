@@ -90,17 +90,18 @@ export function RowForm() {
 					// Reset form with default values
 					if (data.Cols && data.Cols.length > 0) {
 						const defaultValues: Record<string, string | number | boolean> = {};
-						data.Cols.forEach((col: Column) => {
+						data.Cols.forEach((col: Column, index: number) => {
+							const key = `col_${index}`;
 							if (col.value !== undefined && col.value !== null) {
 								if (col.inputType === 'checkbox') {
-									defaultValues[col.columnName] = Boolean(col.value);
+									defaultValues[key] = Boolean(col.value);
 								} else if (col.inputType === 'number') {
-									defaultValues[col.columnName] = col.value;
+									defaultValues[key] = col.value;
 								} else {
-									defaultValues[col.columnName] = String(col.value);
+									defaultValues[key] = String(col.value);
 								}
 							} else {
-								defaultValues[col.columnName] =
+								defaultValues[key] =
 									col.inputType === 'checkbox' ? false : '';
 							}
 						});
@@ -148,11 +149,13 @@ export function RowForm() {
 
 			const colList: RowData[] = []
 
-			formData.Cols.forEach((col) => {
+			formData.Cols.forEach((col: Column, index: number) => {
 				if (autoEnabled[col.columnName]?.checked) {
 					return;
 				}
-				const value = data[col.columnName];
+				const key = `col_${index}`;
+				const value = data[key];
+				console.log({ value, colname: col.columnName })
 				colList.push({
 					columnName: col.columnName,
 					value: value !== undefined && value !== null ? String(value) : '',
@@ -230,7 +233,7 @@ export function RowForm() {
 										<Controller
 											key={index}
 											control={form.control}
-											name={col.columnName as never}
+											name={`col_${index}` as never}
 											render={({ field, fieldState }) => (
 												<Field>
 													<FieldLabel

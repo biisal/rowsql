@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: '3'
+
+vars:
+  GREETING: Hello from RowSQL! 
+
+tasks:
+  default:
+    desc: Print a greeting message
+    cmds:
+      - echo "{{.GREETING}}"
+    silent: true
+
+  backend-build:
+    desc: build backend application 
+    cmds:
+      - go build -o bin/rowsql ./cmd/server
+  frontend-build:
+    desc: build frontend application
+    cmds:
+      - cd ./frontend && pnpm run build
+
+  backend-dev:
+    desc: run backend server in development mode
+    cmds:
+      - air -c air.toml
+
+  frontend-dev:
+    desc: run frontend server in development mode
+    cmds:
+      - cd ./frontend/ && pnpm run dev
+
+  dev:
+    desc: Run the application in development mode
+    deps: [backend-dev , frontend-dev]
+    cmds:
+      - echo "Done!" 
+
+  build:
+    desc: build frontend and backend
+    deps: [backend-build , frontend-build]
+    cmds:
+      - echo "build was successfull"
+
+  run:
+    desc: Run the application
+    deps: [build]
+    cmds:
+      - ./bin/rowsql
+  test:
+    desc: test the application
+    cmds:
+      - go test ./... -failfast

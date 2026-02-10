@@ -60,7 +60,7 @@ export const RowOrderForm = ({
 		setSelectedCol(value);
 		setUrlParams((prev) => {
 			const newParams = new URLSearchParams(prev);
-			newParams.set('col', value);
+			newParams.set('col', value || "");
 			return newParams;
 		});
 	};
@@ -87,8 +87,9 @@ export const RowOrderForm = ({
 							<SelectGroup>
 								<SelectLabel>Columns</SelectLabel>
 								{columns.map((col, idx) => (
-									<SelectItem key={idx} value={col.columnName}>
-										{col.columnName}
+									// eslint-disable-next-line
+									<SelectItem key={idx} value={col.columnName || null!}>
+										{col.columnName || <div className='h-6 w-full bg-primary-foreground'></div>}
 									</SelectItem>
 								))}
 							</SelectGroup>

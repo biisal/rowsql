@@ -10,7 +10,7 @@ import (
 
 func (b *builder) formatColumnDefinition(input database.Input) (string, error) {
 	var sb strings.Builder
-	fmt.Fprintf(&sb, "%s %s", input.ColName, input.DataType.Type)
+	fmt.Fprintf(&sb, "%s %s", b.dialect.QuoteName(input.ColName), input.DataType.Type)
 	if input.DataType.HasSize {
 		fmt.Fprintf(&sb, "(%d)", input.DataType.Size)
 	}

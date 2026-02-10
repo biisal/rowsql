@@ -25,7 +25,7 @@ type Dialect interface {
 	ListTables() string
 	ListColumns(tableName string) (string, []any)
 	PlaceHolder(n int) (string, error)
-	QuoteTableName(tableName string) string
+	QuoteName(tableName string) string
 	AutoIncrementKeyword() string
 	InsertDefaultValues(tableName string) string
 	DeleteRow(tableName string, whereClause string) string
