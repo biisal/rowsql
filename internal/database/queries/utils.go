@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/biisal/rowsql/internal/database"
+	"github.com/biisal/rowsql/internal/apperr"
+	"github.com/biisal/rowsql/internal/database/models"
 	"github.com/biisal/rowsql/internal/logger"
 )
 
-func (b *builder) formatColumnDefinition(input database.Input) (string, error) {
+func (b *builder) formatColumnDefinition(input models.ColValues) (string, error) {
 	var sb strings.Builder
-	fmt.Fprintf(&sb, "%s %s", b.dialect.QuoteName(input.ColName), input.DataType.Type)
-	if input.DataType.HasSize {
-		fmt.Fprintf(&sb, "(%d)", input.DataType.Size)
+	fmt.Fprintf(&sb, "%s %s", b.dialect.QuoteName(input.Name), input.Type)
+	if input.Size > 0 {
+		fmt.Fprintf(&sb, "(%d)", input.Size)
 	}
 	if input.IsUnique {
 		sb.WriteString(" UNIQUE")
@@ -23,12 +24,19 @@ func (b *builder) formatColumnDefinition(input database.Input) (string, error) {
 	if input.IsPK {
 		sb.WriteString(" PRIMARY KEY")
 	}
-	if input.DataType.AutoIncrement {
+	if input.AutoIncrement {
 		if !input.IsPK {
-			logger.Error("Auto-increment can only be set on primary key columns")
-			return "", fmt.Errorf("auto-increment can only be set on primary key columns")
+			logger.Errorln(apperr.ErrorInvalidAutoIncrement.Error())
+			return "", apperr.ErrorInvalidAutoIncrement
 		}
 		fmt.Fprintf(&sb, " %s", b.dialect.AutoIncrementKeyword())
+	}
+	if input.Default != nil {
+		var value = input.Default
+		if str, ok := input.Default.(string); ok {
+			value = b.dialect.QuoteName(str)
+		}
+		fmt.Fprintf(&sb, " DEFAULT %v", value)
 	}
 
 	return sb.String(), nil

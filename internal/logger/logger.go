@@ -27,7 +27,7 @@ var (
 	noColor bool
 	file    *os.File
 	mu      sync.Mutex
-	level   = LevelInfo
+	level   = LevelDebug
 )
 
 func init() {

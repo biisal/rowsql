@@ -23,41 +23,64 @@ func quoteName(name string, format ...string) string {
 		return "''"
 	}
 
-	if !strings.Contains(name, " ") {
-		return name
-	}
-	name = strings.ReplaceAll(name, "\"", "\"\"")
 	formator := "%q"
 	if len(format) > 0 {
 		formator = format[0]
 	}
-	return fmt.Sprintf(formator, name)
+
+	quoteChar := "\""
+	if strings.Contains(formator, "`") {
+		quoteChar = "`"
+	}
+
+	if len(name) >= 2 && name[0] == quoteChar[0] && name[len(name)-1] == quoteChar[0] {
+		return name
+	}
+
+	needsQuoting := false
+	for _, r := range name {
+		if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_') {
+			needsQuoting = true
+			break
+		}
+	}
+
+	if !needsQuoting {
+		return name
+	}
+
+	if formator == "%q" {
+		return fmt.Sprintf(formator, name)
+	}
+
+	escaped := strings.ReplaceAll(name, quoteChar, quoteChar+quoteChar)
+	return fmt.Sprintf(formator, escaped)
 }
 
-func whereClause(d Dialect, cols []models.ListDataCol, rows []any, argsIdx int) (string, []any, error) {
+func whereClause(d Dialect, cols []models.ColValues, rows []any, argsIdx int) (string, []any, error) {
 	if len(cols) != len(rows) {
 		return "", nil, apperr.ErrorNotSameRowColsSize
 	}
 
 	var mixed []string
 	var args []any
-	for i, val := range cols {
+	for i, col := range cols {
 		ph, err := d.PlaceHolder(argsIdx + i)
 		if err != nil {
 			return "", nil, err
 		}
-		colName := d.QuoteName(val.ColumnName)
+		colName := d.QuoteName(col.Name)
 
-		if val.IsUnique {
+		if col.IsUnique {
 			ph, err = d.PlaceHolder(argsIdx)
 			if err != nil {
 				return "", nil, err
 			}
-			return fmt.Sprintf("%s=%s", colName, ph), []any{rows[i]}, nil
+			return fmt.Sprintf("%s=%s", colName, ph), []any{col.Value}, nil
 		}
 		colVal := rows[i]
 
-		if val.DataType == "json" {
+		if col.Type == "json" {
 			var jsonVal map[string]any
 			if err := json.Unmarshal([]byte(colVal.(string)), &jsonVal); err != nil {
 				logger.Errorln(err)
@@ -145,18 +168,19 @@ func (d *PostgresDialect) AutoIncrementKeyword() string {
 }
 
 func (d *PostgresDialect) InsertDefaultValues(tableName string) string {
-	return fmt.Sprintf("INSERT INTO %s DEFAULT VALUES", tableName)
+	return fmt.Sprintf("INSERT INTO %s DEFAULT VALUES", d.QuoteName(tableName))
 }
 
 func (d *PostgresDialect) DeleteRow(tableName string, whereClause string) string {
-	return fmt.Sprintf("DELETE FROM %s WHERE ctid IN (SELECT ctid FROM %s WHERE %s LIMIT 1)", tableName, tableName, whereClause)
+	quoted := d.QuoteName(tableName)
+	return fmt.Sprintf("DELETE FROM %s WHERE ctid IN (SELECT ctid FROM %s WHERE %s LIMIT 1)", quoted, quoted, whereClause)
 }
 
 func (d *PostgresDialect) FilterOneRowClause(tableName, whereClause string) string {
-	return fmt.Sprintf("ctid IN (SELECT ctid FROM %s WHERE %s LIMIT 1)", tableName, whereClause)
+	return fmt.Sprintf("ctid IN (SELECT ctid FROM %s WHERE %s LIMIT 1)", d.QuoteName(tableName), whereClause)
 }
 
-func (d *PostgresDialect) WhereCluse(cols []models.ListDataCol, rows []any, argsIdx int) (string, []any, error) {
+func (d *PostgresDialect) WhereCluse(cols []models.ColValues, rows []any, argsIdx int) (string, []any, error) {
 	return whereClause(d, cols, rows, argsIdx)
 }
 
@@ -240,18 +264,18 @@ func (d *MySQLDialect) AutoIncrementKeyword() string {
 }
 
 func (d *MySQLDialect) InsertDefaultValues(tableName string) string {
-	return fmt.Sprintf("INSERT INTO %s () VALUES ()", tableName)
+	return fmt.Sprintf("INSERT INTO %s () VALUES ()", d.QuoteName(tableName))
 }
 
 func (d *MySQLDialect) DeleteRow(tableName string, whereClause string) string {
-	return fmt.Sprintf("DELETE FROM %s WHERE %s LIMIT 1", tableName, whereClause)
+	return fmt.Sprintf("DELETE FROM %s WHERE %s LIMIT 1", d.QuoteName(tableName), whereClause)
 }
 
 func (d *MySQLDialect) FilterOneRowClause(tableName, whereClause string) string {
 	return fmt.Sprintf("%s LIMIT 1", whereClause)
 }
 
-func (d *MySQLDialect) WhereCluse(cols []models.ListDataCol, rows []any, argsIdx int) (string, []any, error) {
+func (d *MySQLDialect) WhereCluse(cols []models.ColValues, rows []any, argsIdx int) (string, []any, error) {
 	return whereClause(d, cols, rows, argsIdx)
 }
 
@@ -322,17 +346,18 @@ func (d *SQLiteDialect) AutoIncrementKeyword() string {
 }
 
 func (d *SQLiteDialect) InsertDefaultValues(tableName string) string {
-	return fmt.Sprintf("INSERT INTO %s DEFAULT VALUES", tableName)
+	return fmt.Sprintf("INSERT INTO %s DEFAULT VALUES", d.QuoteName(tableName))
 }
 
 func (d *SQLiteDialect) DeleteRow(tableName string, whereClause string) string {
-	return fmt.Sprintf("DELETE FROM %s WHERE rowid IN (SELECT rowid FROM %s WHERE %s LIMIT 1)", tableName, tableName, whereClause)
+	quoted := d.QuoteName(tableName)
+	return fmt.Sprintf("DELETE FROM %s WHERE rowid IN (SELECT rowid FROM %s WHERE %s LIMIT 1)", quoted, quoted, whereClause)
 }
 
 func (d *SQLiteDialect) FilterOneRowClause(tableName, whereClause string) string {
-	return fmt.Sprintf("rowid IN (SELECT rowid FROM %s WHERE %s LIMIT 1)", tableName, whereClause)
+	return fmt.Sprintf("rowid IN (SELECT rowid FROM %s WHERE %s LIMIT 1)", d.QuoteName(tableName), whereClause)
 }
 
-func (d *SQLiteDialect) WhereCluse(cols []models.ListDataCol, rows []any, argsIdx int) (string, []any, error) {
+func (d *SQLiteDialect) WhereCluse(cols []models.ColValues, rows []any, argsIdx int) (string, []any, error) {
 	return whereClause(d, cols, rows, argsIdx)
 }

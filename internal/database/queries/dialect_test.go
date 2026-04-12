@@ -12,7 +12,7 @@ func TestWhereClause(t *testing.T) {
 	tests := []struct {
 		name    string
 		driver  configs.Driver
-		cols    []models.ListDataCol
+		cols    []models.ColValues
 		rows    []any
 		argsIdx int
 		want    string
@@ -22,14 +22,12 @@ func TestWhereClause(t *testing.T) {
 		{
 			name:   "Postgress",
 			driver: configs.DriverPostgres,
-			cols: []models.ListDataCol{
+			cols: []models.ColValues{
 				{
-					ColumnName:       "id",
-					DataType:         "int",
+					Name:       "id",
+					Type:         "int",
 					IsUnique:         false,
 					Value:            1,
-					InputType:        "text",
-					HasAutoIncrement: false,
 				},
 			},
 			rows:    []any{1},
@@ -40,14 +38,12 @@ func TestWhereClause(t *testing.T) {
 		{
 			name:   "MySQL",
 			driver: configs.DriverMySQL,
-			cols: []models.ListDataCol{
+			cols: []models.ColValues{
 				{
-					ColumnName:       "id",
-					DataType:         "int",
+					Name:       "id",
+					Type:         "int",
 					IsUnique:         false,
 					Value:            1,
-					InputType:        "text",
-					HasAutoIncrement: false,
 				},
 			},
 			rows:    []any{1},
@@ -58,14 +54,12 @@ func TestWhereClause(t *testing.T) {
 		{
 			name:   "SQLite",
 			driver: configs.DriverSQLite,
-			cols: []models.ListDataCol{
+			cols: []models.ColValues{
 				{
-					ColumnName:       "id",
-					DataType:         "int",
+					Name:       "id",
+					Type:         "int",
 					IsUnique:         false,
 					Value:            1,
-					InputType:        "text",
-					HasAutoIncrement: false,
 				},
 			},
 			rows:    []any{1},
@@ -76,10 +70,10 @@ func TestWhereClause(t *testing.T) {
 		{
 			name:   "Sqlite zero index",
 			driver: configs.DriverSQLite,
-			cols: []models.ListDataCol{
+			cols: []models.ColValues{
 				{
-					ColumnName: "id",
-					Value:      1,
+					Name: "id",
+					Value: 1,
 				},
 			},
 			rows:    []any{1},
@@ -90,17 +84,17 @@ func TestWhereClause(t *testing.T) {
 		{
 			name:   "Sqlite multiple rows and cols",
 			driver: configs.DriverSQLite,
-			cols: []models.ListDataCol{
+			cols: []models.ColValues{
 				{
-					ColumnName: "id",
+					Name: "id",
 					Value:      1,
 				},
 				{
-					ColumnName: "name",
+					Name: "name",
 					Value:      "test",
 				},
 				{
-					ColumnName: "email",
+					Name: "email",
 					Value:      "test",
 				},
 			},
@@ -113,17 +107,17 @@ func TestWhereClause(t *testing.T) {
 		{
 			name:   "Mysql multiple rows and cols",
 			driver: configs.DriverMySQL,
-			cols: []models.ListDataCol{
+			cols: []models.ColValues{
 				{
-					ColumnName: "id",
+					Name: "id",
 					Value:      1,
 				},
 				{
-					ColumnName: "name",
+					Name: "name",
 					Value:      "test",
 				},
 				{
-					ColumnName: "email",
+					Name: "email",
 					Value:      "test",
 				},
 			},
@@ -136,14 +130,14 @@ func TestWhereClause(t *testing.T) {
 		{
 			name:   "Sqlite less cols then rows",
 			driver: configs.DriverSQLite,
-			cols: []models.ListDataCol{
+			cols: []models.ColValues{
 				{
-					ColumnName: "id",
-					Value:      1,
+					Name: "id",
+					Value: 1,
 				},
 				{
-					ColumnName: "name",
-					Value:      "test",
+					Name: "name",
+					Value: "test",
 				},
 			},
 			rows:    []any{1, "test", "test"},
@@ -153,15 +147,15 @@ func TestWhereClause(t *testing.T) {
 		{
 			name:   "Sqlite unique cols",
 			driver: configs.DriverSQLite,
-			cols: []models.ListDataCol{
+			cols: []models.ColValues{
 				{
-					ColumnName: "id",
-					Value:      1,
-					IsUnique:   true,
+					Name: "id",
+					Value: 1,
+					IsUnique: true,
 				},
 				{
-					ColumnName: "name",
-					Value:      "test",
+					Name: "name",
+					Value: "test",
 				},
 			},
 			rows:    []any{1, "test"},
@@ -172,20 +166,20 @@ func TestWhereClause(t *testing.T) {
 		{
 			name:   "Sqlite multiple unique cols",
 			driver: configs.DriverSQLite,
-			cols: []models.ListDataCol{
+			cols: []models.ColValues{
 				{
-					ColumnName: "id",
-					Value:      1,
-					IsUnique:   true,
+					Name: "id",
+					Value: 1,
+					IsUnique: true,
 				},
 				{
-					ColumnName: "name",
-					Value:      "test",
+					Name: "name",
+					Value: "test",
 				},
 				{
-					ColumnName: "email",
-					Value:      "test",
-					IsUnique:   true,
+					Name: "email",
+					Value: "test",
+					IsUnique: true,
 				},
 			},
 			rows:    []any{1, "test", "test"},

@@ -57,3 +57,26 @@ type History struct {
 	Message string    `json:"message"`
 	Time    time.Time `json:"time"`
 }
+
+type ColValues struct {
+	Name          string `json:"colName"`
+	Value         any    `json:"value"`
+	Type          string `json:"type"`
+	IsNull        bool   `json:"isNull"`
+	IsPK          bool   `json:"isPk"`
+	IsUnique      bool   `json:"isUnique"`
+	Default       any    `json:"default"`
+	Size          int    `json:"size,omitempty"`
+	AutoIncrement bool   `json:"autoIncrement,omitempty"`
+}
+
+type ColMetaData struct {
+	Name             string `json:"colName"`
+	Type             string `json:"type"`
+	HasSize          bool   `json:"hasSize"`
+	HasValues        bool   `json:"hasValues,omitempty"`
+	HasDigit         bool   `json:"hasDigit,omitempty"`
+	HasAutoIncrement bool   `json:"hasAutoIncrement"`
+	HasDefault       any    `json:"hasDefault"`
+	IsUnique         bool   `json:"isUnique"`
+}

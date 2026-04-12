@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/biisal/rowsql/configs"
-	"github.com/biisal/rowsql/internal/database"
+	"github.com/biisal/rowsql/internal/apperr"
 	"github.com/biisal/rowsql/internal/database/models"
 	"github.com/biisal/rowsql/internal/logger"
 	"github.com/biisal/rowsql/internal/utils"
@@ -19,16 +19,27 @@ func ErrorInvalidTable(tableName string) error {
 
 var ErrorNotFound = errors.New("not found")
 
-func (q *Queries) GetQuotedTableName(tableName string) string {
-	switch q.GetDriver() {
-	case configs.DriverMySQL:
-		tableName = fmt.Sprintf("`%s`", tableName)
-	case configs.DriverPostgres:
-		tableName = fmt.Sprintf("\"%s\"", tableName)
-	case configs.DriverSQLite:
-		tableName = fmt.Sprintf("\"%s\"", tableName)
+func getColValues(rows []any, cols []models.ColMetaData) ([]models.ColValues, error) {
+	if len(cols) != len(rows) {
+		return nil, apperr.ErrorNotSameRowColsSize
 	}
-	return tableName
+
+	colWithValues := make([]models.ColValues, len(cols))
+	for i, col := range cols {
+		colWithValues[i] = models.ColValues{
+			Name:          col.Name,
+			Value:         rows[i],
+			Type:          col.Type,
+			IsUnique:      col.IsUnique,
+			AutoIncrement: col.HasAutoIncrement,
+			Default:       col.HasDefault,
+		}
+	}
+	return colWithValues, nil
+}
+
+func (q *Queries) GetQuotedTableName(tableName string) string {
+	return q.queryBuilder.QuoteName(tableName)
 }
 
 func (q *Queries) CheckTableExitsInDB(ctx context.Context, tableName string) error {
@@ -50,7 +61,7 @@ func (q *Queries) CheckTableExitsInDB(ctx context.Context, tableName string) err
 	return nil
 }
 
-func (q *Queries) ListCols(ctx context.Context, tableName string) ([]models.ListDataCol, error) {
+func (q *Queries) ListColsMetaData(ctx context.Context, tableName string) ([]models.ColMetaData, error) {
 	query, args := q.queryBuilder.ColumnsList(tableName)
 	rows, err := q.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -62,14 +73,14 @@ func (q *Queries) ListCols(ctx context.Context, tableName string) ([]models.List
 			logger.Errorln(err)
 		}
 	}()
-	var items []models.ListDataCol
+	var items []models.ColMetaData
 	for rows.Next() {
-		var i models.ListDataCol
-		if err := rows.Scan(&i.ColumnName, &i.DataType, &i.HasDefault, &i.IsUnique, &i.HasAutoIncrement); err != nil {
+		var i models.ColMetaData
+		if err := rows.Scan(&i.Name, &i.Type, &i.HasDefault, &i.IsUnique, &i.HasAutoIncrement); err != nil {
 			logger.Error("failed to scan rows in list cols: %v", err)
 			return nil, err
 		}
-		i.InputType = utils.GetInputType(i.DataType)
+		i.Type = utils.GetInputType(i.Type)
 		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
@@ -236,11 +247,15 @@ func (q *Queries) DeleteRow(ctx context.Context, props UpdateOrDeleteRowProps) e
 			return err
 		}
 	}
-	cols, err := q.ListCols(ctx, props.TableName)
+	cols, err := q.ListColsMetaData(ctx, props.TableName)
 	if err != nil {
 		return err
 	}
-	query, args, err := q.queryBuilder.DeleteRow(props.TableName, cols, row, 1)
+	colVals, err := getColValues(row, cols)
+	if err != nil {
+		return err
+	}
+	query, args, err := q.queryBuilder.DeleteRow(props.TableName, colVals, row, 1)
 	if err != nil {
 		return err
 	}
@@ -275,12 +290,16 @@ func (q *Queries) UpdateRow(ctx context.Context, props UpdateOrDeleteRowProps) e
 		}
 	}
 
-	cols, err := q.ListCols(ctx, props.TableName)
+	cols, err := q.ListColsMetaData(ctx, props.TableName)
+	if err != nil {
+		return err
+	}
+	colVals, err := getColValues(row, cols)
 	if err != nil {
 		return err
 	}
 
-	query, args, err := q.queryBuilder.UpdateRow(props.TableName, props.Values, cols, row)
+	query, args, err := q.queryBuilder.UpdateRow(props.TableName, props.Values, colVals, row)
 	logger.Info("Query to Update : %s", query)
 	if err != nil {
 		return err
@@ -298,8 +317,8 @@ func (q *Queries) UpdateRow(ctx context.Context, props UpdateOrDeleteRowProps) e
 }
 
 type CreateTableProps struct {
-	TableName string           `json:"tableName"`
-	Inputs    []database.Input `json:"inputs"`
+	TableName string             `json:"tableName"`
+	Inputs    []models.ColValues `json:"inputs"`
 }
 
 func (q *Queries) CreateTable(ctx context.Context, props CreateTableProps) error {

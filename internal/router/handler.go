@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/biisal/rowsql/internal/apperr"
-	"github.com/biisal/rowsql/internal/database"
 	"github.com/biisal/rowsql/internal/database/models"
 	"github.com/biisal/rowsql/internal/logger"
 	resopnse "github.com/biisal/rowsql/internal/response"
@@ -22,9 +21,8 @@ type DBHandler struct {
 }
 
 type BaseHTMLData struct {
-	Tables      []models.ListTablesRow
-	Cols        []models.ListDataCol
-	ActiveTable string
+	Tables []models.ListTablesRow
+	Cols   []models.ColMetaData
 }
 
 type ErrorMessage struct {
@@ -38,6 +36,7 @@ func NewHandler(service service.DBService, itemsLimit int) DBHandler {
 	}
 }
 
+// TODO : remove ths function
 func (h DBHandler) getBaseData(ctx context.Context, tableName ...string) (*BaseHTMLData, error) {
 	tables, err := h.service.ListTables(ctx)
 	if err != nil {
@@ -52,9 +51,17 @@ func (h DBHandler) getBaseData(ctx context.Context, tableName ...string) (*BaseH
 		logger.Error("%s", err)
 		return nil, err
 	}
-	return &BaseHTMLData{Tables: tables, Cols: cols, ActiveTable: tableName[0]}, nil
+	return &BaseHTMLData{Tables: tables, Cols: cols}, nil
 }
 
+// @Summary List columns of a table
+// @Description get list of all columns for a specific table
+// @Tags columns
+// @Accept json
+// @Produce json
+// @Param tableName path string true "Table Name"
+// @Success 200 {object} response.Response{data=[]models.ColMetaData}
+// @Router /api/v1/tables/{tableName}/columns [get]
 func (h DBHandler) ListColumns(w http.ResponseWriter, r *http.Request) {
 	cols, err := h.service.ListCols(r.Context(), r.PathValue("tableName"))
 	if err != nil {
@@ -65,6 +72,13 @@ func (h DBHandler) ListColumns(w http.ResponseWriter, r *http.Request) {
 	resopnse.Success(w, http.StatusOK, cols)
 }
 
+// @Summary list of all tables
+// @Description get list of all tables
+// @Tags tables
+// @Accept json
+// @Produce      json
+// @Success      200  {object}  map[string]any{}
+// @Router       /api/v1/tables [get]
 func (h DBHandler) ListTables(w http.ResponseWriter, r *http.Request) {
 	tables, err := h.service.ListTables(r.Context())
 	if err != nil {
@@ -75,6 +89,17 @@ func (h DBHandler) ListTables(w http.ResponseWriter, r *http.Request) {
 	resopnse.Success(w, http.StatusOK, tables)
 }
 
+// @Summary List rows of a table
+// @Description get paginated list of rows for a specific table
+// @Tags rows
+// @Accept json
+// @Produce json
+// @Param tableName path string true "Table Name"
+// @Param page query int false "Page number" default(1)
+// @Param column query string false "Column to order by"
+// @Param order query string false "Order direction (ASC/DESC)"
+// @Success 200 {object} response.Response{data=router.ListRowsResponse}
+// @Router /api/v1/tables/{tableName} [get]
 func (h DBHandler) ListRows(w http.ResponseWriter, r *http.Request) {
 	tableName := r.PathValue("tableName")
 	page := r.URL.Query().Get("page")
@@ -89,13 +114,12 @@ func (h DBHandler) ListRows(w http.ResponseWriter, r *http.Request) {
 
 	colFound := false
 	if colParam != "" {
-		var cols []models.ListDataCol
-		cols, err = h.service.ListCols(r.Context(), tableName)
+		cols, err := h.service.ListCols(r.Context(), tableName)
 		if err != nil {
 			resopnse.Error(w, http.StatusInternalServerError, err)
 		}
 		for _, col := range cols {
-			if col.ColumnName == colParam {
+			if col.Name == colParam {
 				colFound = true
 				break
 			}
@@ -142,48 +166,64 @@ func (h DBHandler) ListRows(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (h DBHandler) RowInsertForm(w http.ResponseWriter, r *http.Request) {
+// @Summary Get row insert/update form metadata
+// @Description get metadata for columns to build an insert or update form
+// @Tags tables
+// @Accept json
+// @Produce json
+// @Param tableName path string true "Table Name"
+// @Success 200 {object} response.Response{data=object{Cols=[]models.ColMetaData}}
+// @Router /api/v1/tables/{tableName}/form [get]
+func (h DBHandler) RowInsertOrUpdateForm(w http.ResponseWriter, r *http.Request) {
 	tableName := r.PathValue("tableName")
 
-	action := "Insert"
-	hash := strings.TrimSpace(r.URL.Query().Get("hash"))
-	page := r.URL.Query().Get("page")
-	pageInt, err := strconv.Atoi(page)
-	if err != nil {
-		pageInt = 1
-	}
-	var initialRow []any
-	if hash != "" {
-		action = "Update"
-		initialRow, err = h.service.GetRow(r.Context(), tableName, hash, pageInt)
-		if err != nil {
-			logger.Error("%s", err)
-			resopnse.Error(w, http.StatusInternalServerError, err)
-			return
-		}
-	}
+	// hash := strings.TrimSpace(r.URL.Query().Get("hash"))
+	// page := r.URL.Query().Get("page")
+	// pageInt, err := strconv.Atoi(page)
+	// if err != nil {
+	// 	pageInt = 1
+	// }
+	// var initialRow []any
+	// if hash != "" {
+	// 	initialRow, err = h.service.GetRow(r.Context(), tableName, hash, pageInt)
+	// 	if err != nil {
+	// 		logger.Error("%s", err)
+	// 		resopnse.Error(w, http.StatusInternalServerError, err)
+	// 		return
+	// 	}
+	// }
 
-	basseData, err := h.getBaseData(r.Context(), tableName)
+	colsMeta, err := h.service.ListCols(r.Context(), tableName)
 	if err != nil {
 		logger.Error("%s", err)
 		resopnse.Error(w, http.StatusInternalServerError, err)
 		return
 	}
-	if len(initialRow) == len(basseData.Cols) {
-		for i := range basseData.Cols {
-			basseData.Cols[i].Value = initialRow[i]
-		}
-	}
+	// if len(initialRow) == len(colsMeta) {
+	// 	for i := range colsMeta {
+	// 		colsMeta[i].Value = initialRow[i]
+	// 	}
+	// }
 	data := struct {
-		Action string
-		BaseHTMLData
+		Cols []models.ColMetaData
 	}{
-		action,
-		*basseData,
+		Cols: colsMeta,
 	}
 	resopnse.Success(w, http.StatusOK, data)
 }
 
+// @Summary Insert or update a row
+// @Description insert a new row or update an existing row if hash is provided
+// @Tags rows
+// @Accept json
+// @Produce json
+// @Param tableName path string true "Table Name"
+// @Param hash query string false "Row hash (for update)"
+// @Param page query int false "Page number (for update context)" default(1)
+// @Param body body models.InsertRowRequest true "Row data"
+// @Success 200 {object} response.Response "Success"
+// @Success 201 {object} response.Response "Created"
+// @Router /api/v1/tables/{tableName}/form [post]
 func (h DBHandler) InsertOrUpdateRow(w http.ResponseWriter, r *http.Request) {
 	tableName := r.PathValue("tableName")
 	ctx := r.Context()
@@ -228,6 +268,16 @@ func (h DBHandler) InsertOrUpdateRow(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+// @Summary Delete a row
+// @Description delete a specific row by its hash
+// @Tags rows
+// @Accept json
+// @Produce json
+// @Param tableName path string true "Table Name"
+// @Param hash path string true "Row hash"
+// @Param page query int false "Page number" default(1)
+// @Success 200 {object} response.Response "Success"
+// @Router /api/v1/tables/{tableName}/row/{hash} [delete]
 func (h DBHandler) DeleteRow(w http.ResponseWriter, r *http.Request) {
 	tableName := r.PathValue("tableName")
 	hash := r.PathValue("hash")
@@ -246,6 +296,13 @@ func (h DBHandler) DeleteRow(w http.ResponseWriter, r *http.Request) {
 	resopnse.Success(w, http.StatusOK, nil)
 }
 
+// @Summary Get data types for new table form
+// @Description get available numeric and string data types for creating a new table
+// @Tags tables
+// @Accept json
+// @Produce json
+// @Success 200 {object} response.Response{data=service.FormDatatype}
+// @Router /api/v1/tables/form/new [get]
 func (h DBHandler) NewTableFormFileds(w http.ResponseWriter, r *http.Request) {
 	fields := h.service.GetTableFormDataTypes()
 	if fields == nil {
@@ -256,10 +313,18 @@ func (h DBHandler) NewTableFormFileds(w http.ResponseWriter, r *http.Request) {
 	resopnse.Success(w, http.StatusOK, fields)
 }
 
+// @Summary Create a new table
+// @Description create a new table with specified name and columns
+// @Tags tables
+// @Accept json
+// @Produce json
+// @Param body body object{tableName=string,inputs=[]models.ColValues} true "Table Schema"
+// @Success 201 {object} response.Response "Created"
+// @Router /api/v1/tables/form/new [post]
 func (h DBHandler) CreeteNewTable(w http.ResponseWriter, r *http.Request) {
 	req := struct {
-		TableName string           `json:"tableName"`
-		Inputs    []database.Input `json:"inputs"`
+		TableName string             `json:"tableName"`
+		Inputs    []models.ColValues `json:"inputs"`
 	}{}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		logger.Error("%s", err)
@@ -282,6 +347,14 @@ type DeleteTableRequest struct {
 	VerificationQuiry string `json:"verificationQuery"`
 }
 
+// @Summary Delete a table
+// @Description drop a table from the database
+// @Tags tables
+// @Accept json
+// @Produce json
+// @Param body body router.DeleteTableRequest true "Delete table request"
+// @Success 204 "No Content"
+// @Router /api/v1/tables [delete]
 func (h *DBHandler) DeleteTable(w http.ResponseWriter, r *http.Request) {
 	var req DeleteTableRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -300,6 +373,14 @@ func (h *DBHandler) DeleteTable(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary List query history
+// @Description get paginated list of query history
+// @Tags history
+// @Accept json
+// @Produce json
+// @Param page query int false "Page number" default(1)
+// @Success 200 {object} response.Response{data=[]models.History}
+// @Router /api/v1/history [get]
 func (h *DBHandler) ListHistory(w http.ResponseWriter, r *http.Request) {
 	page := r.URL.Query().Get("page")
 	pageInt, err := strconv.Atoi(page)
@@ -320,6 +401,13 @@ func (h *DBHandler) ListHistory(w http.ResponseWriter, r *http.Request) {
 	resopnse.Success(w, http.StatusOK, history)
 }
 
+// @Summary List recent history
+// @Description get the last 10 query history entries
+// @Tags history
+// @Accept json
+// @Produce json
+// @Success 200 {object} response.Response{data=[]models.History}
+// @Router /api/v1/history/recent [get]
 func (h *DBHandler) ListRecentHistory(w http.ResponseWriter, r *http.Request) {
 	history, err := h.service.ListHistory(r.Context(), 1)
 	if err != nil {

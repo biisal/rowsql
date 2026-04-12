@@ -959,7 +959,7 @@ func TestDeleteRow(t *testing.T) {
 		want          string
 		args          Arg
 		err           error
-		cols          []models.ListDataCol
+		cols          []models.ColValues
 		rows          []any
 		placeholerIdx int
 	}{
@@ -968,12 +968,12 @@ func TestDeleteRow(t *testing.T) {
 			name:          "Psql",
 			driver:        configs.DriverPostgres,
 			tableName:     "users",
-			cols: []models.ListDataCol{
+			cols: []models.ColValues{
 				{
-					ColumnName: "id",
+					Name: "id",
 				},
 				{
-					ColumnName: "name",
+					Name: "name",
 				},
 			},
 			rows: []any{1, "test"},
@@ -985,12 +985,12 @@ func TestDeleteRow(t *testing.T) {
 			name:          "sqlite",
 			driver:        configs.DriverSQLite,
 			tableName:     "users",
-			cols: []models.ListDataCol{
+			cols: []models.ColValues{
 				{
-					ColumnName: "id",
+					Name: "id",
 				},
 				{
-					ColumnName: "name",
+					Name: "name",
 				},
 			},
 			rows: []any{1, "test"},
@@ -1002,12 +1002,12 @@ func TestDeleteRow(t *testing.T) {
 			name:          "Mysql",
 			driver:        configs.DriverMySQL,
 			tableName:     "users",
-			cols: []models.ListDataCol{
+			cols: []models.ColValues{
 				{
-					ColumnName: "id",
+					Name: "id",
 				},
 				{
-					ColumnName: "name",
+					Name: "name",
 				},
 			},
 			rows: []any{1, "test"},
@@ -1020,12 +1020,12 @@ func TestDeleteRow(t *testing.T) {
 			driver:        configs.Driver("unknown"),
 			tableName:     "users",
 			err:           apperr.ErrorInvalidDriver,
-			cols: []models.ListDataCol{
+			cols: []models.ColValues{
 				{
-					ColumnName: "id",
+					Name: "id",
 				},
 				{
-					ColumnName: "name",
+					Name: "name",
 				},
 			},
 			rows: []any{1, "test"},
@@ -1036,12 +1036,12 @@ func TestDeleteRow(t *testing.T) {
 			driver:        configs.DriverPostgres,
 			tableName:     "users",
 			err:           apperr.ErrorInvalidPlaceHolderIndex,
-			cols: []models.ListDataCol{
+			cols: []models.ColValues{
 				{
-					ColumnName: "id",
+					Name: "id",
 				},
 				{
-					ColumnName: "name",
+					Name: "name",
 				},
 			},
 			rows: []any{1, "test"},
@@ -1052,12 +1052,12 @@ func TestDeleteRow(t *testing.T) {
 			driver:        configs.DriverPostgres,
 			tableName:     "   ",
 			err:           apperr.ErrorEmptyTableName,
-			cols: []models.ListDataCol{
+			cols: []models.ColValues{
 				{
-					ColumnName: "id",
+					Name: "id",
 				},
 				{
-					ColumnName: "name",
+					Name: "name",
 				},
 			},
 			rows: []any{1, "test"},
@@ -1075,12 +1075,12 @@ func TestDeleteRow(t *testing.T) {
 			placeholerIdx: 1,
 			driver:        configs.DriverMySQL,
 			tableName:     "users",
-			cols: []models.ListDataCol{
+			cols: []models.ColValues{
 				{
-					ColumnName: "id",
+					Name: "id",
 				},
 				{
-					ColumnName: "name",
+					Name: "name",
 				},
 			},
 			err: apperr.ErrorNotSameRowColsSize,
@@ -1109,7 +1109,7 @@ func TestUpdateRow(t *testing.T) {
 		tableName string
 		driver    configs.Driver
 		form      []models.RowItem
-		colums    []models.ListDataCol
+		columns   []models.ColValues
 		row       []any
 		err       error
 		args      Arg
@@ -1129,11 +1129,11 @@ func TestUpdateRow(t *testing.T) {
 					Value:      "1",
 				},
 			},
-			colums: []models.ListDataCol{
+			columns: []models.ColValues{
 				{
-					ColumnName: "name",
+					Name: "name",
 				}, {
-					ColumnName: "id",
+					Name: "id",
 				},
 			},
 			row:  []any{"test", "1"},
@@ -1154,12 +1154,9 @@ func TestUpdateRow(t *testing.T) {
 					Value:      "1",
 				},
 			},
-			colums: []models.ListDataCol{
-				{
-					ColumnName: "name",
-				}, {
-					ColumnName: "id",
-				},
+			columns: []models.ColValues{{Name: "name"}, {
+				Name: "id",
+			},
 			},
 			row:  []any{"test", "1"},
 			want: "UPDATE users SET name=?,id=? WHERE name=? AND id=? LIMIT 1",
@@ -1179,12 +1176,9 @@ func TestUpdateRow(t *testing.T) {
 					Value:      "1",
 				},
 			},
-			colums: []models.ListDataCol{
-				{
-					ColumnName: "name",
-				}, {
-					ColumnName: "id",
-				},
+			columns: []models.ColValues{{Name: "name"}, {
+				Name: "id",
+			},
 			},
 			row:  []any{"test", "1"},
 			want: "UPDATE users SET name=$1,id=$2 WHERE rowid IN (SELECT rowid FROM users WHERE name=$3 AND id=$4 LIMIT 1)",
@@ -1204,12 +1198,9 @@ func TestUpdateRow(t *testing.T) {
 					Value:      "1",
 				},
 			},
-			colums: []models.ListDataCol{
-				{
-					ColumnName: "name",
-				}, {
-					ColumnName: "id",
-				},
+			columns: []models.ColValues{{Name: "name"}, {
+				Name: "id",
+			},
 			},
 			row:  []any{"test", "1"},
 			want: "UPDATE users SET name=$1,id=$2 WHERE rowid IN (SELECT rowid FROM users WHERE name=$3 AND id=$4 LIMIT 1)",
@@ -1217,7 +1208,7 @@ func TestUpdateRow(t *testing.T) {
 			err:  apperr.ErrorInvalidDriver,
 		},
 		{
-			name:      "no colums",
+			name:      "no columns",
 			tableName: "users",
 			driver:    configs.DriverSQLite,
 			form: []models.RowItem{
@@ -1253,13 +1244,13 @@ func TestUpdateRow(t *testing.T) {
 					Value:      "1",
 				},
 			},
-			colums: []models.ListDataCol{
+			columns: []models.ColValues{
 				{
-					ColumnName: "name",
+					Name: "name",
 				},
 				{
-					ColumnName: "id",
-					Value:      "1",
+					Name:  "id",
+					Value: "1",
 				},
 			},
 			driver: configs.DriverSQLite,
@@ -1279,13 +1270,14 @@ func TestUpdateRow(t *testing.T) {
 					Value:      "1",
 				},
 			},
-			colums: []models.ListDataCol{
+			columns: []models.ColValues{
 				{
-					ColumnName: "name",
+					Name: "name",
 				},
 				{
-					ColumnName: "id",
-					IsUnique:   true,
+					Name:     "id",
+					IsUnique: true,
+					Value:    "1",
 				},
 			},
 			driver: configs.DriverSQLite,
@@ -1307,13 +1299,14 @@ func TestUpdateRow(t *testing.T) {
 					Value:      "1",
 				},
 			},
-			colums: []models.ListDataCol{
+			columns: []models.ColValues{
 				{
-					ColumnName: "name",
+					Name: "name",
 				},
 				{
-					ColumnName: "id",
-					IsUnique:   true,
+					Name:     "id",
+					IsUnique: true,
+					Value:    "1",
 				},
 			},
 			driver: configs.DriverMySQL,
@@ -1331,9 +1324,9 @@ func TestUpdateRow(t *testing.T) {
 					Value:      "",
 				},
 			},
-			colums: []models.ListDataCol{
+			columns: []models.ColValues{
 				{
-					ColumnName: "name",
+					Name: "name",
 				},
 			},
 			driver: configs.DriverPostgres,
@@ -1350,9 +1343,9 @@ func TestUpdateRow(t *testing.T) {
 					Value:      "",
 				},
 			},
-			colums: []models.ListDataCol{
+			columns: []models.ColValues{
 				{
-					ColumnName: "name",
+					Name: "name",
 				},
 			},
 			driver: configs.DriverSQLite,
@@ -1373,12 +1366,12 @@ func TestUpdateRow(t *testing.T) {
 					Value:      "updated col",
 				},
 			},
-			colums: []models.ListDataCol{
+			columns: []models.ColValues{
 				{
-					ColumnName: "name",
+					Name: "name",
 				},
 				{
-					ColumnName: "column with space",
+					Name: "column with space",
 				},
 			},
 			driver: configs.DriverSQLite,
@@ -1398,12 +1391,12 @@ func TestUpdateRow(t *testing.T) {
 					Value:      "updated col",
 				},
 			},
-			colums: []models.ListDataCol{
+			columns: []models.ColValues{
 				{
-					ColumnName: "name",
+					Name: "name",
 				},
 				{
-					ColumnName: "column\" with space",
+					Name: "column\" with space",
 				},
 			},
 			driver: configs.DriverSQLite,
@@ -1411,7 +1404,6 @@ func TestUpdateRow(t *testing.T) {
 			args:   Arg{"updated id", "updated col", "old name", "old col"},
 			row:    []any{"old name", "old col"},
 		},
-
 		{
 			name:      "sqlite update values single quote in column",
 			tableName: "users",
@@ -1425,12 +1417,12 @@ func TestUpdateRow(t *testing.T) {
 					Value:      "updated col",
 				},
 			},
-			colums: []models.ListDataCol{
+			columns: []models.ColValues{
 				{
-					ColumnName: "name",
+					Name: "name",
 				},
 				{
-					ColumnName: "column' with space",
+					Name: "column' with space",
 				},
 			},
 			driver: configs.DriverSQLite,
@@ -1446,10 +1438,163 @@ func TestUpdateRow(t *testing.T) {
 				assertErr(t, err, tt.err)
 				return
 			}
-			query, args, err := builder.UpdateRow(tt.tableName, tt.form, tt.colums, tt.row)
+			query, args, err := builder.UpdateRow(tt.tableName, tt.form, tt.columns, tt.row)
 			assertErr(t, err, tt.err)
 			assertArgs(t, args, tt.args)
 			assertQuery(t, query, tt.want)
 		})
 	}
+}
+
+func TestCreateTable(t *testing.T) {
+	tests := []struct {
+		name      string
+		tableName string
+		inputs    []models.ColValues
+		want      string
+		err       error
+		driver    configs.Driver
+	}{
+		{
+			driver:    configs.DriverSQLite,
+			name:      "sqlite crate table",
+			tableName: "users",
+			inputs: []models.ColValues{{
+				Name: "id",
+				Type: "integer",
+			}},
+			want: "CREATE TABLE users (id integer NOT NULL) ;",
+		},
+		{name: "sqlite crate table multiple cols",
+			driver:    configs.DriverSQLite,
+			tableName: "users",
+			inputs: []models.ColValues{{
+				Name: "id",
+				Type: "integer",
+			},
+				{
+					Name: "name",
+					Type: "VARCHAR",
+					Size: 255,
+				},
+			},
+			want: "CREATE TABLE users (id integer NOT NULL, name VARCHAR(255) NOT NULL) ;",
+		},
+		{
+			name:      "sqlite crate table with default value",
+			driver:    configs.DriverSQLite,
+			tableName: "users",
+			inputs: []models.ColValues{{
+				Name: "id",
+				Type: "integer",
+			},
+				{
+					Name:   "name",
+					Type:   "VARCHAR",
+					Size:   255,
+					IsNull: true,
+				},
+			},
+			want: "CREATE TABLE users (id integer NOT NULL, name VARCHAR(255)) ;",
+		},
+		{
+			name:      "sqlite crate table multiple cols with null true",
+			driver:    configs.DriverSQLite,
+			tableName: "users",
+			inputs: []models.ColValues{{
+				Name: "id",
+				Type: "integer",
+			},
+				{
+					Name:   "name",
+					Type:   "VARCHAR",
+					Size:   255,
+					IsNull: true,
+				},
+			},
+			want: "CREATE TABLE users (id integer NOT NULL, name VARCHAR(255)) ;",
+		},
+		{
+			name:      "sqlite crate table multiple cols with null true",
+			driver:    configs.DriverSQLite,
+			tableName: "users",
+			inputs: []models.ColValues{{
+				Name: "id",
+				Type: "integer",
+			},
+				{
+					Name:   "name",
+					Type:   "VARCHAR",
+					Size:   255,
+					IsNull: true,
+				},
+			},
+			want: "CREATE TABLE users (id integer NOT NULL, name VARCHAR(255)) ;",
+		},
+		{name: "sqlite crate table with default values",
+			driver:    configs.DriverSQLite,
+			tableName: "users",
+			inputs: []models.ColValues{{
+				Name: "id",
+				Type: "integer",
+			},
+				{
+					Name:    "name",
+					Type:    "VARCHAR(255)",
+					Default: "biisal",
+					IsNull:  true,
+				},
+			},
+			want: "CREATE TABLE users (id integer NOT NULL, name VARCHAR(255) DEFAULT biisal) ;",
+		},
+		{
+			name:      "sqlite crate table with default values with space ",
+			driver:    configs.DriverSQLite,
+			tableName: "users",
+			inputs: []models.ColValues{{
+				Name: "id",
+				Type: "integer",
+			},
+				{
+					Name:    "name",
+					Type:    "VARCHAR(255)",
+					Default: "biisal is the name",
+					IsNull:  true,
+				},
+			},
+			want: "CREATE TABLE users (id integer NOT NULL, name VARCHAR(255) DEFAULT \"biisal is the name\") ;",
+		},
+		{
+			name:      "sqlite crate table with default values with empty value",
+			driver:    configs.DriverSQLite,
+			tableName: "users",
+			inputs: []models.ColValues{{
+				Name: "id",
+				Type: "integer",
+			},
+				{
+					Name:    "name",
+					Type:    "VARCHAR(255)",
+					Default: "",
+					IsNull:  true,
+				},
+			},
+			want: "CREATE TABLE users (id integer NOT NULL, name VARCHAR(255) DEFAULT '') ;",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			b, err := NewBuilder(tt.driver, 10)
+			if err != nil {
+				assertErr(t, err, tt.err)
+				return
+			}
+			query, err := b.CreateTable(tt.tableName, tt.inputs)
+			assertErr(t, err, tt.err)
+			assertQuery(t, query, tt.want)
+
+		})
+	}
+
 }

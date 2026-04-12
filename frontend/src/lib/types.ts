@@ -17,6 +17,7 @@ export interface FormInputType {
 }
 
 export interface Input {
+	default: any,
 	dataType: FormInputType;
 	colName: string;
 	isNull: boolean;
@@ -25,6 +26,7 @@ export interface Input {
 }
 
 export interface Form {
+
 	selectedDataType: FormInputType;
 	dataTypes: FormInputType[];
 	tableName: string;

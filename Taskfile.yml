@@ -48,6 +48,10 @@ tasks:
     deps: [build]
     cmds:
       - ./bin/rowsql
+  doc:
+    desc: generate documentation
+    cmds:
+      - swag init -g ./cmd/server/main.go -o ./cmd/server/docs
   test:
     desc: test the application
     cmds:

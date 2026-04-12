@@ -20,6 +20,7 @@ var (
 	ErrorNotSameRowColsSize      = errors.New("cols and rows aren't same in length")
 	ErrorNoRowsInArgs            = errors.New("no rows in args")
 	ErrorNoColumnsInArgs         = errors.New("no colums in args")
+	ErrorInvalidAutoIncrement    = errors.New("auto-increment can only be set on primary key columns")
 )
 
 func ErrorLimitTooLarge(max int) error {

@@ -11,7 +11,6 @@ import (
 
 	"github.com/biisal/rowsql/configs"
 	"github.com/biisal/rowsql/internal/apperr"
-	"github.com/biisal/rowsql/internal/database"
 	"github.com/biisal/rowsql/internal/database/models"
 	"github.com/biisal/rowsql/internal/logger"
 )
@@ -23,10 +22,11 @@ type Builder interface {
 	ListRows(tableName, orderCol, orderBy string, limit, offset int) (string, []any, error)
 	DeleteTable(tableName string) string
 	GetRows(tableName string, limit, offset int) (string, []any, error)
-	DeleteRow(string, []models.ListDataCol, []any, int) (string, []any, error)
-	UpdateRow(tableName string, form []models.RowItem, columns []models.ListDataCol, row []any) (string, []any, error)
+	DeleteRow(string, []models.ColValues, []any, int) (string, []any, error)
+	UpdateRow(tableName string, form []models.RowItem, columns []models.ColValues, row []any) (string, []any, error)
 	InsertRow(tableName string, form []models.RowItem) (string, []any, error)
-	CreateTable(tableName string, inputs []database.Input) (string, error)
+	CreateTable(tableName string, inputs []models.ColValues) (string, error)
+	QuoteName(name string) string
 }
 
 type builder struct {
@@ -184,6 +184,7 @@ func (b *builder) GetRows(tableName string, limit, offset int) (string, []any, e
 	if tableName == "" {
 		return "", nil, apperr.ErrorInvalidTableName
 	}
+	tableName = b.dialect.QuoteName(tableName)
 
 	args := []any{limit}
 	ph, err := b.dialect.PlaceHolder(1)
@@ -203,7 +204,7 @@ func (b *builder) GetRows(tableName string, limit, offset int) (string, []any, e
 	return strings.Join(parts, " "), args, nil
 }
 
-func (b *builder) DeleteRow(tableName string, columns []models.ListDataCol, rows []any, argIdx int) (string, []any, error) {
+func (b *builder) DeleteRow(tableName string, columns []models.ColValues, rows []any, argIdx int) (string, []any, error) {
 	tableName = strings.TrimSpace(tableName)
 	if tableName == "" {
 		return "", nil, apperr.ErrorEmptyTableName
@@ -218,7 +219,7 @@ func (b *builder) DeleteRow(tableName string, columns []models.ListDataCol, rows
 	return query, args, nil
 }
 
-func (b *builder) UpdateRow(tableName string, form []models.RowItem, columns []models.ListDataCol, row []any) (string, []any, error) {
+func (b *builder) UpdateRow(tableName string, form []models.RowItem, columns []models.ColValues, row []any) (string, []any, error) {
 	tableName = strings.TrimSpace(tableName)
 	if tableName == "" {
 		return "", nil, apperr.ErrorInvalidTableName
@@ -242,17 +243,18 @@ func (b *builder) UpdateRow(tableName string, form []models.RowItem, columns []m
 		return "", nil, err
 	}
 
+	tableName = b.dialect.QuoteName(tableName)
 	query := fmt.Sprintf("UPDATE %s SET %s WHERE %s", tableName, updateQuery, b.dialect.FilterOneRowClause(tableName, whereClause))
 	fullArgs := append(args, whereClauseArgs...)
 	logger.Info("Query: %q\nArgs: %#v", query, fullArgs)
 	return query, fullArgs, nil
 }
 
-func (b *builder) CreateTable(tableName string, inputs []database.Input) (string, error) {
+func (b *builder) CreateTable(tableName string, inputs []models.ColValues) (string, error) {
 	logger.Info("Building create table query")
 	columnDefs := make([]string, 0, len(inputs))
 	for _, input := range inputs {
-		if input.ColName == "" {
+		if input.Name == "" {
 			continue
 		}
 		formattedColDef, err := b.formatColumnDefinition(input)
@@ -270,10 +272,14 @@ func (b *builder) CreateTable(tableName string, inputs []database.Input) (string
 	}
 	parts := strings.Join(columnDefs, ", ")
 
-	query := fmt.Sprintf("CREATE TABLE %s (%s) ;", tableName, parts)
+	query := fmt.Sprintf("CREATE TABLE %s (%s) ;", b.dialect.QuoteName(tableName), parts)
 	return query, nil
 }
 
 func (b *builder) DeleteTable(tableName string) string {
-	return fmt.Sprintf("DROP TABLE %s", tableName)
+	return fmt.Sprintf("DROP TABLE %s", b.dialect.QuoteName(tableName))
+}
+
+func (b *builder) QuoteName(name string) string {
+	return b.dialect.QuoteName(name)
 }

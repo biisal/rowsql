@@ -39,6 +39,7 @@ const formSchema = z.object({
 				isNull: z.boolean(),
 				isPk: z.boolean(),
 				isUnique: z.boolean(),
+				default: z.any(),
 				dataType: z.object({
 					type: z.string().min(1, 'Data type is required'),
 					size: z.number().optional(),
@@ -100,6 +101,7 @@ export const TableForm = () => {
 	function addCol() {
 		const currentInputs = form.getValues('inputs');
 		const newInput: InputType = {
+			default: "",
 			colName: '',
 			isNull: false,
 			isPk: false,
@@ -154,6 +156,7 @@ export const TableForm = () => {
 						dataTypes: types,
 						inputs: [
 							{
+								default: null,
 								colName: '',
 								isNull: false,
 								isPk: false,

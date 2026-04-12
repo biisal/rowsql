@@ -1,5 +1,7 @@
-import { Input } from '@/components/ui/input';
+import { type Control, Controller } from 'react-hook-form';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -7,9 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import type { Form } from '@/lib/types';
-import { Controller, type Control } from 'react-hook-form';
 
 interface TableInputProps {
   index: number;
@@ -21,6 +21,7 @@ interface TableInputProps {
       isNull: boolean;
       isPk: boolean;
       isUnique: boolean;
+      default: any,
       dataType: {
         type: string;
         size?: number;
@@ -57,6 +58,22 @@ export default function TableFromInput({
               {...field}
               id={`colName-${index}`}
               placeholder="Enter column name"
+            />
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+      {/* TODO: based on col data type  the input type show defalut value input*/}
+      <Controller
+        control={control}
+        name={`inputs.${index}.defalut`}
+        render={({ field, fieldState }) => (
+          <Field>
+            <FieldLabel htmlFor={`colName-${index}`}>Default value</FieldLabel>
+            <Input
+              {...field}
+              id={`defalut-${index}`}
+              placeholder="Enter default value"
             />
             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
           </Field>

@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/biisal/rowsql/frontend"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 const apiPrefix = "/api/v1"
@@ -19,9 +20,14 @@ func MountRouter(handler DBHandler) (*http.ServeMux, error) {
 
 	mux.Handle("GET /", frontend.ReactHandler("/"))
 
+	mux.Handle(route(GET, "/swag/"), httpSwagger.Handler(
+		httpSwagger.URL("http://localhost:8000/api/v1/swag/doc.json"),
+		httpSwagger.BeforeScript(`console.log("this is a test")`),
+	))
+
 	mux.HandleFunc(route(GET, "/tables"), handler.ListTables)
 	mux.Handle(route(GET, "/tables/{tableName}"), handler.withTable(handler.ListRows))
-	mux.Handle(route(GET, "/tables/{tableName}/form"), handler.withTable(handler.RowInsertForm))
+	mux.Handle(route(GET, "/tables/{tableName}/form"), handler.withTable(handler.RowInsertOrUpdateForm))
 	mux.Handle(route(GET, "/tables/{tableName}/columns"), handler.withTable(handler.ListColumns))
 	mux.Handle(route(POST, "/tables/{tableName}/form"), handler.withTable(handler.InsertOrUpdateRow))
 	mux.Handle(route(DELETE, "/tables/{tableName}/row/{hash}"), handler.withTable(handler.DeleteRow))

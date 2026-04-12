@@ -16,12 +16,12 @@ import (
 type DBService interface {
 	CheckTableExits(ctx context.Context, tableName string) error
 	ListTables(ctx context.Context) ([]models.ListTablesRow, error)
-	ListCols(ctx context.Context, tableName string) ([]models.ListDataCol, error)
+	ListCols(ctx context.Context, tableName string) ([]models.ColMetaData, error)
 	ListRows(ctx context.Context, tableName string, page int, column string, order string) (models.ListDataRow, error)
 	InsertRow(ctx context.Context, props models.InsertDataProps) error
 	GetRow(ctx context.Context, tableName string, hash string, page int) ([]any, error)
 	UpdateRow(ctx context.Context, values []models.RowItem, tableName, hash string, page int) error
-	CreateTable(ctx context.Context, tableName string, inputs []database.Input) error
+	CreateTable(ctx context.Context, tableName string, inputs []models.ColValues) error
 	GetRowCount(ctx context.Context, tableName string) (int, error)
 	DeleteRow(ctx context.Context, tableName string, hash string, page int) error
 	GetTableFormDataTypes() *FormDatatype
@@ -52,7 +52,7 @@ func (s *svc) ListTables(ctx context.Context) ([]models.ListTablesRow, error) {
 	return s.repo.ListTables(ctx)
 }
 
-func (s *svc) CreateTable(ctx context.Context, tableName string, inputs []database.Input) error {
+func (s *svc) CreateTable(ctx context.Context, tableName string, inputs []models.ColValues) error {
 	return s.repo.CreateTable(ctx, repo.CreateTableProps{
 		TableName: tableName,
 		Inputs:    inputs,
@@ -68,8 +68,8 @@ func (s *svc) DeleteTable(ctx context.Context, tableName, verificationQuery stri
 	return s.repo.DeleteTable(ctx, tableName)
 }
 
-func (s *svc) ListCols(ctx context.Context, tableName string) ([]models.ListDataCol, error) {
-	return s.repo.ListCols(ctx, tableName)
+func (s *svc) ListCols(ctx context.Context, tableName string) ([]models.ColMetaData, error) {
+	return s.repo.ListColsMetaData(ctx, tableName)
 }
 
 func (s *svc) GetRow(ctx context.Context, tableName, hash string, page int) ([]any, error) {
