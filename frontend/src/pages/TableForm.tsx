@@ -1,4 +1,4 @@
-import TableFromInput from '@/components/table-form-input';
+import { TableFormInput } from '@/feature/tables';
 import { Button } from '@/components/ui/button';
 import {
 	Card,
@@ -8,17 +8,13 @@ import {
 	CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import api from '@/lib/axios';
 import type {
-	DbDataTypes,
-	ErrorResponse,
 	Form as FormType,
 	Input as InputType,
 } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import useTableStore, { createTable } from '@/lib/store/use-table';
 import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -28,8 +24,9 @@ import {
 	FieldGroup,
 	FieldLabel,
 } from '@/components/ui/field';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { AxiosError } from 'axios';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { createNewTableMutation, listTablesQueryKey, newTableFormFiledsOptions } from '@/client/@tanstack/react-query.gen';
+import { Loader2 } from 'lucide-react';
 const formSchema = z.object({
 	tableName: z.string().min(1, 'Table name is required'),
 	inputs: z
@@ -57,25 +54,25 @@ type FormValues = z.infer<typeof formSchema>;
 export const TableForm = () => {
 	const queryClient = useQueryClient();
 	const navigate = useNavigate();
-	const { refreshTables } = useTableStore();
+
+	const { data: serverDataTypes, isLoading: loadingDataTypes } = useQuery(newTableFormFiledsOptions());
 
 	const createTableMutation = useMutation({
-		mutationFn: createTable,
+		...createNewTableMutation(),
+		mutationKey: ['createNewTable'],
 		onSuccess: (_, variable) => {
-			const tableName = variable.tableName;
+			const tableName = variable.body.tableName;
 			toast.success('Table created successfully');
-			queryClient.invalidateQueries({ queryKey: ['tables'] });
+			queryClient.invalidateQueries({ queryKey: listTablesQueryKey() });
 			navigate(`/tables/${tableName}`);
-			refreshTables(true);
 		},
-		onError: (err: AxiosError<ErrorResponse>) => {
+		onError: (err) => {
 			toast.error(
-				err.response?.data?.error || err.message || 'Something went wrong',
+				err?.detail || 'Something went wrong',
 			);
 		},
 	});
 
-	// const { createTable } = useTableStore();
 	const [formData, setFormData] = useState<FormType>({
 		inputs: [],
 		dataTypes: [],
@@ -141,67 +138,65 @@ export const TableForm = () => {
 	}
 
 	useEffect(() => {
-		async function fetchFormDataTypes() {
-			try {
-				const res = await api.get('/tables/form/new');
-				if (res.status === 200) {
-					const data: { data: DbDataTypes } = res.data;
-					const types = [...data.data.numericType, ...data.data.stringType];
-					if (types.length === 0) {
-						toast.error('No data types found');
-						return;
-					}
-					const newForm: FormType = {
-						tableName: '',
-						dataTypes: types,
-						inputs: [
-							{
-								default: null,
-								colName: '',
-								isNull: false,
-								isPk: false,
-								isUnique: false,
-								dataType: types[0],
-							},
-						],
-						selectedDataType: types[0],
-					};
-					setFormData(newForm);
-
-					form.reset(
-						{
-							tableName: newForm.tableName,
-							inputs: newForm.inputs,
-						},
-						{ keepDefaultValues: false },
-					);
-				}
-			} catch (error) {
-				console.error(error);
-				toast.error('Failed to fetch data types');
-			} finally {
-				setMount(true);
+		if (serverDataTypes) {
+			const types = [...(serverDataTypes.numericType || []), ...(serverDataTypes.stringType || [])];
+			if (types.length === 0) {
+				toast.error('No data types found');
+				return;
 			}
+			const newForm: FormType = {
+				tableName: '',
+				dataTypes: types,
+				inputs: [
+					{
+						default: null,
+						colName: '',
+						isNull: false,
+						isPk: false,
+						isUnique: false,
+						dataType: types[0],
+					},
+				],
+				selectedDataType: types[0],
+			};
+			setFormData(newForm);
+
+			form.reset(
+				{
+					tableName: newForm.tableName,
+					inputs: newForm.inputs,
+				},
+				{ keepDefaultValues: false },
+			);
+			setMount(true);
 		}
-		fetchFormDataTypes();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	}, [serverDataTypes, form]);
 
 	async function onSubmit(values: FormValues) {
 		const emptyColumns = values.inputs.filter((input) => !input.colName.trim());
 		if (emptyColumns.length > 0) {
-			console.log('Empty columns found:', emptyColumns);
 			toast.error('Please fill in all column names');
 			return;
 		}
 		await createTableMutation.mutateAsync({
-			tableName: values.tableName,
-			inputs: values.inputs,
+			body: {
+				tableName: values.tableName,
+				inputs: values.inputs.map((input) => ({
+					colName: input.colName,
+					isNull: input.isNull,
+					isPk: input.isPk,
+					isUnique: input.isUnique,
+					default: input.default,
+					type: input.dataType.type,
+					size: input.dataType.size,
+					value: null,
+				})),
+			},
 		});
 	}
 
-	if (!mount) {
-		return null;
+	if (!mount || loadingDataTypes) {
+		return <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 	}
 
 	return (
@@ -236,7 +231,7 @@ export const TableForm = () => {
 									)}
 								{formData?.inputs.map((_, index) => (
 									<div key={index} className="relative">
-										<TableFromInput
+										<TableFormInput
 											formData={formData}
 											index={index}
 											control={form.control}

@@ -1,11 +1,10 @@
-import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import {
 	SidebarProvider,
 	SidebarTrigger,
 	SidebarInset,
 } from '@/components/ui/sidebar';
-import { AppSidebar } from './app-sidebar';
+import { AppSidebar } from './AppSidebar';
 import { Separator } from '@/components/ui/separator';
 import {
 	Breadcrumb,
@@ -13,24 +12,27 @@ import {
 	BreadcrumbList,
 	BreadcrumbPage,
 } from '@/components/ui/breadcrumb';
+import { useQuery, useMutationState } from '@tanstack/react-query';
+import { listTablesOptions } from '@/client/@tanstack/react-query.gen';
 import { Toaster } from 'sonner';
-import useTableStore from '@/lib/store/use-table';
-import { GitStarButton } from './gitstar-button';
+import { GitStarButton } from './GitStarButton';
 
 export function Layout() {
-	const { tables, refreshTables, tablesRefreshing, tableAppending } =
-		useTableStore();
+	const { data: tables, isLoading: tablesRefreshing } = useQuery(listTablesOptions());
 
-	useEffect(() => {
-		refreshTables();
-	}, [refreshTables]);
+	const pendingMutations = useMutationState({
+		filters: { status: 'pending', mutationKey: ['createNewTable'] },
+		select: (mutation) => mutation.state.status,
+	});
+
+	const tableAppending = pendingMutations.length > 0;
 
 	return (
 		<SidebarProvider>
 			<AppSidebar
 				refreshing={tablesRefreshing}
 				isAppending={tableAppending}
-				tables={tables}
+				tables={tables || []}
 			/>
 			<SidebarInset className="min-w-0 overflow-hidden">
 				<header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">

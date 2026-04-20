@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Clock, Loader2, ChevronLeft, Database } from "lucide-react";
-import api from "@/lib/axios";
+import { useQuery } from "@tanstack/react-query";
+import { listHistoryOptions } from "@/client/@tanstack/react-query.gen";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,42 +11,19 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import { AppPagination } from "@/components/app-pagination";
-
-interface HistoryItem {
-  id: number;
-  message: string;
-  time: string;
-}
+import { AppPagination } from "@/components/shared/AppPagination";
 
 export function History() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   const currentPage = parseInt(searchParams.get("page") || "1");
 
-  useEffect(() => {
-    fetchHistory();
-  }, [currentPage]);
+  const { data: history, isLoading: loading, error: queryError } = useQuery(
+    listHistoryOptions({
+      query: { page: currentPage },
+    })
+  );
 
-  const fetchHistory = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await api.get(`/history?page=${currentPage}`);
-      setHistory(response.data.data || []);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to fetch history";
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const error = queryError ? (queryError.detail || "Failed to fetch history") : null
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1) return;
@@ -141,9 +118,6 @@ export function History() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">{error}</p>
-              <Button onClick={fetchHistory} className="mt-4">
-                Try Again
-              </Button>
             </CardContent>
           </Card>
         </div>
@@ -180,7 +154,7 @@ export function History() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {history.length === 0 ? (
+            {!history || history.length === 0 ? (
               <div className="text-center py-12">
                 <Database className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
                 <p className="text-muted-foreground">
@@ -192,7 +166,7 @@ export function History() {
               </div>
             ) : (
               <div className="space-y-3">
-                {history.map((item) => (
+                {history?.map((item) => (
                   <div
                     key={item.id}
                     className="flex items-start gap-4 p-4 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors"
@@ -226,7 +200,7 @@ export function History() {
           <AppPagination
             currentPage={currentPage}
             onPageChange={handlePageChange}
-            hasNextPage={history.length > 0}
+            hasNextPage={!!history && history.length > 0}
             hasPreviousPage={currentPage > 1}
           />
         </div>

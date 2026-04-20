@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 
-	_ "github.com/biisal/rowsql/cmd/server/docs"
 	"github.com/biisal/rowsql/configs"
 	"github.com/biisal/rowsql/internal/logger"
 )

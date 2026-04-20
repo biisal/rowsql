@@ -8,7 +8,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
-import type { Column } from '@/lib/types';
+import type { ColMetaData } from '@/client/types.gen';
 import { type SetURLSearchParams } from 'react-router-dom';
 
 interface InitialVal {
@@ -17,7 +17,7 @@ interface InitialVal {
 }
 
 interface RowOrderFormProps {
-	cols: Column[];
+	cols: ColMetaData[];
 	setUrlParams: SetURLSearchParams;
 	initialValue?: InitialVal;
 }
@@ -29,7 +29,7 @@ export const RowOrderForm = ({
 }: RowOrderFormProps) => {
 	const [selectedCol, setSelectedCol] = useState<string | null>(
 		initialValue?.col ??
-		(columns && columns.length > 0 ? columns[0].columnName : null),
+		(columns && columns.length > 0 ? columns[0].colName : null),
 	);
 	const [selectedOrder, setSelectedOrder] = useState<string | null>(
 		initialValue?.order ?? 'asc',
@@ -51,7 +51,7 @@ export const RowOrderForm = ({
 	useEffect(() => {
 		setSelectedCol(
 			initialValue?.col ??
-			(columns && columns.length > 0 ? columns[0].columnName : null),
+			(columns && columns.length > 0 ? columns[0].colName : null),
 		);
 		setSelectedOrder(initialValue?.order ?? 'asc');
 	}, [initialValue?.col, initialValue?.order, columns]);
@@ -87,9 +87,8 @@ export const RowOrderForm = ({
 							<SelectGroup>
 								<SelectLabel>Columns</SelectLabel>
 								{columns.map((col, idx) => (
-									// eslint-disable-next-line
-									<SelectItem key={idx} value={col.columnName || null!}>
-										{col.columnName || <div className='h-6 w-full bg-primary-foreground'></div>}
+									<SelectItem key={idx} value={col.colName || null!}>
+										{col.colName || <div className='h-6 w-full bg-primary-foreground'></div>}
 									</SelectItem>
 								))}
 							</SelectGroup>

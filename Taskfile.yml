@@ -1,9 +1,9 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 
-version: '3'
+version: "3"
 
 vars:
-  GREETING: Hello from RowSQL! 
+  GREETING: Hello from RowSQL!
 
 tasks:
   default:
@@ -13,7 +13,7 @@ tasks:
     silent: true
 
   backend-build:
-    desc: build backend application 
+    desc: build backend application
     cmds:
       - go build -o bin/rowsql ./cmd/server
   frontend-build:
@@ -31,15 +31,22 @@ tasks:
     cmds:
       - cd ./frontend/ && pnpm run dev
 
+  frontend-dev-with-delay:
+    desc: run frontend server in development mode with delay
+    cmds:
+      - echo "waiting for 5 seconds"
+      - sleep 5
+      - task: frontend-dev
+
   dev:
     desc: Run the application in development mode
-    deps: [backend-dev , frontend-dev]
+    deps: [backend-dev, frontend-dev-with-delay]
     cmds:
-      - echo "Done!" 
+      - echo "Done!"
 
   build:
     desc: build frontend and backend
-    deps: [backend-build , frontend-build]
+    deps: [backend-build, frontend-build]
     cmds:
       - echo "build was successfull"
 

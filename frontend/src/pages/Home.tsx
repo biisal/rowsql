@@ -11,6 +11,8 @@ import {
 	History as HistoryIcon,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { listTablesOptions, listRecentHistoryOptions } from '@/client/@tanstack/react-query.gen';
 import {
 	Card,
 	CardContent,
@@ -20,35 +22,11 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useEffect, useState } from 'react';
-import api from '@/lib/axios';
-import useTableStore from '@/lib/store/use-table';
 
-interface HistoryItem {
-	id: number;
-	message: string;
-	time: string;
-}
 
 export function Home() {
-	const { tables, tablesRefreshing } = useTableStore();
-	const [recentHistory, setRecentHistory] = useState<HistoryItem[]>([]);
-	const [historyLoading, setHistoryLoading] = useState(true);
-
-	useEffect(() => {
-		fetchRecentHistory();
-	}, []);
-
-	const fetchRecentHistory = async () => {
-		try {
-			const response = await api.get('/history/recent');
-			setRecentHistory(response.data.data || []);
-		} catch (err) {
-			console.error('Failed to fetch recent history:', err);
-		} finally {
-			setHistoryLoading(false);
-		}
-	};
+	const { data: tables, isLoading: tablesRefreshing } = useQuery(listTablesOptions());
+	const { data: recentHistory, isLoading: historyLoading } = useQuery(listRecentHistoryOptions());
 
 	const formatTime = (timeString: string) => {
 		const date = new Date(timeString);
@@ -165,7 +143,7 @@ export function Home() {
 								{tablesRefreshing ? (
 									<Loader2 className="w-6 h-6 animate-spin" />
 								) : (
-									tables.length
+									tables?.length || 0
 								)}
 							</div>
 							<p className="text-xs text-muted-foreground mt-1">
@@ -185,7 +163,7 @@ export function Home() {
 								{historyLoading ? (
 									<Loader2 className="w-6 h-6 animate-spin" />
 								) : (
-									recentHistory.length
+									recentHistory?.length || 0
 								)}
 							</div>
 							<p className="text-xs text-muted-foreground mt-1">
@@ -259,7 +237,7 @@ export function Home() {
 								</div>
 							</Link>
 
-							{!tablesRefreshing && tables.length > 0 && (
+							{!tablesRefreshing && tables && tables.length > 0 && (
 								<Link to={`/tables/${tables[0].tableName}`}>
 									<div className="flex items-center justify-between p-4 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors cursor-pointer group">
 										<div className="flex items-center gap-4">
@@ -303,7 +281,7 @@ export function Home() {
 								<div className="flex items-center justify-center py-8">
 									<Loader2 className="w-6 h-6 animate-spin text-primary" />
 								</div>
-							) : recentHistory.length === 0 ? (
+							) : !recentHistory || recentHistory.length === 0 ? (
 								<div className="text-center py-8">
 									<p className="text-sm text-muted-foreground">
 										No recent activity

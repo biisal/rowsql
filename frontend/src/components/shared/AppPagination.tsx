@@ -9,8 +9,8 @@ import {
 	PaginationEllipsis,
 } from '@/components/ui/pagination';
 import { cn } from '@/lib/utils';
-import { Input } from './ui/input';
-import { Button } from './ui/button';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 interface AppPaginationProps {
 	currentPage: number;

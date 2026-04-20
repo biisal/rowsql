@@ -34,7 +34,7 @@ interface TableInputProps {
   }>;
 }
 
-export default function TableFromInput({
+export function TableFormInput({
   index,
   formData,
   control,

@@ -13,15 +13,11 @@ import {
 	SidebarMenuItem,
 	SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Skeleton } from './ui/skeleton';
-
-interface Table {
-	tableName: string;
-	tableSchema: string;
-}
+import { Skeleton } from '@/components/ui/skeleton';
+import type { ListTablesRow } from '@/client/types.gen';
 
 interface SidebarProps extends React.ComponentProps<typeof ShadcnSidebar> {
-	tables: Table[];
+	tables: ListTablesRow[];
 	refreshing: boolean;
 	isAppending: boolean;
 }

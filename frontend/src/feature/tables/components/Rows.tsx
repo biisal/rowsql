@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { MoreHorizontal } from 'lucide-react';
-import { Checkbox } from './ui/checkbox';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -9,14 +9,15 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from './ui/dropdown-menu';
-import { Button } from './ui/button';
-import { Skeleton } from './ui/skeleton';
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import type { CellValue, TableData } from '@/lib/types';
+import type { CellValue } from '@/lib/types';
+import type { ListRowsResponse } from '@/client';
 
 interface RowsProps {
-	data: TableData;
+	data: ListRowsResponse;
 	selectedRows: Record<number, boolean>;
 	isAllSelected: boolean;
 	isSomeSelected: boolean;
@@ -34,12 +35,13 @@ export const Rows = ({
 	toggleRowSelection,
 	deleteRow,
 }: RowsProps) => {
+	if (!data) return <RowsSkeleton />;
 	return (
 		<div className="rounded-md border overflow-auto  relative">
 			<div
 				className="grid min-w-full"
 				style={{
-					gridTemplateColumns: `40px ${data.cols.map(() => 'minmax(150px, 1fr)').join(' ')} 80px`,
+					gridTemplateColumns: `40px ${data.cols?.map(() => 'minmax(150px, 1fr)').join(' ')} 80px`,
 				}}
 			>
 				{/* Checkbox Header */}
@@ -54,12 +56,12 @@ export const Rows = ({
 				</div>
 
 				{/* Data Columns Headers */}
-				{data.cols.map((col) => (
+				{data.cols?.map((col) => (
 					<div
-						key={col.columnName}
+						key={col.colName}
 						className="h-10 px-2 text-left align-middle font-medium text-muted-foreground flex items-center border-b bg-muted/50 sticky top-0 z-20"
 					>
-						{col.columnName}
+						{col.colName}
 					</div>
 				))}
 
@@ -69,8 +71,8 @@ export const Rows = ({
 				</div>
 
 				{/* Body Rows */}
-				{data.rows.length > 0 ? (
-					data.rows.map((row, rowIndex) => {
+				{data.rows?.length > 0 ? (
+					data.rows?.map((row, rowIndex) => {
 						const hash = String(row[0] ?? '');
 						const isSelected = !!selectedRows[rowIndex];
 

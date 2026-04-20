@@ -4,7 +4,7 @@ go 1.25.3
 
 require (
 	github.com/creativeprojects/go-selfupdate v1.5.2
-	github.com/fatih/color v1.18.0
+	github.com/fatih/color v1.19.0
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/jackc/pgx/v5 v5.7.6
@@ -12,6 +12,8 @@ require (
 	github.com/joho/godotenv v1.5.1
 	modernc.org/sqlite v1.42.2
 )
+
+require github.com/danielgtaylor/huma/v2 v2.37.3 // indirect
 
 require (
 	code.gitea.io/sdk/gitea v0.22.1 // indirect
@@ -46,7 +48,7 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mailru/easyjson v0.9.2 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect

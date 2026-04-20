@@ -1,7 +1,9 @@
 import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 import tailwindcss from '@tailwindcss/vite';
-import { defineConfig } from 'vite';
+import { defineConfig , type PluginOption } from 'vite';
+import { heyApiPlugin } from '@hey-api/vite-plugin';
+
 // import { visualizer } from 'rollup-plugin-visualizer';
 // https://vite.dev/config/
 export default defineConfig({
@@ -19,6 +21,16 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    heyApiPlugin({
+      config: {
+        input: 'http://localhost:8000/openapi.json', // sign up at app.heyapi.dev
+        output: 'src/client',
+        plugins: [
+        '@hey-api/sdk',
+        '@tanstack/react-query', 
+        ]
+      },
+    }) as PluginOption,
     // visualizer({ open: true, filename: 'bundle-stats.html', gzipSize: true }),
   ],
   server: {

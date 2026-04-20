@@ -21,7 +21,13 @@ type ListDataProps struct {
 	Order     string `json:"order"`
 }
 
-type ListDataRow []any
+type DataRow struct {
+	Hash   string `json:"hash"`
+	Values []any  `json:"values"`
+}
+
+type RowSet []DataRow
+
 
 type QueryParts struct {
 	Columns      string

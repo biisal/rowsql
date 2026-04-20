@@ -17,9 +17,9 @@ type DBService interface {
 	CheckTableExits(ctx context.Context, tableName string) error
 	ListTables(ctx context.Context) ([]models.ListTablesRow, error)
 	ListCols(ctx context.Context, tableName string) ([]models.ColMetaData, error)
-	ListRows(ctx context.Context, tableName string, page int, column string, order string) (models.ListDataRow, error)
+	ListRows(ctx context.Context, tableName string, page int, column string, order string) (models.RowSet, error)
 	InsertRow(ctx context.Context, props models.InsertDataProps) error
-	GetRow(ctx context.Context, tableName string, hash string, page int) ([]any, error)
+	GetRow(ctx context.Context, tableName string, hash string, page int) (models.DataRow, error)
 	UpdateRow(ctx context.Context, values []models.RowItem, tableName, hash string, page int) error
 	CreateTable(ctx context.Context, tableName string, inputs []models.ColValues) error
 	GetRowCount(ctx context.Context, tableName string) (int, error)
@@ -72,7 +72,7 @@ func (s *svc) ListCols(ctx context.Context, tableName string) ([]models.ColMetaD
 	return s.repo.ListColsMetaData(ctx, tableName)
 }
 
-func (s *svc) GetRow(ctx context.Context, tableName, hash string, page int) ([]any, error) {
+func (s *svc) GetRow(ctx context.Context, tableName, hash string, page int) (models.DataRow, error) {
 	return s.repo.GetRow(ctx, tableName, hash, s.getOffset(page), s.limit)
 }
 
@@ -80,7 +80,7 @@ func (s *svc) InsertRow(ctx context.Context, props models.InsertDataProps) error
 	return s.repo.InsertRow(ctx, props)
 }
 
-func (s *svc) ListRows(ctx context.Context, tableName string, page int, column string, order string) (models.ListDataRow, error) {
+func (s *svc) ListRows(ctx context.Context, tableName string, page int, column string, order string) (models.RowSet, error) {
 	return s.repo.ListRows(ctx, models.ListDataProps{
 		TableName: tableName,
 		Limit:     s.limit,

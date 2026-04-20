@@ -1,10 +1,7 @@
-export interface Column {
-	columnName: string;
-	dataType: string;
-}
-export interface Table {
-	tableName: string;
-	tableSchema: string;
+import type { ColMetaData  } from '@/client/types.gen';
+
+export interface Column extends ColMetaData {
+	columnName: string; // Keep for backward compatibility if needed, or remove?
 }
 
 export interface FormInputType {
@@ -17,7 +14,7 @@ export interface FormInputType {
 }
 
 export interface Input {
-	default: any,
+	default: unknown,
 	dataType: FormInputType;
 	colName: string;
 	isNull: boolean;
@@ -45,14 +42,12 @@ export interface ErrorResponse {
 }
 
 export type CellValue = string | number | boolean | null;
-type RowData = CellValue[];
 
 export interface TableData {
 	page: number;
-	tables: Table[];
-	cols: Column[];
+	cols: ColMetaData[];
 	activeTable: string;
-	rows: RowData[];
+	rows: CellValue[][];
 	rowCount: number;
 	hasNextPage: boolean;
 	totalPages: number;
