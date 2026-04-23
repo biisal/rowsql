@@ -11,7 +11,7 @@ import (
 func TestFormatColumnDefinition(t *testing.T) {
 	tests := []struct {
 		name   string
-		input  models.ColValues
+		input  models.ColValue
 		want   string
 		err    error
 		driver configs.Driver
@@ -19,107 +19,127 @@ func TestFormatColumnDefinition(t *testing.T) {
 		{
 			driver: configs.DriverPostgres,
 			name:   "psql unique witn not null",
-			input: models.ColValues{
-				Name:     "id",
-				Type:     "integer",
-				IsUnique: true,
-				IsPK:     true,
+			input: models.ColValue{
+				ColumnName: "id",
+				ColType: models.ColType{
+					Type:     "integer",
+					IsUnique: true,
+					IsPk:     true,
+				},
 			},
 			want: "id integer UNIQUE NOT NULL PRIMARY KEY",
 		},
 		{
 			driver: configs.DriverPostgres,
 			name:   "psql unique with null",
-			input: models.ColValues{
-				Name:     "id",
-				Type:     "integer",
-				IsUnique: true,
-				IsPK:     true,
-				IsNull:   true,
+			input: models.ColValue{
+				ColumnName: "id",
+				ColType: models.ColType{
+					Type:     "integer",
+					IsUnique: true,
+					IsPk:     true,
+					IsNull:   true,
+				},
 			},
 			want: "id integer UNIQUE PRIMARY KEY",
 		},
 		{
 			driver: configs.DriverPostgres,
 			name:   "psql primary key without unique",
-			input: models.ColValues{
-				Name:     "id",
-				Type:     "integer",
-				IsPK:     true,
-				IsNull:   true,
-				IsUnique: false,
+			input: models.ColValue{
+				ColumnName: "id",
+				ColType: models.ColType{
+					Type:     "integer",
+					IsPk:     true,
+					IsNull:   true,
+					IsUnique: false,
+				},
 			},
 			want: "id integer PRIMARY KEY",
 		},
 		{
 			driver: configs.DriverMySQL,
 			name:   "mysql auto increment pkey",
-			input: models.ColValues{
-				Name:          "id",
-				Type:          "int",
-				IsPK:          true,
-				AutoIncrement: true,
+			input: models.ColValue{
+				ColumnName: "id",
+				ColType: models.ColType{
+					Type:             "int",
+					IsPk:             true,
+					HasAutoIncrement: true,
+				},
 			},
 			want: "id int NOT NULL PRIMARY KEY AUTO_INCREMENT",
 		},
 		{
 			driver: configs.DriverSQLite,
 			name:   "sqlite auto increment pkey",
-			input: models.ColValues{
-				Name:          "id",
-				Type:          "INTEGER",
-				IsPK:          true,
-				AutoIncrement: true,
+			input: models.ColValue{
+				ColumnName: "id",
+				ColType: models.ColType{
+					Type:             "INTEGER",
+					IsPk:             true,
+					HasAutoIncrement: true,
+				},
 			},
 			want: "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT",
 		},
 		{
 			driver: configs.DriverPostgres,
 			name:   "psql column size",
-			input: models.ColValues{
-				Name: "name",
-				Type: "varchar",
-				Size: 255,
+			input: models.ColValue{
+				ColumnName: "name",
+				Size:       255,
+				ColType: models.ColType{
+					Type: "varchar",
+				},
 			},
 			want: "name varchar(255) NOT NULL",
 		},
 		{
 			driver: configs.DriverPostgres,
 			name:   "psql default value string",
-			input: models.ColValues{
-				Name:    "status",
-				Type:    "text",
-				Default: "active",
+			input: models.ColValue{
+				ColumnName:   "status",
+				DefaultValue: "active",
+				ColType: models.ColType{
+					Type: "text",
+				},
 			},
 			want: "status text NOT NULL DEFAULT active",
 		},
 		{
 			driver: configs.DriverPostgres,
 			name:   "psql default value int",
-			input: models.ColValues{
-				Name:    "age",
-				Type:    "integer",
-				Default: 18,
+			input: models.ColValue{
+				ColumnName:   "age",
+				DefaultValue: 18,
+				ColType: models.ColType{
+					Type: "integer",
+				},
 			},
 			want: "age integer NOT NULL DEFAULT 18",
 		},
 		{
 			driver: configs.DriverPostgres,
 			name:   "psql name with space",
-			input: models.ColValues{
-				Name: "group id",
-				Type: "integer",
+			input: models.ColValue{
+				ColumnName: "group id",
+				ColType: models.ColType{
+					Type: "integer",
+				},
 			},
 			want: "\"group id\" integer NOT NULL",
 		},
 		{
 			driver: configs.DriverPostgres,
 			name:   "psql auto increment error (not pk)",
-			input: models.ColValues{
-				Name:          "id",
-				Type:          "integer",
-				AutoIncrement: true,
-				IsPK:          false,
+			input: models.ColValue{
+				ColumnName: "id",
+				ColType: models.ColType{
+					Type:             "integer",
+					HasAutoIncrement: true,
+					IsPk:             false,
+				},
 			},
 			err: apperr.ErrorInvalidAutoIncrement,
 		},

@@ -15,8 +15,8 @@ const (
 
 type ListRowsResponse struct {
 	Page        int                  `json:"page"`
-	Rows        models.ListDataRow   `json:"rows"`
-	Cols        []models.ColMetaData `json:"cols"`
+	Rows        models.RowSet        `json:"rows"`
+	Cols        []models.ColValue     `json:"cols"`
 	RowCount    int                  `json:"rowCount"`
 	ActiveTable string               `json:"activeTable"`
 	HasNextPage bool                 `json:"hasNextPage"`

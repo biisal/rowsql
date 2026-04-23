@@ -13,7 +13,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import type { CellValue } from '@/lib/types';
 import type { ListRowsResponse } from '@/client';
 
 interface RowsProps {
@@ -71,9 +70,9 @@ export const Rows = ({
 				</div>
 
 				{/* Body Rows */}
-				{data.rows?.length > 0 ? (
+				{data?.rows && data?.rows?.length > 0 ? (
 					data.rows?.map((row, rowIndex) => {
-						const hash = String(row[0] ?? '');
+						const hash = row.hash;
 						const isSelected = !!selectedRows[rowIndex];
 
 						return (
@@ -92,7 +91,7 @@ export const Rows = ({
 									/>
 								</div>
 
-								{row.slice(1).map((cell: CellValue, cellIndex: number) => (
+								{row?.values?.map((cell, cellIndex) => (
 									<div
 										key={cellIndex}
 										className={cn(

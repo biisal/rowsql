@@ -523,12 +523,26 @@ func TestListRows(t *testing.T) {
 	}
 }
 
+func cv(columnName string, value any, colType string) models.ColValue {
+	return models.ColValue{
+		ColumnName: columnName,
+		Value:      value,
+		ColType:    models.ColType{Type: colType},
+	}
+}
+
+func cvu(columnName string, value any, colType string) models.ColValue {
+	v := cv(columnName, value, colType)
+	v.ColType.IsUnique = true
+	return v
+}
+
 func TestInsertRow(t *testing.T) {
 	tests := []struct {
 		name      string
 		driver    configs.Driver
 		tableName string
-		values    []models.RowItem
+		values    []models.ColValue
 		want      string
 		args      []any
 		err       error
@@ -537,89 +551,38 @@ func TestInsertRow(t *testing.T) {
 			name:      "Postgress",
 			driver:    configs.DriverPostgres,
 			tableName: "users",
-			values: []models.RowItem{
-				{
-					ColumnName: "id",
-					Value:      "1",
-					Type:       "int",
-				},
-				{
-					ColumnName: "name",
-					Value:      "2",
-					Type:       "string",
-				},
-				{
-					ColumnName: "email",
-					Value:      "3",
-					Type:       "string",
-				},
-			},
-			want: "INSERT INTO users (id, name, email) VALUES ($1, $2, $3)",
-			args: []any{"1", "2", "3"},
-			err:  nil,
+			values:    []models.ColValue{cv("id", "1", "int"), cv("name", "2", "string"), cv("email", "3", "string")},
+			want:      "INSERT INTO users (id, name, email) VALUES ($1, $2, $3)",
+			args:      []any{"1", "2", "3"},
 		},
 		{
 			name:      "MySQL",
 			driver:    configs.DriverMySQL,
 			tableName: "users",
-			values: []models.RowItem{
-				{
-					ColumnName: "id",
-					Value:      "1",
-					Type:       "int",
-				},
-				{
-					ColumnName: "name",
-					Value:      "2",
-					Type:       "string",
-				},
-				{
-					ColumnName: "email",
-					Value:      "3",
-					Type:       "string",
-				},
-			},
-			want: "INSERT INTO users (id, name, email) VALUES (?, ?, ?)",
-			args: []any{"1", "2", "3"},
-			err:  nil,
+			values:    []models.ColValue{cv("id", "1", "int"), cv("name", "2", "string"), cv("email", "3", "string")},
+			want:      "INSERT INTO users (id, name, email) VALUES (?, ?, ?)",
+			args:      []any{"1", "2", "3"},
 		},
 		{
 			name:      "SQlite",
 			driver:    configs.DriverSQLite,
 			tableName: "users",
-			values: []models.RowItem{
-				{
-					ColumnName: "id",
-					Value:      "1",
-					Type:       "int",
-				},
-				{
-					ColumnName: "name",
-					Value:      "2",
-					Type:       "string",
-				},
-				{
-					ColumnName: "email",
-					Value:      "3",
-					Type:       "string",
-				},
-			},
-			want: "INSERT INTO users (id, name, email) VALUES ($1, $2, $3)",
-			args: []any{"1", "2", "3"},
-			err:  nil,
+			values:    []models.ColValue{cv("id", "1", "int"), cv("name", "2", "string"), cv("email", "3", "string")},
+			want:      "INSERT INTO users (id, name, email) VALUES ($1, $2, $3)",
+			args:      []any{"1", "2", "3"},
 		},
 		{
 			name:      "Invalid driver",
 			driver:    configs.Driver("invalid"),
 			tableName: "users",
-			values:    []models.RowItem{},
+			values:    []models.ColValue{},
 			err:       apperr.ErrorInvalidDriver,
 		},
 		{
 			name:      "empty table name",
 			driver:    configs.DriverPostgres,
 			tableName: "",
-			values:    []models.RowItem{},
+			values:    []models.ColValue{},
 			err:       apperr.ErrorEmptyTableName,
 		},
 		{
@@ -627,7 +590,7 @@ func TestInsertRow(t *testing.T) {
 			driver:    configs.DriverPostgres,
 			args:      []any{},
 			tableName: "users",
-			values:    []models.RowItem{},
+			values:    []models.ColValue{},
 			want:      "INSERT INTO users DEFAULT VALUES",
 		},
 		{
@@ -635,7 +598,7 @@ func TestInsertRow(t *testing.T) {
 			driver:    configs.DriverMySQL,
 			args:      []any{},
 			tableName: "users",
-			values:    []models.RowItem{},
+			values:    []models.ColValue{},
 			// MySQL requires the empty brackets syntax
 			want: "INSERT INTO users () VALUES ()",
 		},
@@ -643,74 +606,51 @@ func TestInsertRow(t *testing.T) {
 			name:      "Postgres Table with Spaces",
 			driver:    configs.DriverPostgres,
 			tableName: "order details",
-			values: []models.RowItem{
-				{ColumnName: "id", Value: "101", Type: "int"},
-			},
-			want: `INSERT INTO "order details" (id) VALUES ($1)`,
-			args: []any{"101"},
+			values:    []models.ColValue{cv("id", "101", "int")},
+			want:      `INSERT INTO "order details" (id) VALUES ($1)`,
+			args:      []any{"101"},
 		},
 		{
 			name:      "MySQL Table with Spaces",
 			driver:    configs.DriverMySQL,
 			tableName: "order details",
-			values: []models.RowItem{
-				{ColumnName: "id", Value: "101", Type: "int"},
-			},
-			want: "INSERT INTO `order details` (id) VALUES (?)",
-			args: []any{"101"},
+			values:    []models.ColValue{cv("id", "101", "int")},
+			want:      "INSERT INTO `order details` (id) VALUES (?)",
+			args:      []any{"101"},
 		},
 		{
 			name:      "SQL Injection Resistance",
 			driver:    configs.DriverPostgres,
 			tableName: "users",
-			values: []models.RowItem{
-				{
-					ColumnName: "name",
-					Value:      "'; DROP TABLE users; --",
-					Type:       "string",
-				},
-			},
-			want: "INSERT INTO users (name) VALUES ($1)",
-			args: []any{"'; DROP TABLE users; --"},
+			values:    []models.ColValue{cv("name", "'; DROP TABLE users; --", "string")},
+			want:      "INSERT INTO users (name) VALUES ($1)",
+			args:      []any{"'; DROP TABLE users; --"},
 		},
 		{
 			name:      "Postgres Incremental Placeholders",
 			driver:    configs.DriverPostgres,
 			tableName: "products",
-			values: []models.RowItem{
-				{ColumnName: "a", Value: "v1", Type: "string"},
-				{ColumnName: "b", Value: "v2", Type: "string"},
-				{ColumnName: "c", Value: "v3", Type: "string"},
-			},
-			want: "INSERT INTO products (a, b, c) VALUES ($1, $2, $3)",
-			args: []any{"v1", "v2", "v3"},
+			values:    []models.ColValue{cv("a", "v1", "string"), cv("b", "v2", "string"), cv("c", "v3", "string")},
+			want:      "INSERT INTO products (a, b, c) VALUES ($1, $2, $3)",
+			args:      []any{"v1", "v2", "v3"},
 		},
 		{
 			name:      "Single column Postgres",
 			driver:    configs.DriverPostgres,
 			tableName: "tags",
-			values: []models.RowItem{
-				{ColumnName: "name", Value: "golang", Type: "string"},
-			},
-			want: "INSERT INTO tags (name) VALUES ($1)",
-			args: []any{"golang"},
+			values:    []models.ColValue{cv("name", "golang", "string")},
+			want:      "INSERT INTO tags (name) VALUES ($1)",
+			args:      []any{"golang"},
 		},
 		{
 			name:      "Many columns Postgres",
 			driver:    configs.DriverPostgres,
 			tableName: "wide_table",
-			values: []models.RowItem{
-				{ColumnName: "c1", Value: "v1"},
-				{ColumnName: "c2", Value: "v2"},
-				{ColumnName: "c3", Value: "v3"},
-				{ColumnName: "c4", Value: "v4"},
-				{ColumnName: "c5", Value: "v5"},
-				{ColumnName: "c6", Value: "v6"},
-				{ColumnName: "c7", Value: "v7"},
-				{ColumnName: "c8", Value: "v8"},
-				{ColumnName: "c9", Value: "v9"},
-				{ColumnName: "c10", Value: "v10"},
-				{ColumnName: "c11", Value: "v11"},
+			values: []models.ColValue{
+				cv("c1", "v1", ""), cv("c2", "v2", ""), cv("c3", "v3", ""),
+				cv("c4", "v4", ""), cv("c5", "v5", ""), cv("c6", "v6", ""),
+				cv("c7", "v7", ""), cv("c8", "v8", ""), cv("c9", "v9", ""),
+				cv("c10", "v10", ""), cv("c11", "v11", ""),
 			},
 			want: "INSERT INTO wide_table (c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
 			args: []any{"v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11"},
@@ -719,120 +659,61 @@ func TestInsertRow(t *testing.T) {
 			name:      "Duplicate columns",
 			driver:    configs.DriverPostgres,
 			tableName: "users",
-			values: []models.RowItem{
-				{ColumnName: "email", Value: "a@b.com"},
-				{ColumnName: "email", Value: "b@a.com"},
-			},
-			err: apperr.ErrorDuplicateColumn,
+			values:    []models.ColValue{cv("email", "a@b.com", ""), cv("email", "b@a.com", "")},
+			err:       apperr.ErrorDuplicateColumn,
 		},
 		{
 			name:      "Valid JSON Object Postgres",
 			driver:    configs.DriverPostgres,
 			tableName: "settings",
-			values: []models.RowItem{
-				{
-					ColumnName: "metadata",
-					Value:      `{"theme": "dark", "notifications": true}`,
-					Type:       "json",
-				},
-			},
-			want: "INSERT INTO settings (metadata) VALUES ($1)",
-			args: []any{map[string]any{"theme": "dark", "notifications": true}},
-			err:  nil,
+			values:    []models.ColValue{cv("metadata", `{"theme": "dark", "notifications": true}`, "json")},
+			want:      "INSERT INTO settings (metadata) VALUES ($1)",
+			args:      []any{map[string]any{"theme": "dark", "notifications": true}},
 		},
 		{
 			name:      "Valid JSON Array Postgres",
 			driver:    configs.DriverPostgres,
 			tableName: "posts",
-			values: []models.RowItem{
-				{
-					ColumnName: "tags",
-					Value:      `["golang", "sql", "backend"]`,
-					Type:       "json",
-				},
-			},
-			want: "INSERT INTO posts (tags) VALUES ($1)",
-			args: []any{[]any{"golang", "sql", "backend"}},
-			err:  nil,
+			values:    []models.ColValue{cv("tags", `["golang", "sql", "backend"]`, "json")},
+			want:      "INSERT INTO posts (tags) VALUES ($1)",
+			args:      []any{[]any{"golang", "sql", "backend"}},
 		},
 		{
 			name:      "Malformed JSON error",
 			driver:    configs.DriverPostgres,
 			tableName: "users",
-			values: []models.RowItem{
-				{
-					ColumnName: "extra_data",
-					Value:      `{"missing_bracket": true`,
-					Type:       "json",
-				},
-			},
-			err: apperr.ErrorInvalidJSON,
+			values:    []models.ColValue{cv("extra_data", `{"missing_bracket": true`, "json")},
+			err:       apperr.ErrorInvalidJSON,
 		},
 		{
 			name:      "driver validation happens before values validation",
 			driver:    configs.Driver("oracle"),
 			tableName: "users",
-			values: []models.RowItem{
-				{
-					ColumnName: "extra_data",
-					Value:      ``,
-					Type:       "json",
-				},
-			},
-			err: apperr.ErrorInvalidDriver,
+			values:    []models.ColValue{cv("extra_data", ``, "json")},
+			err:       apperr.ErrorInvalidDriver,
 		},
 		{
 			name:      "Empty string as JSON error",
 			driver:    configs.DriverPostgres,
 			tableName: "users",
-			values: []models.RowItem{
-				{
-					ColumnName: "extra_data",
-					Value:      ``,
-					Type:       "json",
-				},
-			},
-			err: apperr.ErrorInvalidJSON,
+			values:    []models.ColValue{cv("extra_data", ``, "json")},
+			err:       apperr.ErrorInvalidJSON,
 		},
 		{
 			name:      "sqlite space in column name",
 			driver:    configs.DriverSQLite,
 			tableName: "settings",
-			values: []models.RowItem{
-				{
-					ColumnName: "id",
-					Value:      `1`,
-					Type:       "int",
-				},
-				{
-					ColumnName: "this is a test",
-					Value:      `biisal`,
-					Type:       "string",
-				},
-			},
-			want: "INSERT INTO settings (id, \"this is a test\") VALUES ($1, $2)",
-			args: []any{"1", "biisal"},
-			err:  nil,
+			values:    []models.ColValue{cv("id", "1", "int"), cv("this is a test", "biisal", "string")},
+			want:      "INSERT INTO settings (id, \"this is a test\") VALUES ($1, $2)",
+			args:      []any{"1", "biisal"},
 		},
 		{
 			name:      "sqlite Empty column name",
 			driver:    configs.DriverSQLite,
 			tableName: "settings",
-			values: []models.RowItem{
-				{
-					ColumnName: "id",
-					Value:      `1`,
-					Type:       "int",
-				},
-				{
-					ColumnName: "",
-					Value:      `biisal`,
-					Type:       "string",
-				},
-			},
-			want: "INSERT INTO settings (id, '') VALUES ($1, $2)",
-			args: []any{"1", "biisal"},
-			err:  nil,
+			values:    []models.ColValue{cv("id", "1", "int"), cv("", "biisal", "string")},
+			want:      "INSERT INTO settings (id, '') VALUES ($1, $2)",
+			args:      []any{"1", "biisal"},
 		},
 	}
 
@@ -959,8 +840,7 @@ func TestDeleteRow(t *testing.T) {
 		want          string
 		args          Arg
 		err           error
-		cols          []models.ColValues
-		rows          []any
+		cols          []models.ColValue
 		placeholerIdx int
 	}{
 		{
@@ -968,51 +848,27 @@ func TestDeleteRow(t *testing.T) {
 			name:          "Psql",
 			driver:        configs.DriverPostgres,
 			tableName:     "users",
-			cols: []models.ColValues{
-				{
-					Name: "id",
-				},
-				{
-					Name: "name",
-				},
-			},
-			rows: []any{1, "test"},
-			want: "DELETE FROM users WHERE ctid IN (SELECT ctid FROM users WHERE id=$1 AND name=$2 LIMIT 1)",
-			args: Arg{1, "test"},
+			cols:          []models.ColValue{cv("id", 1, ""), cv("name", "test", "")},
+			want:          "DELETE FROM users WHERE ctid IN (SELECT ctid FROM users WHERE id=$1 AND name=$2 LIMIT 1)",
+			args:          Arg{1, "test"},
 		},
 		{
 			placeholerIdx: 1,
 			name:          "sqlite",
 			driver:        configs.DriverSQLite,
 			tableName:     "users",
-			cols: []models.ColValues{
-				{
-					Name: "id",
-				},
-				{
-					Name: "name",
-				},
-			},
-			rows: []any{1, "test"},
-			want: "DELETE FROM users WHERE rowid IN (SELECT rowid FROM users WHERE id=$1 AND name=$2 LIMIT 1)",
-			args: Arg{1, "test"},
+			cols:          []models.ColValue{cv("id", 1, ""), cv("name", "test", "")},
+			want:          "DELETE FROM users WHERE rowid IN (SELECT rowid FROM users WHERE id=$1 AND name=$2 LIMIT 1)",
+			args:          Arg{1, "test"},
 		},
 		{
 			placeholerIdx: 1,
 			name:          "Mysql",
 			driver:        configs.DriverMySQL,
 			tableName:     "users",
-			cols: []models.ColValues{
-				{
-					Name: "id",
-				},
-				{
-					Name: "name",
-				},
-			},
-			rows: []any{1, "test"},
-			want: "DELETE FROM users WHERE id=? AND name=? LIMIT 1",
-			args: Arg{1, "test"},
+			cols:          []models.ColValue{cv("id", 1, ""), cv("name", "test", "")},
+			want:          "DELETE FROM users WHERE id=? AND name=? LIMIT 1",
+			args:          Arg{1, "test"},
 		},
 		{
 			placeholerIdx: 1,
@@ -1020,15 +876,7 @@ func TestDeleteRow(t *testing.T) {
 			driver:        configs.Driver("unknown"),
 			tableName:     "users",
 			err:           apperr.ErrorInvalidDriver,
-			cols: []models.ColValues{
-				{
-					Name: "id",
-				},
-				{
-					Name: "name",
-				},
-			},
-			rows: []any{1, "test"},
+			cols:          []models.ColValue{cv("id", 1, ""), cv("name", "test", "")},
 		},
 		{
 			placeholerIdx: 0,
@@ -1036,15 +884,7 @@ func TestDeleteRow(t *testing.T) {
 			driver:        configs.DriverPostgres,
 			tableName:     "users",
 			err:           apperr.ErrorInvalidPlaceHolderIndex,
-			cols: []models.ColValues{
-				{
-					Name: "id",
-				},
-				{
-					Name: "name",
-				},
-			},
-			rows: []any{1, "test"},
+			cols:          []models.ColValue{cv("id", 1, ""), cv("name", "test", "")},
 		},
 		{
 			placeholerIdx: 1,
@@ -1052,38 +892,7 @@ func TestDeleteRow(t *testing.T) {
 			driver:        configs.DriverPostgres,
 			tableName:     "   ",
 			err:           apperr.ErrorEmptyTableName,
-			cols: []models.ColValues{
-				{
-					Name: "id",
-				},
-				{
-					Name: "name",
-				},
-			},
-			rows: []any{1, "test"},
-		},
-		{
-			placeholerIdx: 1,
-			name:          "no columns",
-			driver:        configs.DriverPostgres,
-			tableName:     "users",
-			rows:          []any{1},
-			err:           apperr.ErrorNotSameRowColsSize,
-		},
-		{
-			name:          "columns but no rows",
-			placeholerIdx: 1,
-			driver:        configs.DriverMySQL,
-			tableName:     "users",
-			cols: []models.ColValues{
-				{
-					Name: "id",
-				},
-				{
-					Name: "name",
-				},
-			},
-			err: apperr.ErrorNotSameRowColsSize,
+			cols:          []models.ColValue{cv("id", 1, ""), cv("name", "test", "")},
 		},
 	}
 
@@ -1095,7 +904,7 @@ func TestDeleteRow(t *testing.T) {
 				assertErr(t, err, tt.err)
 				return
 			}
-			query, args, err := builder.DeleteRow(tt.tableName, tt.cols, tt.rows, tt.placeholerIdx)
+			query, args, err := builder.DeleteRow(tt.tableName, tt.cols, tt.placeholerIdx)
 			assertErr(t, err, tt.err)
 			assertQuery(t, query, tt.want)
 			assertArgs(t, args, tt.args)
@@ -1108,9 +917,7 @@ func TestUpdateRow(t *testing.T) {
 		name      string
 		tableName string
 		driver    configs.Driver
-		form      []models.RowItem
-		columns   []models.ColValues
-		row       []any
+		form      []models.ColValue
 		err       error
 		args      Arg
 		want      string
@@ -1119,169 +926,50 @@ func TestUpdateRow(t *testing.T) {
 			name:      "psql",
 			tableName: "users",
 			driver:    configs.DriverPostgres,
-			form: []models.RowItem{
-				{
-					ColumnName: "name",
-					Value:      "test",
-				},
-				{
-					ColumnName: "id",
-					Value:      "1",
-				},
-			},
-			columns: []models.ColValues{
-				{
-					Name: "name",
-				}, {
-					Name: "id",
-				},
-			},
-			row:  []any{"test", "1"},
-			want: "UPDATE users SET name=$1,id=$2 WHERE ctid IN (SELECT ctid FROM users WHERE name=$3 AND id=$4 LIMIT 1)",
-			args: Arg{"test", "1", "test", "1"},
+			form:      []models.ColValue{cv("name", "test", ""), cv("id", "1", "")},
+			want:      "UPDATE users SET name=$1,id=$2 WHERE ctid IN (SELECT ctid FROM users WHERE name=$3 AND id=$4 LIMIT 1)",
+			args:      Arg{"test", "1", "test", "1"},
 		},
 		{
 			name:      "mySql",
 			tableName: "users",
 			driver:    configs.DriverMySQL,
-			form: []models.RowItem{
-				{
-					ColumnName: "name",
-					Value:      "test",
-				},
-				{
-					ColumnName: "id",
-					Value:      "1",
-				},
-			},
-			columns: []models.ColValues{{Name: "name"}, {
-				Name: "id",
-			},
-			},
-			row:  []any{"test", "1"},
-			want: "UPDATE users SET name=?,id=? WHERE name=? AND id=? LIMIT 1",
-			args: Arg{"test", "1", "test", "1"},
+			form:      []models.ColValue{cv("name", "test", ""), cv("id", "1", "")},
+			want:      "UPDATE users SET name=?,id=? WHERE name=? AND id=? LIMIT 1",
+			args:      Arg{"test", "1", "test", "1"},
 		},
 		{
 			name:      "sqlite",
 			tableName: "users",
 			driver:    configs.DriverSQLite,
-			form: []models.RowItem{
-				{
-					ColumnName: "name",
-					Value:      "test",
-				},
-				{
-					ColumnName: "id",
-					Value:      "1",
-				},
-			},
-			columns: []models.ColValues{{Name: "name"}, {
-				Name: "id",
-			},
-			},
-			row:  []any{"test", "1"},
-			want: "UPDATE users SET name=$1,id=$2 WHERE rowid IN (SELECT rowid FROM users WHERE name=$3 AND id=$4 LIMIT 1)",
-			args: Arg{"test", "1", "test", "1"},
+			form:      []models.ColValue{cv("name", "test", ""), cv("id", "1", "")},
+			want:      "UPDATE users SET name=$1,id=$2 WHERE rowid IN (SELECT rowid FROM users WHERE name=$3 AND id=$4 LIMIT 1)",
+			args:      Arg{"test", "1", "test", "1"},
 		},
 		{
 			name:      "Invalid driver",
 			tableName: "users",
 			driver:    configs.Driver("invalid"),
-			form: []models.RowItem{
-				{
-					ColumnName: "name",
-					Value:      "test",
-				},
-				{
-					ColumnName: "id",
-					Value:      "1",
-				},
-			},
-			columns: []models.ColValues{{Name: "name"}, {
-				Name: "id",
-			},
-			},
-			row:  []any{"test", "1"},
-			want: "UPDATE users SET name=$1,id=$2 WHERE rowid IN (SELECT rowid FROM users WHERE name=$3 AND id=$4 LIMIT 1)",
-			args: Arg{"test", "1", "test", "1"},
-			err:  apperr.ErrorInvalidDriver,
-		},
-		{
-			name:      "no columns",
-			tableName: "users",
-			driver:    configs.DriverSQLite,
-			form: []models.RowItem{
-				{
-					ColumnName: "name",
-					Value:      "test",
-				},
-				{
-					ColumnName: "id",
-					Value:      "1",
-				},
-			},
-			row: []any{"test", "1"},
-			err: apperr.ErrorNotSameRowColsSize,
-		},
-		{
-			name:      "no data to update",
-			tableName: "users",
-			driver:    configs.DriverSQLite,
-			row:       []any{"test", "1"},
-			err:       apperr.ErrorNotSameRowColsSize,
+			form:      []models.ColValue{cv("name", "test", ""), cv("id", "1", "")},
+			want:      "UPDATE users SET name=$1,id=$2 WHERE rowid IN (SELECT rowid FROM users WHERE name=$3 AND id=$4 LIMIT 1)",
+			args:      Arg{"test", "1", "test", "1"},
+			err:       apperr.ErrorInvalidDriver,
 		},
 		{
 			name:      "empty tableName",
 			tableName: "",
-			form: []models.RowItem{
-				{
-					ColumnName: "name",
-					Value:      "test",
-				},
-				{
-					ColumnName: "id",
-					Value:      "1",
-				},
-			},
-			columns: []models.ColValues{
-				{
-					Name: "name",
-				},
-				{
-					Name:  "id",
-					Value: "1",
-				},
-			},
-			driver: configs.DriverSQLite,
-			row:    []any{"test", "1"},
-			err:    apperr.ErrorInvalidTableName,
+			form:      []models.ColValue{cv("name", "test", ""), cv("id", "1", "")},
+			driver:    configs.DriverSQLite,
+			err:       apperr.ErrorInvalidTableName,
 		},
 		{
 			name:      "sqlite update with unique value",
 			tableName: "users",
-			form: []models.RowItem{
-				{
-					ColumnName: "name",
-					Value:      "test",
-				},
-				{
-					ColumnName: "id",
-					Value:      "1",
-				},
-			},
-			columns: []models.ColValues{
-				{
-					Name: "name",
-				},
-				{
-					Name:     "id",
-					IsUnique: true,
-					Value:    "1",
-				},
+			form: []models.ColValue{
+				cv("name", "test", ""),
+				cvu("id", "1", ""),
 			},
 			driver: configs.DriverSQLite,
-			row:    []any{"test", "1"},
 			want:   "UPDATE users SET name=$1,id=$2 WHERE rowid IN (SELECT rowid FROM users WHERE id=$3 LIMIT 1)",
 			args:   Arg{"test", "1", "1"},
 		},
@@ -1289,28 +977,11 @@ func TestUpdateRow(t *testing.T) {
 		{
 			name:      "mysql update with unique value",
 			tableName: "users",
-			form: []models.RowItem{
-				{
-					ColumnName: "name",
-					Value:      "test",
-				},
-				{
-					ColumnName: "id",
-					Value:      "1",
-				},
-			},
-			columns: []models.ColValues{
-				{
-					Name: "name",
-				},
-				{
-					Name:     "id",
-					IsUnique: true,
-					Value:    "1",
-				},
+			form: []models.ColValue{
+				cv("name", "test", ""),
+				cvu("id", "1", ""),
 			},
 			driver: configs.DriverMySQL,
-			row:    []any{"test", "1"},
 			want:   "UPDATE users SET name=?,id=? WHERE id=? LIMIT 1",
 			args:   Arg{"test", "1", "1"},
 		},
@@ -1318,119 +989,53 @@ func TestUpdateRow(t *testing.T) {
 		{
 			name:      "psql update values with empty input",
 			tableName: "users",
-			form: []models.RowItem{
-				{
-					ColumnName: "name",
-					Value:      "",
-				},
-			},
-			columns: []models.ColValues{
-				{
-					Name: "name",
-				},
-			},
-			driver: configs.DriverPostgres,
-			want:   "UPDATE users SET name=$1 WHERE ctid IN (SELECT ctid FROM users WHERE name=$2 LIMIT 1)",
-			row:    []any{""},
-			args:   Arg{"", ""},
+			form:      []models.ColValue{cv("name", "", "")},
+			driver:    configs.DriverPostgres,
+			want:      "UPDATE users SET name=$1 WHERE ctid IN (SELECT ctid FROM users WHERE name=$2 LIMIT 1)",
+			args:      Arg{"", ""},
 		},
 		{
 			name:      "sqlite update values with empty input",
 			tableName: "users",
-			form: []models.RowItem{
-				{
-					ColumnName: "name",
-					Value:      "",
-				},
-			},
-			columns: []models.ColValues{
-				{
-					Name: "name",
-				},
-			},
-			driver: configs.DriverSQLite,
-			want:   "UPDATE users SET name=$1 WHERE rowid IN (SELECT rowid FROM users WHERE name=$2 LIMIT 1)",
-			row:    []any{""},
-			args:   Arg{"", ""},
+			form:      []models.ColValue{cv("name", "", "")},
+			driver:    configs.DriverSQLite,
+			want:      "UPDATE users SET name=$1 WHERE rowid IN (SELECT rowid FROM users WHERE name=$2 LIMIT 1)",
+			args:      Arg{"", ""},
 		},
 		{
 			name:      "sqlite update values space in column",
 			tableName: "users",
-			form: []models.RowItem{
-				{
-					ColumnName: "id",
-					Value:      "updated id",
-				},
-				{
-					ColumnName: "column with space",
-					Value:      "updated col",
-				},
-			},
-			columns: []models.ColValues{
-				{
-					Name: "name",
-				},
-				{
-					Name: "column with space",
-				},
+			form: []models.ColValue{
+				cv("name", "old name", ""),
+				cv("column with space", "old col", ""),
 			},
 			driver: configs.DriverSQLite,
-			want:   "UPDATE users SET id=$1,\"column with space\"=$2 WHERE rowid IN (SELECT rowid FROM users WHERE name=$3 AND \"column with space\"=$4 LIMIT 1)",
-			args:   Arg{"updated id", "updated col", "old name", "old col"},
-			row:    []any{"old name", "old col"},
+			want:   "UPDATE users SET name=$1,\"column with space\"=$2 WHERE rowid IN (SELECT rowid FROM users WHERE name=$3 AND \"column with space\"=$4 LIMIT 1)",
+			args:   Arg{"old name", "old col", "old name", "old col"},
 		},
 		{name: "sqlite update values double quote in column",
 			tableName: "users",
-			form: []models.RowItem{
-				{
-					ColumnName: "id",
-					Value:      "updated id",
-				},
-				{
-					ColumnName: "column\" with space",
-					Value:      "updated col",
-				},
-			},
-			columns: []models.ColValues{
-				{
-					Name: "name",
-				},
-				{
-					Name: "column\" with space",
-				},
+			form: []models.ColValue{
+				cv("name", "old name", ""),
+				cv("column\" with space", "old col", ""),
 			},
 			driver: configs.DriverSQLite,
-			want:   "UPDATE users SET id=$1,\"column\"\" with space\"=$2 WHERE rowid IN (SELECT rowid FROM users WHERE name=$3 AND \"column\"\" with space\"=$4 LIMIT 1)",
-			args:   Arg{"updated id", "updated col", "old name", "old col"},
-			row:    []any{"old name", "old col"},
+			want:   "UPDATE users SET name=$1,\"column\"\" with space\"=$2 WHERE rowid IN (SELECT rowid FROM users WHERE name=$3 AND \"column\"\" with space\"=$4 LIMIT 1)",
+			args:   Arg{"old name", "old col", "old name", "old col"},
 		},
 		{
 			name:      "sqlite update values single quote in column",
 			tableName: "users",
-			form: []models.RowItem{
-				{
-					ColumnName: "id",
-					Value:      "updated id",
-				},
-				{
-					ColumnName: "column' with space",
-					Value:      "updated col",
-				},
-			},
-			columns: []models.ColValues{
-				{
-					Name: "name",
-				},
-				{
-					Name: "column' with space",
-				},
+			form: []models.ColValue{
+				cv("id", "old name", ""),
+				cv("column' with space", "old col", ""),
 			},
 			driver: configs.DriverSQLite,
-			want:   "UPDATE users SET id=$1,\"column' with space\"=$2 WHERE rowid IN (SELECT rowid FROM users WHERE name=$3 AND \"column' with space\"=$4 LIMIT 1)",
-			args:   Arg{"updated id", "updated col", "old name", "old col"},
-			row:    []any{"old name", "old col"},
+			want:   "UPDATE users SET id=$1,\"column' with space\"=$2 WHERE rowid IN (SELECT rowid FROM users WHERE id=$3 AND \"column' with space\"=$4 LIMIT 1)",
+			args:   Arg{"old name", "old col", "old name", "old col"},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			builder, err := NewBuilder(tt.driver, 10)
@@ -1438,7 +1043,7 @@ func TestUpdateRow(t *testing.T) {
 				assertErr(t, err, tt.err)
 				return
 			}
-			query, args, err := builder.UpdateRow(tt.tableName, tt.form, tt.columns, tt.row)
+			query, args, err := builder.UpdateRow(tt.tableName, tt.form)
 			assertErr(t, err, tt.err)
 			assertArgs(t, args, tt.args)
 			assertQuery(t, query, tt.want)
@@ -1450,7 +1055,7 @@ func TestCreateTable(t *testing.T) {
 	tests := []struct {
 		name      string
 		tableName string
-		inputs    []models.ColValues
+		inputs    []models.ColValue
 		want      string
 		err       error
 		driver    configs.Driver
@@ -1459,23 +1064,35 @@ func TestCreateTable(t *testing.T) {
 			driver:    configs.DriverSQLite,
 			name:      "sqlite crate table",
 			tableName: "users",
-			inputs: []models.ColValues{{
-				Name: "id",
-				Type: "integer",
+			inputs: []models.ColValue{{
+				ColumnName:   "id",
+				DefaultValue: 0,
+				ColType: models.ColType{
+					Type:             "integer",
+					HasAutoIncrement: true,
+					IsUnique:         true,
+					HasDefault:       true,
+					IsPk:             true,
+				},
 			}},
-			want: "CREATE TABLE users (id integer NOT NULL) ;",
+			want: "CREATE TABLE users (id integer UNIQUE NOT NULL PRIMARY KEY AUTOINCREMENT DEFAULT 0) ;",
 		},
 		{name: "sqlite crate table multiple cols",
 			driver:    configs.DriverSQLite,
 			tableName: "users",
-			inputs: []models.ColValues{{
-				Name: "id",
-				Type: "integer",
-			},
+			inputs: []models.ColValue{
 				{
-					Name: "name",
-					Type: "VARCHAR",
-					Size: 255,
+					ColumnName: "id",
+					ColType: models.ColType{
+						Type: "integer",
+					},
+				},
+				{
+					ColumnName: "name",
+					Size:       255,
+					ColType: models.ColType{
+						Type: "VARCHAR",
+					},
 				},
 			},
 			want: "CREATE TABLE users (id integer NOT NULL, name VARCHAR(255) NOT NULL) ;",
@@ -1484,15 +1101,20 @@ func TestCreateTable(t *testing.T) {
 			name:      "sqlite crate table with default value",
 			driver:    configs.DriverSQLite,
 			tableName: "users",
-			inputs: []models.ColValues{{
-				Name: "id",
-				Type: "integer",
-			},
+			inputs: []models.ColValue{
 				{
-					Name:   "name",
-					Type:   "VARCHAR",
-					Size:   255,
-					IsNull: true,
+					ColumnName: "id",
+					ColType: models.ColType{
+						Type: "integer",
+					},
+				},
+				{
+					ColumnName: "name",
+					Size:       255,
+					ColType: models.ColType{
+						Type:   "VARCHAR",
+						IsNull: true,
+					},
 				},
 			},
 			want: "CREATE TABLE users (id integer NOT NULL, name VARCHAR(255)) ;",
@@ -1501,15 +1123,20 @@ func TestCreateTable(t *testing.T) {
 			name:      "sqlite crate table multiple cols with null true",
 			driver:    configs.DriverSQLite,
 			tableName: "users",
-			inputs: []models.ColValues{{
-				Name: "id",
-				Type: "integer",
-			},
+			inputs: []models.ColValue{
 				{
-					Name:   "name",
-					Type:   "VARCHAR",
-					Size:   255,
-					IsNull: true,
+					ColumnName: "id",
+					ColType: models.ColType{
+						Type: "integer",
+					},
+				},
+				{
+					ColumnName: "name",
+					Size:       255,
+					ColType: models.ColType{
+						Type:   "VARCHAR",
+						IsNull: true,
+					},
 				},
 			},
 			want: "CREATE TABLE users (id integer NOT NULL, name VARCHAR(255)) ;",
@@ -1518,15 +1145,20 @@ func TestCreateTable(t *testing.T) {
 			name:      "sqlite crate table multiple cols with null true",
 			driver:    configs.DriverSQLite,
 			tableName: "users",
-			inputs: []models.ColValues{{
-				Name: "id",
-				Type: "integer",
-			},
+			inputs: []models.ColValue{
 				{
-					Name:   "name",
-					Type:   "VARCHAR",
-					Size:   255,
-					IsNull: true,
+					ColumnName: "id",
+					ColType: models.ColType{
+						Type: "integer",
+					},
+				},
+				{
+					ColumnName: "name",
+					Size:       255,
+					ColType: models.ColType{
+						Type:   "VARCHAR",
+						IsNull: true,
+					},
 				},
 			},
 			want: "CREATE TABLE users (id integer NOT NULL, name VARCHAR(255)) ;",
@@ -1534,15 +1166,20 @@ func TestCreateTable(t *testing.T) {
 		{name: "sqlite crate table with default values",
 			driver:    configs.DriverSQLite,
 			tableName: "users",
-			inputs: []models.ColValues{{
-				Name: "id",
-				Type: "integer",
-			},
+			inputs: []models.ColValue{
 				{
-					Name:    "name",
-					Type:    "VARCHAR(255)",
-					Default: "biisal",
-					IsNull:  true,
+					ColumnName: "id",
+					ColType: models.ColType{
+						Type: "integer",
+					},
+				},
+				{
+					ColumnName:   "name",
+					DefaultValue: "biisal",
+					ColType: models.ColType{
+						Type:   "VARCHAR(255)",
+						IsNull: true,
+					},
 				},
 			},
 			want: "CREATE TABLE users (id integer NOT NULL, name VARCHAR(255) DEFAULT biisal) ;",
@@ -1551,15 +1188,20 @@ func TestCreateTable(t *testing.T) {
 			name:      "sqlite crate table with default values with space ",
 			driver:    configs.DriverSQLite,
 			tableName: "users",
-			inputs: []models.ColValues{{
-				Name: "id",
-				Type: "integer",
-			},
+			inputs: []models.ColValue{
 				{
-					Name:    "name",
-					Type:    "VARCHAR(255)",
-					Default: "biisal is the name",
-					IsNull:  true,
+					ColumnName: "id",
+					ColType: models.ColType{
+						Type: "integer",
+					},
+				},
+				{
+					ColumnName:   "name",
+					DefaultValue: "biisal is the name",
+					ColType: models.ColType{
+						Type:   "VARCHAR(255)",
+						IsNull: true,
+					},
 				},
 			},
 			want: "CREATE TABLE users (id integer NOT NULL, name VARCHAR(255) DEFAULT \"biisal is the name\") ;",
@@ -1568,15 +1210,20 @@ func TestCreateTable(t *testing.T) {
 			name:      "sqlite crate table with default values with empty value",
 			driver:    configs.DriverSQLite,
 			tableName: "users",
-			inputs: []models.ColValues{{
-				Name: "id",
-				Type: "integer",
-			},
+			inputs: []models.ColValue{
 				{
-					Name:    "name",
-					Type:    "VARCHAR(255)",
-					Default: "",
-					IsNull:  true,
+					ColumnName: "id",
+					ColType: models.ColType{
+						Type: "integer",
+					},
+				},
+				{
+					ColumnName:   "name",
+					DefaultValue: "",
+					ColType: models.ColType{
+						Type:   "VARCHAR(255)",
+						IsNull: true,
+					},
 				},
 			},
 			want: "CREATE TABLE users (id integer NOT NULL, name VARCHAR(255) DEFAULT '') ;",

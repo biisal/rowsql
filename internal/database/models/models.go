@@ -28,7 +28,6 @@ type DataRow struct {
 
 type RowSet []DataRow
 
-
 type QueryParts struct {
 	Columns      string
 	Placeholders string
@@ -37,20 +36,6 @@ type QueryParts struct {
 type FormValue struct {
 	Value string `json:"value"`
 	Type  string `json:"type"`
-}
-
-type RowItem struct {
-	ColumnName string `json:"columnName"`
-	Value      string `json:"value"`
-	Type       string `json:"type"`
-}
-type InsertRowRequest struct {
-	TableName string    `json:"tableName"`
-	Data      []RowItem `json:"data"`
-}
-type InsertDataProps struct {
-	TableName string
-	Values    []RowItem
 }
 
 type ListTablesRow struct {
@@ -64,20 +49,8 @@ type History struct {
 	Time    time.Time `json:"time"`
 }
 
-type ColValues struct {
-	Name          string `json:"colName"`
-	Value         any    `json:"value"`
-	Type          string `json:"type"`
-	IsNull        bool   `json:"isNull"`
-	IsPK          bool   `json:"isPk"`
-	IsUnique      bool   `json:"isUnique"`
-	Default       any    `json:"default"`
-	Size          int    `json:"size,omitempty"`
-	AutoIncrement bool   `json:"autoIncrement,omitempty"`
-}
 
-type ColMetaData struct {
-	Name             string `json:"colName"`
+type ColType struct {
 	Type             string `json:"type"`
 	HasSize          bool   `json:"hasSize"`
 	HasValues        bool   `json:"hasValues,omitempty"`
@@ -85,4 +58,14 @@ type ColMetaData struct {
 	HasAutoIncrement bool   `json:"hasAutoIncrement"`
 	HasDefault       any    `json:"hasDefault"`
 	IsUnique         bool   `json:"isUnique"`
+	IsPk             bool   `json:"isPk"`
+	IsNull           bool   `json:"isNull"`
+}
+type ColValue struct {
+	ColumnName   string `json:"colName"`
+	Value        any    `json:"value"`
+	DefaultValue any    `json:"defaultValue,omitempty"`
+	Size         int    `json:"size,omitempty"`
+
+	ColType
 }

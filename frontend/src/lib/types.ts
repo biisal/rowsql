@@ -43,11 +43,16 @@ export interface ErrorResponse {
 
 export type CellValue = string | number | boolean | null;
 
+export interface DataRow {
+	hash: string;
+	values: CellValue[];
+}
+
 export interface TableData {
 	page: number;
 	cols: ColMetaData[];
 	activeTable: string;
-	rows: CellValue[][];
+	rows: DataRow[];
 	rowCount: number;
 	hasNextPage: boolean;
 	totalPages: number;

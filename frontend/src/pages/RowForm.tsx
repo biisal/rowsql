@@ -26,6 +26,8 @@ import {
 	FieldGroup,
 	FieldLabel,
 } from '@/components/ui/field';
+import { useQuery } from '@tanstack/react-query';
+import { rowInsertOrUpdateFormOptions } from '@/client/@tanstack/react-query.gen';
 
 interface Column {
 	columnName: string;
@@ -57,7 +59,7 @@ export function RowForm() {
 	const [hasDefaults, setHasDefaluts] = useState<Record<string, CheckedState>>(
 		{},
 	);
-	const { tableName } = useParams<{ tableName: string }>();
+	const { tableName } = useParams<{ tableName: string }>("");
 	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
 	const [loading, setLoading] = useState(true);
@@ -72,6 +74,14 @@ export function RowForm() {
 		reValidateMode: 'onChange',
 	});
 
+	useQuery(rowInsertOrUpdateFormOptions({
+		path: {
+			tableName: tableName!,
+
+			hash: hash ?? ""
+		}
+	})	
+
 	useEffect(() => {
 		const fetchFormData = async () => {
 			if (!tableName) return;
@@ -83,8 +93,10 @@ export function RowForm() {
 					: `/tables/${tableName}/form`;
 				const response = await api.get(url);
 
-				if (response.data.success) {
-					const data = response.data.data;
+				console.log(response);
+				if (response.data.cols) {
+
+					const data = response.data.cols
 					setFormData(data);
 
 					// Reset form with default values

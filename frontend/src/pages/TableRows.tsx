@@ -123,11 +123,7 @@ export function TablePage() {
 					</CardHeader>
 					<CardContent className="p-4">
 						<Rows
-							data={{
-								...data,
-								cols: data.cols || [],
-								rows: data.rows || []
-							}}
+							data={data}
 							selectedRows={selectedRows}
 							isAllSelected={isAllSelected}
 							isSomeSelected={isSomeSelected}

@@ -15,6 +15,20 @@ export type ColMetaData = {
     type: string;
 };
 
+export type ColValue = {
+    colName: string;
+    defaultValue?: unknown;
+    hasAutoIncrement: boolean;
+    hasDefault: unknown;
+    hasDigit?: boolean;
+    hasSize: boolean;
+    hasValues?: boolean;
+    isPk: boolean;
+    isUnique: boolean;
+    type: string;
+    value: unknown;
+};
+
 export type ColValues = {
     autoIncrement?: boolean;
     colName: string;
@@ -34,6 +48,11 @@ export type CreeteNewTableInputBody = {
     readonly $schema?: string;
     inputs: Array<ColValues> | null;
     tableName: string;
+};
+
+export type DataRow = {
+    hash: string;
+    values: Array<unknown> | null;
 };
 
 export type DeleteTableRequest = {
@@ -106,15 +125,6 @@ export type History = {
     time: string;
 };
 
-export type InsertRowRequest = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    data: Array<RowItem> | null;
-    tableName: string;
-};
-
 export type ListRowsResponse = {
     /**
      * A URL to the JSON Schema for this object.
@@ -125,7 +135,7 @@ export type ListRowsResponse = {
     hasNextPage: boolean;
     page: number;
     rowCount: number;
-    rows: Array<unknown> | null;
+    rows: Array<DataRow> | null;
     totalPages: number;
 };
 
@@ -147,12 +157,6 @@ export type RowInsertOrUpdateFormOutputBody = {
      */
     readonly $schema?: string;
     cols: Array<ColMetaData> | null;
-};
-
-export type RowItem = {
-    columnName: string;
-    type: string;
-    value: string;
 };
 
 export type StringDataType = {
@@ -203,18 +207,13 @@ export type FormDatatypeWritable = {
     stringType: Array<StringDataType> | null;
 };
 
-export type InsertRowRequestWritable = {
-    data: Array<RowItem> | null;
-    tableName: string;
-};
-
 export type ListRowsResponseWritable = {
     activeTable: string;
     cols: Array<ColMetaData> | null;
     hasNextPage: boolean;
     page: number;
     rowCount: number;
-    rows: Array<unknown> | null;
+    rows: Array<DataRow> | null;
     totalPages: number;
 };
 
@@ -437,7 +436,10 @@ export type RowInsertOrUpdateFormData = {
     path: {
         tableName: string;
     };
-    query?: never;
+    query?: {
+        page?: number;
+        hash?: string;
+    };
     url: '/api/v1/tables/{tableName}/form';
 };
 
@@ -460,7 +462,7 @@ export type RowInsertOrUpdateFormResponses = {
 export type RowInsertOrUpdateFormResponse = RowInsertOrUpdateFormResponses[keyof RowInsertOrUpdateFormResponses];
 
 export type InsertOrUpdateRowData = {
-    body: InsertRowRequestWritable;
+    body: Array<ColValue> | null;
     path: {
         tableName: string;
     };

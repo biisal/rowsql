@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "generate:client": "openapi-ts --input http://localhost:8000/api/v1/swag/doc.json --output src/client"
+    "generate:client": "openapi-ts --input http://localhost:8000/openapi.json --output src/client"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

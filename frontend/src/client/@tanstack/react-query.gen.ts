@@ -282,6 +282,33 @@ export const rowInsertOrUpdateFormOptions = (options: Options<RowInsertOrUpdateF
     queryKey: rowInsertOrUpdateFormQueryKey(options)
 });
 
+export const rowInsertOrUpdateFormInfiniteQueryKey = (options: Options<RowInsertOrUpdateFormData>): QueryKey<Options<RowInsertOrUpdateFormData>> => createQueryKey('rowInsertOrUpdateForm', options, true);
+
+/**
+ * Get row insert/update form metadata
+ */
+export const rowInsertOrUpdateFormInfiniteOptions = (options: Options<RowInsertOrUpdateFormData>) => infiniteQueryOptions<RowInsertOrUpdateFormResponse, RowInsertOrUpdateFormError, InfiniteData<RowInsertOrUpdateFormResponse>, QueryKey<Options<RowInsertOrUpdateFormData>>, number | Pick<QueryKey<Options<RowInsertOrUpdateFormData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+// @ts-ignore
+{
+    queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<QueryKey<Options<RowInsertOrUpdateFormData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+            query: {
+                page: pageParam
+            }
+        };
+        const params = createInfiniteParams(queryKey, page);
+        const { data } = await rowInsertOrUpdateForm({
+            ...options,
+            ...params,
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: rowInsertOrUpdateFormInfiniteQueryKey(options)
+});
+
 /**
  * Insert or update a row
  */

@@ -9,9 +9,9 @@ import (
 	"github.com/biisal/rowsql/internal/logger"
 )
 
-func (b *builder) formatColumnDefinition(input models.ColValues) (string, error) {
+func (b *builder) formatColumnDefinition(input models.ColValue) (string, error) {
 	var sb strings.Builder
-	fmt.Fprintf(&sb, "%s %s", b.dialect.QuoteName(input.Name), input.Type)
+	fmt.Fprintf(&sb, "%s %s", b.dialect.QuoteName(input.ColumnName), input.Type)
 	if input.Size > 0 {
 		fmt.Fprintf(&sb, "(%d)", input.Size)
 	}
@@ -21,19 +21,19 @@ func (b *builder) formatColumnDefinition(input models.ColValues) (string, error)
 	if !input.IsNull {
 		sb.WriteString(" NOT NULL")
 	}
-	if input.IsPK {
+	if input.IsPk {
 		sb.WriteString(" PRIMARY KEY")
 	}
-	if input.AutoIncrement {
-		if !input.IsPK {
+	if input.HasAutoIncrement {
+		if !input.IsPk {
 			logger.Errorln(apperr.ErrorInvalidAutoIncrement.Error())
 			return "", apperr.ErrorInvalidAutoIncrement
 		}
 		fmt.Fprintf(&sb, " %s", b.dialect.AutoIncrementKeyword())
 	}
-	if input.Default != nil {
-		var value = input.Default
-		if str, ok := input.Default.(string); ok {
+	if input.DefaultValue != nil {
+		var value = input.DefaultValue
+		if str, ok := input.DefaultValue.(string); ok {
 			value = b.dialect.QuoteName(str)
 		}
 		fmt.Fprintf(&sb, " DEFAULT %v", value)

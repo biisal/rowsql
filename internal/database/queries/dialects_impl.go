@@ -57,11 +57,7 @@ func quoteName(name string, format ...string) string {
 	return fmt.Sprintf(formator, escaped)
 }
 
-func whereClause(d Dialect, cols []models.ColValues, rows []any, argsIdx int) (string, []any, error) {
-	if len(cols) != len(rows) {
-		return "", nil, apperr.ErrorNotSameRowColsSize
-	}
-
+func whereClause(d Dialect, cols []models.ColValue, argsIdx int) (string, []any, error) {
 	var mixed []string
 	var args []any
 	for i, col := range cols {
@@ -69,16 +65,16 @@ func whereClause(d Dialect, cols []models.ColValues, rows []any, argsIdx int) (s
 		if err != nil {
 			return "", nil, err
 		}
-		colName := d.QuoteName(col.Name)
+		colName := d.QuoteName(col.ColumnName)
 
-		if col.IsUnique {
+		if col.ColType.IsUnique {
 			ph, err = d.PlaceHolder(argsIdx)
 			if err != nil {
 				return "", nil, err
 			}
 			return fmt.Sprintf("%s=%s", colName, ph), []any{col.Value}, nil
 		}
-		colVal := rows[i]
+		colVal := col.Value
 
 		if col.Type == "json" {
 			var jsonVal map[string]any
@@ -180,8 +176,8 @@ func (d *PostgresDialect) FilterOneRowClause(tableName, whereClause string) stri
 	return fmt.Sprintf("ctid IN (SELECT ctid FROM %s WHERE %s LIMIT 1)", d.QuoteName(tableName), whereClause)
 }
 
-func (d *PostgresDialect) WhereCluse(cols []models.ColValues, rows []any, argsIdx int) (string, []any, error) {
-	return whereClause(d, cols, rows, argsIdx)
+func (d *PostgresDialect) WhereCluse(cols []models.ColValue, argsIdx int) (string, []any, error) {
+	return whereClause(d, cols, argsIdx)
 }
 
 // MySQLDialect implementation
@@ -275,8 +271,8 @@ func (d *MySQLDialect) FilterOneRowClause(tableName, whereClause string) string 
 	return fmt.Sprintf("%s LIMIT 1", whereClause)
 }
 
-func (d *MySQLDialect) WhereCluse(cols []models.ColValues, rows []any, argsIdx int) (string, []any, error) {
-	return whereClause(d, cols, rows, argsIdx)
+func (d *MySQLDialect) WhereCluse(cols []models.ColValue, argsIdx int) (string, []any, error) {
+	return whereClause(d, cols, argsIdx)
 }
 
 // SQLiteDialect implementation
@@ -358,6 +354,6 @@ func (d *SQLiteDialect) FilterOneRowClause(tableName, whereClause string) string
 	return fmt.Sprintf("rowid IN (SELECT rowid FROM %s WHERE %s LIMIT 1)", d.QuoteName(tableName), whereClause)
 }
 
-func (d *SQLiteDialect) WhereCluse(cols []models.ColValues, rows []any, argsIdx int) (string, []any, error) {
-	return whereClause(d, cols, rows, argsIdx)
+func (d *SQLiteDialect) WhereCluse(cols []models.ColValue, argsIdx int) (string, []any, error) {
+	return whereClause(d, cols, argsIdx)
 }

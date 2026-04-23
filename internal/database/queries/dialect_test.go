@@ -12,8 +12,7 @@ func TestWhereClause(t *testing.T) {
 	tests := []struct {
 		name    string
 		driver  configs.Driver
-		cols    []models.ColValues
-		rows    []any
+		cols    []models.ColValue
 		argsIdx int
 		want    string
 		args    []any
@@ -22,15 +21,16 @@ func TestWhereClause(t *testing.T) {
 		{
 			name:   "Postgress",
 			driver: configs.DriverPostgres,
-			cols: []models.ColValues{
+			cols: []models.ColValue{
 				{
-					Name:       "id",
-					Type:         "int",
-					IsUnique:         false,
-					Value:            1,
+					ColumnName: "id",
+					ColType: models.ColType{
+						Type:     "int",
+						IsUnique: false,
+					},
+					Value: 1,
 				},
 			},
-			rows:    []any{1},
 			want:    "id=$1",
 			argsIdx: 1,
 			args:    []any{1},
@@ -38,15 +38,16 @@ func TestWhereClause(t *testing.T) {
 		{
 			name:   "MySQL",
 			driver: configs.DriverMySQL,
-			cols: []models.ColValues{
+			cols: []models.ColValue{
 				{
-					Name:       "id",
-					Type:         "int",
-					IsUnique:         false,
-					Value:            1,
+					ColumnName: "id",
+					ColType: models.ColType{
+						Type:     "int",
+						IsUnique: false,
+					},
+					Value: 1,
 				},
 			},
-			rows:    []any{1},
 			want:    "id=?",
 			argsIdx: 1,
 			args:    []any{1},
@@ -54,15 +55,16 @@ func TestWhereClause(t *testing.T) {
 		{
 			name:   "SQLite",
 			driver: configs.DriverSQLite,
-			cols: []models.ColValues{
+			cols: []models.ColValue{
 				{
-					Name:       "id",
-					Type:         "int",
-					IsUnique:         false,
-					Value:            1,
+					ColumnName: "id",
+					ColType: models.ColType{
+						Type:     "int",
+						IsUnique: false,
+					},
+					Value: 1,
 				},
 			},
-			rows:    []any{1},
 			want:    "id=$1",
 			argsIdx: 1,
 			args:    []any{1},
@@ -70,13 +72,12 @@ func TestWhereClause(t *testing.T) {
 		{
 			name:   "Sqlite zero index",
 			driver: configs.DriverSQLite,
-			cols: []models.ColValues{
+			cols: []models.ColValue{
 				{
-					Name: "id",
-					Value: 1,
+					ColumnName: "id",
+					Value:      1,
 				},
 			},
-			rows:    []any{1},
 			argsIdx: 0,
 			// err: apperr.Err,
 			err: apperr.ErrorInvalidPlaceHolderIndex,
@@ -84,22 +85,21 @@ func TestWhereClause(t *testing.T) {
 		{
 			name:   "Sqlite multiple rows and cols",
 			driver: configs.DriverSQLite,
-			cols: []models.ColValues{
+			cols: []models.ColValue{
 				{
-					Name: "id",
+					ColumnName: "id",
 					Value:      1,
 				},
 				{
-					Name: "name",
+					ColumnName: "name",
 					Value:      "test",
 				},
 				{
-					Name: "email",
+					ColumnName: "email",
 					Value:      "test",
 				},
 			},
 
-			rows:    []any{1, "test", "test"},
 			argsIdx: 1,
 			want:    "id=$1 AND name=$2 AND email=$3",
 			args:    []any{1, "test", "test"},
@@ -107,58 +107,41 @@ func TestWhereClause(t *testing.T) {
 		{
 			name:   "Mysql multiple rows and cols",
 			driver: configs.DriverMySQL,
-			cols: []models.ColValues{
+			cols: []models.ColValue{
 				{
-					Name: "id",
+					ColumnName: "id",
 					Value:      1,
 				},
 				{
-					Name: "name",
+					ColumnName: "name",
 					Value:      "test",
 				},
 				{
-					Name: "email",
+					ColumnName: "email",
 					Value:      "test",
 				},
 			},
 
-			rows:    []any{1, "test", "test"},
 			argsIdx: 1,
 			want:    "id=? AND name=? AND email=?",
 			args:    []any{1, "test", "test"},
 		},
 		{
-			name:   "Sqlite less cols then rows",
-			driver: configs.DriverSQLite,
-			cols: []models.ColValues{
-				{
-					Name: "id",
-					Value: 1,
-				},
-				{
-					Name: "name",
-					Value: "test",
-				},
-			},
-			rows:    []any{1, "test", "test"},
-			argsIdx: 1,
-			err:     apperr.ErrorNotSameRowColsSize,
-		},
-		{
 			name:   "Sqlite unique cols",
 			driver: configs.DriverSQLite,
-			cols: []models.ColValues{
+			cols: []models.ColValue{
 				{
-					Name: "id",
+					ColumnName: "id",
+					ColType: models.ColType{
+						IsUnique: true,
+					},
 					Value: 1,
-					IsUnique: true,
 				},
 				{
-					Name: "name",
-					Value: "test",
+					ColumnName: "name",
+					Value:      "test",
 				},
 			},
-			rows:    []any{1, "test"},
 			args:    []any{1},
 			argsIdx: 1,
 			want:    "id=$1",
@@ -166,23 +149,26 @@ func TestWhereClause(t *testing.T) {
 		{
 			name:   "Sqlite multiple unique cols",
 			driver: configs.DriverSQLite,
-			cols: []models.ColValues{
+			cols: []models.ColValue{
 				{
-					Name: "id",
+					ColumnName: "id",
+					ColType: models.ColType{
+						IsUnique: true,
+					},
 					Value: 1,
-					IsUnique: true,
 				},
 				{
-					Name: "name",
-					Value: "test",
+					ColumnName: "name",
+					Value:      "test",
 				},
 				{
-					Name: "email",
+					ColumnName: "email",
+					ColType: models.ColType{
+						IsUnique: true,
+					},
 					Value: "test",
-					IsUnique: true,
 				},
 			},
-			rows:    []any{1, "test", "test"},
 			args:    []any{1},
 			argsIdx: 1,
 			want:    "id=$1",
@@ -196,7 +182,7 @@ func TestWhereClause(t *testing.T) {
 				assertErr(t, bErr, tt.err)
 				return
 			}
-			query, args, err := dialect.WhereCluse(tt.cols, tt.rows, tt.argsIdx)
+			query, args, err := dialect.WhereCluse(tt.cols, tt.argsIdx)
 
 			assertErr(t, err, tt.err)
 			assertQuery(t, query, tt.want)

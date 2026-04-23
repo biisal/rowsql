@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 
 	"github.com/biisal/rowsql/internal/apperr"
@@ -18,7 +19,7 @@ type DBHandler struct {
 
 type BaseHTMLData struct {
 	Tables []models.ListTablesRow
-	Cols   []models.ColMetaData
+	Cols   []models.ColValue
 }
 
 type ErrorMessage struct {
@@ -72,7 +73,7 @@ type ListColumnsInput struct {
 	TableName string `path:"tableName"`
 }
 
-func (h DBHandler) ListColumns(ctx context.Context, input *ListColumnsInput) (*struct{ Body []models.ColMetaData }, error) {
+func (h DBHandler) ListColumns(ctx context.Context, input *ListColumnsInput) (*struct{ Body []models.ColValue }, error) {
 	if err := h.checkTableExists(ctx, input.TableName); err != nil {
 		return nil, err
 	}
@@ -81,7 +82,7 @@ func (h DBHandler) ListColumns(ctx context.Context, input *ListColumnsInput) (*s
 		logger.Error("%s", err)
 		return nil, err
 	}
-	return &struct{ Body []models.ColMetaData }{Body: cols}, nil
+	return &struct{ Body []models.ColValue }{Body: cols}, nil
 }
 
 type ListRowsInput struct {
@@ -107,13 +108,13 @@ func (h DBHandler) ListRows(ctx context.Context, input *ListRowsInput) (*ListRow
 
 	colFound := false
 	if colParam != "" {
-		var cols []models.ColMetaData
+		var cols []models.ColValue
 		cols, err = h.service.ListCols(ctx, tableName)
 		if err != nil {
 			return nil, err
 		}
 		for _, col := range cols {
-			if col.Name == colParam {
+			if col.ColumnName == colParam {
 				colFound = true
 				break
 			}
@@ -153,11 +154,13 @@ func (h DBHandler) ListRows(ctx context.Context, input *ListRowsInput) (*ListRow
 
 type RowInsertOrUpdateFormInput struct {
 	TableName string `path:"tableName"`
+	Page      int    `query:"page" default:"1" minimum:"1"`
+	Hash      string `query:"hash"`
 }
 
 type RowInsertOrUpdateFormOutput struct {
 	Body struct {
-		Cols []models.ColMetaData `json:"cols"`
+		Cols []models.ColValue `json:"cols"`
 	}
 }
 
@@ -170,9 +173,16 @@ func (h DBHandler) RowInsertOrUpdateForm(ctx context.Context, input *RowInsertOr
 		logger.Error("%s", err)
 		return nil, err
 	}
+	if input.Hash != "" {
+		initialRow, err := h.service.GetRow(ctx, input.TableName, input.Hash, input.Page)
+		if err != nil {
+			return nil, err
+		}
+		slog.Info("Initial row", "data", initialRow)
+	}
 	return &RowInsertOrUpdateFormOutput{
 		Body: struct {
-			Cols []models.ColMetaData `json:"cols"`
+			Cols []models.ColValue `json:"cols"`
 		}{
 			Cols: colsMeta,
 		},
@@ -180,10 +190,10 @@ func (h DBHandler) RowInsertOrUpdateForm(ctx context.Context, input *RowInsertOr
 }
 
 type InsertOrUpdateRowInput struct {
-	TableName string                  `path:"tableName"`
-	Hash      string                  `query:"hash"`
-	Page      int                     `query:"page" default:"1"`
-	Body      models.InsertRowRequest `json:"body"`
+	TableName string            `path:"tableName"`
+	Hash      string            `query:"hash"`
+	Page      int               `query:"page" default:"1"`
+	Body      []models.ColValue `json:"body"`
 }
 
 func (h DBHandler) InsertOrUpdateRow(ctx context.Context, input *InsertOrUpdateRowInput) (*struct{}, error) {
@@ -199,7 +209,7 @@ func (h DBHandler) InsertOrUpdateRow(ctx context.Context, input *InsertOrUpdateR
 	hash := strings.TrimSpace(input.Hash)
 
 	if hash != "" {
-		if err := h.service.UpdateRow(ctx, form.Data, tableName, hash, pageInt); err != nil {
+		if err := h.service.UpdateRow(ctx, form, tableName, hash, pageInt); err != nil {
 			logger.Error("%s", err)
 			logger.Error("Failed to update row in table '%s'", tableName)
 			return nil, err
@@ -208,10 +218,7 @@ func (h DBHandler) InsertOrUpdateRow(ctx context.Context, input *InsertOrUpdateR
 		return nil, nil
 	}
 
-	if err := h.service.InsertRow(ctx, models.InsertDataProps{
-		TableName: tableName,
-		Values:    form.Data,
-	}); err != nil {
+	if err := h.service.InsertRow(ctx, tableName, form); err != nil {
 		logger.Errorln(err.Error())
 		logger.Error("Failed to insert row in table '%s'", tableName)
 		return nil, err
@@ -250,8 +257,8 @@ func (h DBHandler) NewTableFormFileds(ctx context.Context, input *struct{}) (*st
 
 type CreeteNewTableInput struct {
 	Body struct {
-		TableName string             `json:"tableName"`
-		Inputs    []models.ColValues `json:"inputs"`
+		TableName string            `json:"tableName"`
+		Inputs    []models.ColValue `json:"inputs"`
 	}
 }
 

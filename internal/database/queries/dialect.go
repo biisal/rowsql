@@ -30,5 +30,5 @@ type Dialect interface {
 	InsertDefaultValues(tableName string) string
 	DeleteRow(tableName string, whereClause string) string
 	FilterOneRowClause(tableName, whereClause string) string
-	WhereCluse(cols []models.ColValues, rows []any, argsIdx int) (string, []any, error)
+	WhereCluse(cols []models.ColValue, argsIdx int) (string, []any, error)
 }

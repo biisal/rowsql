@@ -16,12 +16,12 @@ import (
 type DBService interface {
 	CheckTableExits(ctx context.Context, tableName string) error
 	ListTables(ctx context.Context) ([]models.ListTablesRow, error)
-	ListCols(ctx context.Context, tableName string) ([]models.ColMetaData, error)
+	ListCols(ctx context.Context, tableName string) ([]models.ColValue, error)
 	ListRows(ctx context.Context, tableName string, page int, column string, order string) (models.RowSet, error)
-	InsertRow(ctx context.Context, props models.InsertDataProps) error
+	InsertRow(ctx context.Context, tableName string, form []models.ColValue) error
 	GetRow(ctx context.Context, tableName string, hash string, page int) (models.DataRow, error)
-	UpdateRow(ctx context.Context, values []models.RowItem, tableName, hash string, page int) error
-	CreateTable(ctx context.Context, tableName string, inputs []models.ColValues) error
+	UpdateRow(ctx context.Context, values []models.ColValue, tableName, hash string, page int) error
+	CreateTable(ctx context.Context, tableName string, inputs []models.ColValue) error
 	GetRowCount(ctx context.Context, tableName string) (int, error)
 	DeleteRow(ctx context.Context, tableName string, hash string, page int) error
 	GetTableFormDataTypes() *FormDatatype
@@ -52,7 +52,7 @@ func (s *svc) ListTables(ctx context.Context) ([]models.ListTablesRow, error) {
 	return s.repo.ListTables(ctx)
 }
 
-func (s *svc) CreateTable(ctx context.Context, tableName string, inputs []models.ColValues) error {
+func (s *svc) CreateTable(ctx context.Context, tableName string, inputs []models.ColValue) error {
 	return s.repo.CreateTable(ctx, repo.CreateTableProps{
 		TableName: tableName,
 		Inputs:    inputs,
@@ -68,7 +68,7 @@ func (s *svc) DeleteTable(ctx context.Context, tableName, verificationQuery stri
 	return s.repo.DeleteTable(ctx, tableName)
 }
 
-func (s *svc) ListCols(ctx context.Context, tableName string) ([]models.ColMetaData, error) {
+func (s *svc) ListCols(ctx context.Context, tableName string) ([]models.ColValue, error) {
 	return s.repo.ListColsMetaData(ctx, tableName)
 }
 
@@ -76,8 +76,8 @@ func (s *svc) GetRow(ctx context.Context, tableName, hash string, page int) (mod
 	return s.repo.GetRow(ctx, tableName, hash, s.getOffset(page), s.limit)
 }
 
-func (s *svc) InsertRow(ctx context.Context, props models.InsertDataProps) error {
-	return s.repo.InsertRow(ctx, props)
+func (s *svc) InsertRow(ctx context.Context, tableName string, form []models.ColValue) error {
+	return s.repo.InsertRow(ctx, tableName, form)
 }
 
 func (s *svc) ListRows(ctx context.Context, tableName string, page int, column string, order string) (models.RowSet, error) {
@@ -90,7 +90,7 @@ func (s *svc) ListRows(ctx context.Context, tableName string, page int, column s
 	})
 }
 
-func (s *svc) UpdateRow(ctx context.Context, values []models.RowItem, tableName, hash string, page int) error {
+func (s *svc) UpdateRow(ctx context.Context, values []models.ColValue, tableName, hash string, page int) error {
 	return s.repo.UpdateRow(ctx, repo.UpdateOrDeleteRowProps{
 		TableName: tableName,
 		Hash:      hash,
