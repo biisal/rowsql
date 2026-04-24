@@ -49,23 +49,22 @@ type History struct {
 	Time    time.Time `json:"time"`
 }
 
-
 type ColType struct {
-	Type             string `json:"type"`
+	DataType         string `json:"dataType"`
 	HasSize          bool   `json:"hasSize"`
 	HasValues        bool   `json:"hasValues,omitempty"`
 	HasDigit         bool   `json:"hasDigit,omitempty"`
 	HasAutoIncrement bool   `json:"hasAutoIncrement"`
-	HasDefault       any    `json:"hasDefault"`
+	HasDefault       bool   `json:"hasDefault"`
 	IsUnique         bool   `json:"isUnique"`
 	IsPk             bool   `json:"isPk"`
 	IsNull           bool   `json:"isNull"`
 }
 type ColValue struct {
-	ColumnName   string `json:"colName"`
+	ColumnName   string `json:"columnName"`
 	Value        any    `json:"value"`
 	DefaultValue any    `json:"defaultValue,omitempty"`
 	Size         int    `json:"size,omitempty"`
 
-	ColType
+	ColumnType ColType `json:"columnType"`
 }

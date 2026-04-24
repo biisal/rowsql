@@ -29,11 +29,11 @@ func getColValues(rows []any, cols []models.ColValue) ([]models.ColValue, error)
 		colWithValues[i] = models.ColValue{
 			ColumnName: col.ColumnName,
 			Value:      rows[i],
-			ColType: models.ColType{
-				Type:             col.Type,
-				IsUnique:         col.IsUnique,
-				HasAutoIncrement: col.HasAutoIncrement,
-				HasDefault:       col.HasDefault,
+			ColumnType: models.ColType{
+				DataType:         col.ColumnType.DataType,
+				IsUnique:         col.ColumnType.IsUnique,
+				HasAutoIncrement: col.ColumnType.HasAutoIncrement,
+				HasDefault:       col.ColumnType.HasDefault,
 			},
 		}
 	}
@@ -78,11 +78,11 @@ func (q *Queries) ListColsMetaData(ctx context.Context, tableName string) ([]mod
 	var items []models.ColValue
 	for rows.Next() {
 		var i models.ColValue
-		if err := rows.Scan(&i.ColumnName, &i.Type, &i.HasDefault, &i.IsUnique, &i.HasAutoIncrement); err != nil {
+		if err := rows.Scan(&i.ColumnName, &i.ColumnType.DataType, &i.ColumnType.HasDefault, &i.ColumnType.IsUnique, &i.ColumnType.HasAutoIncrement); err != nil {
 			logger.Error("failed to scan rows in list cols: %v", err)
 			return nil, err
 		}
-		i.Type = utils.GetInputType(i.Type)
+		i.ColumnType.DataType = utils.GetInputType(i.ColumnType.DataType)
 		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
@@ -128,7 +128,7 @@ func (q *Queries) ListRows(ctx context.Context, props models.ListDataProps) (mod
 		return nil, err
 	}
 
-	logger.Info("Query : %s", query)
+	logger.Info("Query :: %s", query)
 	rows, err := q.db.QueryxContext(ctx, query, args...)
 	if err != nil {
 		logger.Errorln(err.Error())
@@ -148,6 +148,7 @@ func (q *Queries) ListRows(ctx context.Context, props models.ListDataProps) (mod
 		}
 
 		for i, v := range row {
+			logger.Info("Row: %T", v)
 			if b, ok := v.([]byte); ok {
 				row[i] = string(b)
 			}

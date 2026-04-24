@@ -24,8 +24,8 @@ func TestWhereClause(t *testing.T) {
 			cols: []models.ColValue{
 				{
 					ColumnName: "id",
-					ColType: models.ColType{
-						Type:     "int",
+					ColumnType: models.ColType{
+						DataType: "int",
 						IsUnique: false,
 					},
 					Value: 1,
@@ -41,8 +41,8 @@ func TestWhereClause(t *testing.T) {
 			cols: []models.ColValue{
 				{
 					ColumnName: "id",
-					ColType: models.ColType{
-						Type:     "int",
+					ColumnType: models.ColType{
+						DataType: "int",
 						IsUnique: false,
 					},
 					Value: 1,
@@ -58,8 +58,8 @@ func TestWhereClause(t *testing.T) {
 			cols: []models.ColValue{
 				{
 					ColumnName: "id",
-					ColType: models.ColType{
-						Type:     "int",
+					ColumnType: models.ColType{
+						DataType: "int",
 						IsUnique: false,
 					},
 					Value: 1,
@@ -132,7 +132,7 @@ func TestWhereClause(t *testing.T) {
 			cols: []models.ColValue{
 				{
 					ColumnName: "id",
-					ColType: models.ColType{
+					ColumnType: models.ColType{
 						IsUnique: true,
 					},
 					Value: 1,
@@ -152,7 +152,7 @@ func TestWhereClause(t *testing.T) {
 			cols: []models.ColValue{
 				{
 					ColumnName: "id",
-					ColType: models.ColType{
+					ColumnType: models.ColType{
 						IsUnique: true,
 					},
 					Value: 1,
@@ -163,7 +163,7 @@ func TestWhereClause(t *testing.T) {
 				},
 				{
 					ColumnName: "email",
-					ColType: models.ColType{
+					ColumnType: models.ColType{
 						IsUnique: true,
 					},
 					Value: "test",

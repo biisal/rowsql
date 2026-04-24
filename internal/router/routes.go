@@ -59,7 +59,7 @@ func registerRoutes(api huma.API, h DBHandler) {
 		Method:      http.MethodGet,
 		Path:        "/api/v1/tables/{tableName}/form",
 		Summary:     "Get row insert/update form metadata",
-		Tags:        []string{"tables"},
+		Tags:        []string{"rows"},
 	}, h.RowInsertOrUpdateForm)
 
 	huma.Register(api, huma.Operation{

@@ -67,7 +67,7 @@ func whereClause(d Dialect, cols []models.ColValue, argsIdx int) (string, []any,
 		}
 		colName := d.QuoteName(col.ColumnName)
 
-		if col.ColType.IsUnique {
+		if col.ColumnType.IsUnique {
 			ph, err = d.PlaceHolder(argsIdx)
 			if err != nil {
 				return "", nil, err
@@ -76,7 +76,7 @@ func whereClause(d Dialect, cols []models.ColValue, argsIdx int) (string, []any,
 		}
 		colVal := col.Value
 
-		if col.Type == "json" {
+		if col.ColumnType.DataType == "json" {
 			var jsonVal map[string]any
 			if err := json.Unmarshal([]byte(colVal.(string)), &jsonVal); err != nil {
 				logger.Errorln(err)

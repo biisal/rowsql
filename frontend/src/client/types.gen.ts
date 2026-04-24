@@ -4,40 +4,23 @@ export type ClientOptions = {
     baseUrl: 'http://localhost:8000' | (string & {});
 };
 
-export type ColMetaData = {
-    colName: string;
+export type ColType = {
+    dataType: string;
     hasAutoIncrement: boolean;
-    hasDefault: unknown;
+    hasDefault: boolean;
     hasDigit?: boolean;
     hasSize: boolean;
     hasValues?: boolean;
-    isUnique: boolean;
-    type: string;
-};
-
-export type ColValue = {
-    colName: string;
-    defaultValue?: unknown;
-    hasAutoIncrement: boolean;
-    hasDefault: unknown;
-    hasDigit?: boolean;
-    hasSize: boolean;
-    hasValues?: boolean;
-    isPk: boolean;
-    isUnique: boolean;
-    type: string;
-    value: unknown;
-};
-
-export type ColValues = {
-    autoIncrement?: boolean;
-    colName: string;
-    default: unknown;
     isNull: boolean;
     isPk: boolean;
     isUnique: boolean;
+};
+
+export type ColValue = {
+    columnName: string;
+    columnType: ColType;
+    defaultValue?: unknown;
     size?: number;
-    type: string;
     value: unknown;
 };
 
@@ -46,7 +29,7 @@ export type CreeteNewTableInputBody = {
      * A URL to the JSON Schema for this object.
      */
     readonly $schema?: string;
-    inputs: Array<ColValues> | null;
+    inputs: Array<ColValue> | null;
     tableName: string;
 };
 
@@ -131,7 +114,7 @@ export type ListRowsResponse = {
      */
     readonly $schema?: string;
     activeTable: string;
-    cols: Array<ColMetaData> | null;
+    cols: Array<ColValue> | null;
     hasNextPage: boolean;
     page: number;
     rowCount: number;
@@ -156,7 +139,7 @@ export type RowInsertOrUpdateFormOutputBody = {
      * A URL to the JSON Schema for this object.
      */
     readonly $schema?: string;
-    cols: Array<ColMetaData> | null;
+    cols: Array<ColValue> | null;
 };
 
 export type StringDataType = {
@@ -166,7 +149,7 @@ export type StringDataType = {
 };
 
 export type CreeteNewTableInputBodyWritable = {
-    inputs: Array<ColValues> | null;
+    inputs: Array<ColValue> | null;
     tableName: string;
 };
 
@@ -209,7 +192,7 @@ export type FormDatatypeWritable = {
 
 export type ListRowsResponseWritable = {
     activeTable: string;
-    cols: Array<ColMetaData> | null;
+    cols: Array<ColValue> | null;
     hasNextPage: boolean;
     page: number;
     rowCount: number;
@@ -218,7 +201,7 @@ export type ListRowsResponseWritable = {
 };
 
 export type RowInsertOrUpdateFormOutputBodyWritable = {
-    cols: Array<ColMetaData> | null;
+    cols: Array<ColValue> | null;
 };
 
 export type ListHistoryData = {
@@ -426,7 +409,7 @@ export type ListColumnsResponses = {
     /**
      * OK
      */
-    200: Array<ColMetaData> | null;
+    200: Array<ColValue> | null;
 };
 
 export type ListColumnsResponse = ListColumnsResponses[keyof ListColumnsResponses];

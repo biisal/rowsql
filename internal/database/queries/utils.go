@@ -11,21 +11,21 @@ import (
 
 func (b *builder) formatColumnDefinition(input models.ColValue) (string, error) {
 	var sb strings.Builder
-	fmt.Fprintf(&sb, "%s %s", b.dialect.QuoteName(input.ColumnName), input.Type)
-	if input.Size > 0 {
+	fmt.Fprintf(&sb, "%s %s", b.dialect.QuoteName(input.ColumnName), input.ColumnType.DataType)
+	if input.ColumnType.HasSize {
 		fmt.Fprintf(&sb, "(%d)", input.Size)
 	}
-	if input.IsUnique {
+	if input.ColumnType.IsUnique {
 		sb.WriteString(" UNIQUE")
 	}
-	if !input.IsNull {
+	if !input.ColumnType.IsNull {
 		sb.WriteString(" NOT NULL")
 	}
-	if input.IsPk {
+	if input.ColumnType.IsPk {
 		sb.WriteString(" PRIMARY KEY")
 	}
-	if input.HasAutoIncrement {
-		if !input.IsPk {
+	if input.ColumnType.HasAutoIncrement {
+		if !input.ColumnType.IsPk {
 			logger.Errorln(apperr.ErrorInvalidAutoIncrement.Error())
 			return "", apperr.ErrorInvalidAutoIncrement
 		}

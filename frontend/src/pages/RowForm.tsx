@@ -59,7 +59,7 @@ export function RowForm() {
 	const [hasDefaults, setHasDefaluts] = useState<Record<string, CheckedState>>(
 		{},
 	);
-	const { tableName } = useParams<{ tableName: string }>("");
+	const { tableName } = useParams<{ tableName: string }>();
 	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
 	const [loading, setLoading] = useState(true);
@@ -73,14 +73,6 @@ export function RowForm() {
 		mode: 'onChange',
 		reValidateMode: 'onChange',
 	});
-
-	useQuery(rowInsertOrUpdateFormOptions({
-		path: {
-			tableName: tableName!,
-
-			hash: hash ?? ""
-		}
-	})	
 
 	useEffect(() => {
 		const fetchFormData = async () => {

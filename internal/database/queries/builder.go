@@ -135,7 +135,7 @@ func (b *builder) InsertRow(tableName string, form []models.ColValue) (string, [
 		}
 		placeholders = append(placeholders, ph)
 
-		if field.Type == "json" {
+		if field.ColumnType.DataType == "json" {
 			var jsonVal any
 			str, ok := field.Value.(string)
 			if !ok {

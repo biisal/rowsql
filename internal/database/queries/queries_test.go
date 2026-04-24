@@ -527,13 +527,13 @@ func cv(columnName string, value any, colType string) models.ColValue {
 	return models.ColValue{
 		ColumnName: columnName,
 		Value:      value,
-		ColType:    models.ColType{Type: colType},
+		ColumnType: models.ColType{DataType: colType},
 	}
 }
 
 func cvu(columnName string, value any, colType string) models.ColValue {
 	v := cv(columnName, value, colType)
-	v.ColType.IsUnique = true
+	v.ColumnType.IsUnique = true
 	return v
 }
 
@@ -1067,8 +1067,8 @@ func TestCreateTable(t *testing.T) {
 			inputs: []models.ColValue{{
 				ColumnName:   "id",
 				DefaultValue: 0,
-				ColType: models.ColType{
-					Type:             "integer",
+				ColumnType: models.ColType{
+					DataType:         "integer",
 					HasAutoIncrement: true,
 					IsUnique:         true,
 					HasDefault:       true,
@@ -1083,15 +1083,15 @@ func TestCreateTable(t *testing.T) {
 			inputs: []models.ColValue{
 				{
 					ColumnName: "id",
-					ColType: models.ColType{
-						Type: "integer",
+					ColumnType: models.ColType{
+						DataType: "integer",
 					},
 				},
 				{
 					ColumnName: "name",
 					Size:       255,
-					ColType: models.ColType{
-						Type: "VARCHAR",
+					ColumnType: models.ColType{
+						DataType: "VARCHAR",
 					},
 				},
 			},
@@ -1104,16 +1104,16 @@ func TestCreateTable(t *testing.T) {
 			inputs: []models.ColValue{
 				{
 					ColumnName: "id",
-					ColType: models.ColType{
-						Type: "integer",
+					ColumnType: models.ColType{
+						DataType: "integer",
 					},
 				},
 				{
 					ColumnName: "name",
 					Size:       255,
-					ColType: models.ColType{
-						Type:   "VARCHAR",
-						IsNull: true,
+					ColumnType: models.ColType{
+						DataType: "VARCHAR",
+						IsNull:   true,
 					},
 				},
 			},
@@ -1126,16 +1126,16 @@ func TestCreateTable(t *testing.T) {
 			inputs: []models.ColValue{
 				{
 					ColumnName: "id",
-					ColType: models.ColType{
-						Type: "integer",
+					ColumnType: models.ColType{
+						DataType: "integer",
 					},
 				},
 				{
 					ColumnName: "name",
 					Size:       255,
-					ColType: models.ColType{
-						Type:   "VARCHAR",
-						IsNull: true,
+					ColumnType: models.ColType{
+						DataType: "VARCHAR",
+						IsNull:   true,
 					},
 				},
 			},
@@ -1148,16 +1148,16 @@ func TestCreateTable(t *testing.T) {
 			inputs: []models.ColValue{
 				{
 					ColumnName: "id",
-					ColType: models.ColType{
-						Type: "integer",
+					ColumnType: models.ColType{
+						DataType: "integer",
 					},
 				},
 				{
 					ColumnName: "name",
 					Size:       255,
-					ColType: models.ColType{
-						Type:   "VARCHAR",
-						IsNull: true,
+					ColumnType: models.ColType{
+						DataType: "VARCHAR",
+						IsNull:   true,
 					},
 				},
 			},
@@ -1169,16 +1169,16 @@ func TestCreateTable(t *testing.T) {
 			inputs: []models.ColValue{
 				{
 					ColumnName: "id",
-					ColType: models.ColType{
-						Type: "integer",
+					ColumnType: models.ColType{
+						DataType: "integer",
 					},
 				},
 				{
 					ColumnName:   "name",
 					DefaultValue: "biisal",
-					ColType: models.ColType{
-						Type:   "VARCHAR(255)",
-						IsNull: true,
+					ColumnType: models.ColType{
+						DataType: "VARCHAR(255)",
+						IsNull:   true,
 					},
 				},
 			},
@@ -1191,16 +1191,16 @@ func TestCreateTable(t *testing.T) {
 			inputs: []models.ColValue{
 				{
 					ColumnName: "id",
-					ColType: models.ColType{
-						Type: "integer",
+					ColumnType: models.ColType{
+						DataType: "integer",
 					},
 				},
 				{
 					ColumnName:   "name",
 					DefaultValue: "biisal is the name",
-					ColType: models.ColType{
-						Type:   "VARCHAR(255)",
-						IsNull: true,
+					ColumnType: models.ColType{
+						DataType: "VARCHAR(255)",
+						IsNull:   true,
 					},
 				},
 			},
@@ -1213,16 +1213,16 @@ func TestCreateTable(t *testing.T) {
 			inputs: []models.ColValue{
 				{
 					ColumnName: "id",
-					ColType: models.ColType{
-						Type: "integer",
+					ColumnType: models.ColType{
+						DataType: "integer",
 					},
 				},
 				{
 					ColumnName:   "name",
 					DefaultValue: "",
-					ColType: models.ColType{
-						Type:   "VARCHAR(255)",
-						IsNull: true,
+					ColumnType: models.ColType{
+						DataType: "VARCHAR(255)",
+						IsNull:   true,
 					},
 				},
 			},

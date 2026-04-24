@@ -21,8 +21,8 @@ func TestFormatColumnDefinition(t *testing.T) {
 			name:   "psql unique witn not null",
 			input: models.ColValue{
 				ColumnName: "id",
-				ColType: models.ColType{
-					Type:     "integer",
+				ColumnType: models.ColType{
+					DataType: "integer",
 					IsUnique: true,
 					IsPk:     true,
 				},
@@ -34,8 +34,8 @@ func TestFormatColumnDefinition(t *testing.T) {
 			name:   "psql unique with null",
 			input: models.ColValue{
 				ColumnName: "id",
-				ColType: models.ColType{
-					Type:     "integer",
+				ColumnType: models.ColType{
+					DataType: "integer",
 					IsUnique: true,
 					IsPk:     true,
 					IsNull:   true,
@@ -48,8 +48,8 @@ func TestFormatColumnDefinition(t *testing.T) {
 			name:   "psql primary key without unique",
 			input: models.ColValue{
 				ColumnName: "id",
-				ColType: models.ColType{
-					Type:     "integer",
+				ColumnType: models.ColType{
+					DataType: "integer",
 					IsPk:     true,
 					IsNull:   true,
 					IsUnique: false,
@@ -62,8 +62,8 @@ func TestFormatColumnDefinition(t *testing.T) {
 			name:   "mysql auto increment pkey",
 			input: models.ColValue{
 				ColumnName: "id",
-				ColType: models.ColType{
-					Type:             "int",
+				ColumnType: models.ColType{
+					DataType:         "int",
 					IsPk:             true,
 					HasAutoIncrement: true,
 				},
@@ -75,8 +75,8 @@ func TestFormatColumnDefinition(t *testing.T) {
 			name:   "sqlite auto increment pkey",
 			input: models.ColValue{
 				ColumnName: "id",
-				ColType: models.ColType{
-					Type:             "INTEGER",
+				ColumnType: models.ColType{
+					DataType:         "INTEGER",
 					IsPk:             true,
 					HasAutoIncrement: true,
 				},
@@ -89,8 +89,8 @@ func TestFormatColumnDefinition(t *testing.T) {
 			input: models.ColValue{
 				ColumnName: "name",
 				Size:       255,
-				ColType: models.ColType{
-					Type: "varchar",
+				ColumnType: models.ColType{
+					DataType: "varchar",
 				},
 			},
 			want: "name varchar(255) NOT NULL",
@@ -101,8 +101,8 @@ func TestFormatColumnDefinition(t *testing.T) {
 			input: models.ColValue{
 				ColumnName:   "status",
 				DefaultValue: "active",
-				ColType: models.ColType{
-					Type: "text",
+				ColumnType: models.ColType{
+					DataType: "text",
 				},
 			},
 			want: "status text NOT NULL DEFAULT active",
@@ -113,8 +113,8 @@ func TestFormatColumnDefinition(t *testing.T) {
 			input: models.ColValue{
 				ColumnName:   "age",
 				DefaultValue: 18,
-				ColType: models.ColType{
-					Type: "integer",
+				ColumnType: models.ColType{
+					DataType: "integer",
 				},
 			},
 			want: "age integer NOT NULL DEFAULT 18",
@@ -124,8 +124,8 @@ func TestFormatColumnDefinition(t *testing.T) {
 			name:   "psql name with space",
 			input: models.ColValue{
 				ColumnName: "group id",
-				ColType: models.ColType{
-					Type: "integer",
+				ColumnType: models.ColType{
+					DataType: "integer",
 				},
 			},
 			want: "\"group id\" integer NOT NULL",
@@ -135,8 +135,8 @@ func TestFormatColumnDefinition(t *testing.T) {
 			name:   "psql auto increment error (not pk)",
 			input: models.ColValue{
 				ColumnName: "id",
-				ColType: models.ColType{
-					Type:             "integer",
+				ColumnType: models.ColType{
+					DataType:         "integer",
 					HasAutoIncrement: true,
 					IsPk:             false,
 				},
