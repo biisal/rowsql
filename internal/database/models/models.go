@@ -59,12 +59,12 @@ type ColType struct {
 	IsUnique         bool   `json:"isUnique"`
 	IsPk             bool   `json:"isPk"`
 	IsNull           bool   `json:"isNull"`
+	InputType        string `json:"inputType" enum:"text,number,checkbox,textarea,json,select"`
 }
 type ColValue struct {
-	ColumnName   string `json:"columnName"`
-	Value        any    `json:"value"`
-	DefaultValue any    `json:"defaultValue,omitempty"`
-	Size         int    `json:"size,omitempty"`
-
-	ColumnType ColType `json:"columnType"`
+	ColumnName   string  `json:"columnName"`
+	Value        any     `json:"value"`
+	DefaultValue any     `json:"defaultValue,omitempty"`
+	Size         int     `json:"size,omitempty"`
+	ColumnType   ColType `json:"columnType"`
 }

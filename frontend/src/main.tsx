@@ -21,9 +21,9 @@ import { toast } from 'sonner';
 
 const queryClient = new QueryClient({
 	mutationCache: new MutationCache({
-		onError: (error: Error) => {
+		onError: (error) => {
 			const err = error as unknown as ErrorModel;
-			toast.error(err.detail || 'An unknown error occurred');
+			toast.error(err.errors?.[0]?.message || err.detail || 'An unknown error occurred');
 		}
 	})
 });

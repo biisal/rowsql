@@ -11,6 +11,7 @@ export type ColType = {
     hasDigit?: boolean;
     hasSize: boolean;
     hasValues?: boolean;
+    inputType: 'text' | 'number' | 'checkbox' | 'textarea' | 'json' | 'select';
     isNull: boolean;
     isPk: boolean;
     isUnique: boolean;

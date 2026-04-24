@@ -20,7 +20,9 @@ func MountRouter(handler DBHandler) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
 
 	mux.Handle("GET /", frontend.ReactHandler("/"))
-	api := humago.New(mux, huma.DefaultConfig("RowSQL API", "1.0.0"))
+	config := huma.DefaultConfig("RowSQL API", "1.0.0")
+	config.AllowAdditionalPropertiesByDefault = true
+	api := humago.New(mux, config)
 
 	registerRoutes(api, handler)
 

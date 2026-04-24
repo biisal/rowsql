@@ -1,209 +1,118 @@
-import { useEffect, useState } from 'react';
-import {
-	useParams,
-	useSearchParams,
-	useNavigate,
-	Link,
-} from 'react-router-dom';
-import { Controller, useForm } from 'react-hook-form';
+import { useEffect } from 'react';
+import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { Controller, useForm, useFieldArray } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
-import api from '@/lib/axios';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-	Card,
-	CardContent,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import {
-	Field,
-	FieldError,
-	FieldGroup,
-	FieldLabel,
-} from '@/components/ui/field';
-import { useQuery } from '@tanstack/react-query';
-import { rowInsertOrUpdateFormOptions } from '@/client/@tanstack/react-query.gen';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { insertOrUpdateRowMutation, rowInsertOrUpdateFormOptions } from '@/client/@tanstack/react-query.gen';
+import type { ColValue, ErrorModel } from '@/client';
+import { zColValue } from '@/client/zod.gen';
 
-interface Column {
-	columnName: string;
-	dataType: string;
-	inputType: 'text' | 'number' | 'checkbox' | 'textarea' | 'json' | 'select';
-	value: string | number | boolean | null;
-	isUnique: boolean;
-	hasAutoIncrement: boolean;
-	hasDefault: boolean;
+
+const zColField = zColValue.extend({
+	size: z.coerce.number().optional(),
+	value: z.union([z.string(), z.boolean(), z.number()]).default(''),
+	useDefault: z.boolean().default(false),
+	useAutoIncrement: z.boolean().default(false),
+});
+
+const formSchema = z.object({
+	cols: z.array(zColField).min(1, 'At least one column required'),
+});
+
+type FormSchema = z.infer<typeof formSchema>;
+type ColField = z.infer<typeof zColField>;
+
+
+function buildDefaultCols(cols: ColValue[]): ColField[] {
+	return cols.map((col) => ({
+		...col,
+		value: col.value,
+		useDefault: false,
+		useAutoIncrement: false,
+	}));
 }
 
-interface FormData {
-	Action: string;
-	Tables: unknown[];
-	Cols: Column[];
-	ActiveTable: string;
-}
-
-interface CheckedState {
-	checked: boolean;
-	oldVal: undefined;
-}
 
 export function RowForm() {
-	const [autoEnabled, setAutoEnabled] = useState<Record<string, CheckedState>>(
-		{},
-	);
-
-	const [hasDefaults, setHasDefaluts] = useState<Record<string, CheckedState>>(
-		{},
-	);
 	const { tableName } = useParams<{ tableName: string }>();
 	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
-	const [loading, setLoading] = useState(true);
-	const [formData, setFormData] = useState<FormData | null>(null);
 
 	const hash = searchParams.get('hash');
-	const page = searchParams.get('page') || '1';
+	const page = Math.max(1, Number(searchParams.get('page')) || 1);
+	const isEdit = !!hash;
 
-	const form = useForm({
-		defaultValues: {},
+	const { data, isPending, } = useQuery(
+		rowInsertOrUpdateFormOptions({
+			path: { tableName: tableName || '' },
+			query: { hash: hash || undefined, page },
+		}),
+	);
+
+	const { mutateAsync } = useMutation(insertOrUpdateRowMutation())
+
+	const cols: ColValue[] = data?.cols ?? [];
+
+
+	const form = useForm<FormSchema>({
+		resolver: zodResolver(formSchema),
+		defaultValues: {
+			cols: [],
+
+		},
 		mode: 'onChange',
-		reValidateMode: 'onChange',
+	});
+
+	const { fields, replace } = useFieldArray({
+		control: form.control,
+		name: 'cols',
 	});
 
 	useEffect(() => {
-		const fetchFormData = async () => {
-			if (!tableName) return;
-
-			setLoading(true);
-			try {
-				const url = hash
-					? `/tables/${tableName}/form?hash=${hash}&page=${page}`
-					: `/tables/${tableName}/form`;
-				const response = await api.get(url);
-
-				console.log(response);
-				if (response.data.cols) {
-
-					const data = response.data.cols
-					setFormData(data);
-
-					// Reset form with default values
-					if (data.Cols && data.Cols.length > 0) {
-						const defaultValues: Record<string, string | number | boolean> = {};
-						data.Cols.forEach((col: Column, index: number) => {
-							const key = `col_${index}`;
-							if (col.value !== undefined && col.value !== null) {
-								if (col.inputType === 'checkbox') {
-									defaultValues[key] = Boolean(col.value);
-								} else if (col.inputType === 'number') {
-									defaultValues[key] = col.value;
-								} else {
-									defaultValues[key] = String(col.value);
-								}
-							} else {
-								defaultValues[key] =
-									col.inputType === 'checkbox' ? false : '';
-							}
-						});
-
-						form.reset(defaultValues);
-					}
-				}
-			} catch (err) {
-				const errorMessage =
-					(
-						err as {
-							response?: { data?: { error?: string } };
-							message?: string;
-						}
-					).response?.data?.error ||
-					(err as { message?: string }).message ||
-					'Failed to load form';
-				toast.error(errorMessage);
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		fetchFormData();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [tableName, hash, page]);
-
-	const onSubmit = async (data: Record<string, string | number | boolean>) => {
-		if (!formData || !tableName) return;
-
-		console.log('=== FORM SUBMISSION STARTED ===');
-		console.log('Form submitted with values:', data);
-
-		interface RowData {
-			columnName: string;
-			value: string;
-			type: string;
+		if (cols.length) {
+			replace(buildDefaultCols(cols));
 		}
-		interface Payload {
-			tableName: string;
-			data: RowData[]
-		}
+	}, [data]);
 
-		try {
 
-			const colList: RowData[] = []
-
-			formData.Cols.forEach((col: Column, index: number) => {
-				if (autoEnabled[col.columnName]?.checked) {
-					return;
-				}
-				const key = `col_${index}`;
-				const value = data[key];
-				console.log({ value, colname: col.columnName })
-				colList.push({
-					columnName: col.columnName,
-					value: value !== undefined && value !== null ? String(value) : '',
-					type: col.inputType
-				})
-			});
-
-			const payload: Payload = {
+	const onSubmit = async (formValues: FormSchema) => {
+		if (!tableName) return;
+		await mutateAsync({
+			path: {
 				tableName: tableName,
-				data: colList
+			},
+			body: formValues.cols,
+			query: {
+				hash: hash || undefined,
+				page: page,
+			},
+
+		}, {
+			onError: (error: ErrorModel) => {
+				console.log(error.errors?.[0]?.message)
+			},
+			onSuccess: () => {
+				toast.success('Row inserted/updated successfully');
+				navigate(`/tables/${tableName}?page=${page}`);
 			}
-			console.log('Payload:', payload);
+		})
 
-			const url = hash
-				? `/tables/${tableName}/form?hash=${hash}&page=${page}`
-				: `/tables/${tableName}/form`;
-
-			await api.post(url, payload);
-
-			toast.success(`Row ${hash ? 'updated' : 'created'} successfully`);
-			navigate(`/tables/${tableName}?page=${page}`);
-		} catch (err) {
-			console.error('Error saving row:', err);
-			const errorMessage =
-				(err as { response?: { data?: { error?: string } }; message?: string })
-					.response?.data?.error ||
-				(err as { message?: string }).message ||
-				'Failed to save row';
-			toast.error(errorMessage);
-		}
 	};
 
-	if (loading) {
+
+	if (isPending) {
 		return (
 			<div className="flex items-center justify-center h-full">
 				<Loader2 className="w-8 h-8 animate-spin text-primary" />
-			</div>
-		);
-	}
-
-	if (!formData) {
-		return (
-			<div className="flex items-center justify-center h-full">
-				<p className="text-muted-foreground">No data available</p>
 			</div>
 		);
 	}
@@ -218,7 +127,7 @@ export function RowForm() {
 						</Button>
 					</Link>
 					<h1 className="text-3xl font-bold tracking-tight">
-						{formData.Action} Row - {tableName}
+						{isEdit ? 'Edit' : 'Insert'} Row — {tableName}
 					</h1>
 				</div>
 
@@ -226,180 +135,145 @@ export function RowForm() {
 					<form onSubmit={form.handleSubmit(onSubmit)}>
 						<FieldGroup>
 							<CardHeader>
-								<CardTitle>
-									{formData.Action === 'Insert' ? 'Add New Row' : 'Edit Row'}
-								</CardTitle>
+								<CardTitle>{isEdit ? 'Edit Row' : 'Add New Row'}</CardTitle>
 							</CardHeader>
 
 							<CardContent className="space-y-6">
-								{formData.Cols && Array.isArray(formData.Cols) ? (
-									formData.Cols.map((col, index) => (
-										<Controller
-											key={index}
-											control={form.control}
-											name={`col_${index}` as never}
-											render={({ field, fieldState }) => (
-												<Field>
-													<FieldLabel
-														htmlFor={`field-${col.columnName}`}
-														className="capitalize"
-													>
-														{col.columnName.replace(/_/g, ' ')}
-														<span className="text-muted-foreground ml-2 text-xs font-normal">
-															({col.dataType})
-														</span>
-														{col.isUnique && (
-															<span className="ml-2 text-xs font-normal text-primary">
-																• Unique
-															</span>
-														)}
-													</FieldLabel>
-
-													{col.hasDefault && (
-														<label className="flex items-center mb-2 text-sm font-medium cursor-pointer">
-															<Checkbox
-																className="mr-2"
-																checked={!!hasDefaults[col.columnName]?.checked}
-																onCheckedChange={(checked) => {
-																	const isChecked = checked === true;
-
-																	setHasDefaluts((prev) => ({
-																		...prev,
-																		[col.columnName]: {
-																			checked: isChecked,
-																			oldVal: field.value,
-																		},
-																	}));
-
-																	if (isChecked) {
-																		field.onChange('');
-																	} else {
-																		field.onChange(
-																			hasDefaults[col.columnName]?.oldVal || '',
-																		);
-																	}
-																}}
-															/>
-															Use Default Value
-														</label>
-													)}
-
-													{col.inputType === 'checkbox' ? (
-														<div className="flex items-center space-x-2 cursor-pointer bg-foreground/5 p-3 rounded">
-															<Checkbox
-																id={`field-${col.columnName}`}
-																disabled={hasDefaults[col.columnName]?.checked}
-																checked={field.value || false}
-																onCheckedChange={(checked) =>
-																	field.onChange(checked === true)
-																}
-															/>
-															<FieldLabel
-																htmlFor={`field-${col.columnName}`}
-																className="cursor-pointer mt-0! font-normal"
-															>
-																Enable {col.columnName.replace(/_/g, ' ')}
-															</FieldLabel>
-														</div>
-													) : col.inputType === 'textarea' ||
-														col.inputType === 'json' ? (
-														<Textarea
-															disabled={hasDefaults[col.columnName]?.checked}
-															{...field}
-															id={`field-${col.columnName}`}
-															placeholder={`Enter ${col.columnName.replace(/_/g, ' ')}`}
-															rows={5}
-															value={field.value || ''}
-														/>
-													) : (
-														<>
-															{col.hasAutoIncrement && (
-																<label className="flex items-center mb-2 text-sm font-medium cursor-pointer">
-																	<Checkbox
-																		className="mr-2"
-																		checked={
-																			!!autoEnabled[col.columnName]?.checked
-																		}
-																		onCheckedChange={(checked) => {
-																			const isChecked = checked === true;
-
-																			setAutoEnabled((prev) => ({
-																				...prev,
-																				[col.columnName]: {
-																					checked: isChecked,
-																					oldVal: field.value,
-																				},
-																			}));
-
-																			if (isChecked) {
-																				field.onChange('');
-																			} else {
-																				field.onChange(
-																					autoEnabled[col.columnName]?.oldVal ||
-																					'',
-																				);
-																			}
-																		}}
-																	/>
-																	Auto Increment
-																</label>
-															)}
-															<Input
-																{...field}
-																disabled={
-																	autoEnabled[col.columnName]?.checked ||
-																	hasDefaults[col.columnName]?.checked
-																}
-																id={`field-${col.columnName}`}
-																type={
-																	col.inputType === 'number' ? 'number' : 'text'
-																}
-																placeholder={`Enter ${col.columnName.replace(/_/g, ' ')}`}
-																value={field.value || ''}
-															/>
-														</>
-													)}
-
-													{fieldState.invalid && (
-														<FieldError errors={[fieldState.error]} />
-													)}
-												</Field>
-											)}
-										/>
-									))
-								) : (
+								{fields.length === 0 ? (
 									<div className="text-center text-muted-foreground py-8">
 										No columns found for this table.
 									</div>
+								) : (
+									fields.map((field, index) => {
+										const { columnName, columnType } = field;
+
+										return (
+											<Controller
+												key={field.id}
+												control={form.control}
+												name={`cols.${index}.value`}
+												render={({ field: inputField, fieldState }) => {
+													const useDefault = form.watch(`cols.${index}.useDefault`);
+													const useAutoIncrement = form.watch(`cols.${index}.useAutoIncrement`);
+													const isDisabled = useDefault || useAutoIncrement;
+
+													return (
+														<Field>
+															<FieldLabel htmlFor={`field-${columnName}`} className="capitalize">
+																{columnName.replace(/_/g, ' ')}
+																<span className="text-muted-foreground ml-2 text-xs font-normal">
+																	({columnType.dataType})
+																</span>
+																{columnType.isUnique && (
+																	<span className="ml-2 text-xs font-normal text-primary">
+																		• Unique
+																	</span>
+																)}
+															</FieldLabel>
+
+															{columnType.hasDefault && (
+																<Controller
+																	control={form.control}
+																	name={`cols.${index}.useDefault`}
+																	render={({ field: f }) => (
+																		<label className="flex items-center mb-2 text-sm font-medium cursor-pointer">
+																			<Checkbox
+																				className="mr-2"
+																				checked={f.value}
+																				onCheckedChange={(checked) => {
+																					f.onChange(checked === true);
+																					if (checked) inputField.onChange('');
+																				}}
+																			/>
+																			Use Default Value
+																		</label>
+																	)}
+																/>
+															)}
+
+															{columnType.hasAutoIncrement && (
+																<Controller
+																	control={form.control}
+																	name={`cols.${index}.useAutoIncrement`}
+																	render={({ field: f }) => (
+																		<label className="flex items-center mb-2 text-sm font-medium cursor-pointer">
+																			<Checkbox
+																				className="mr-2"
+																				checked={f.value}
+																				onCheckedChange={(checked) => {
+																					f.onChange(checked === true);
+																					if (checked) inputField.onChange('');
+																				}}
+																			/>
+																			Auto Increment
+																		</label>
+																	)}
+																/>
+															)}
+
+															{columnType.inputType === 'checkbox' ? (
+																<div className="flex items-center space-x-2 bg-foreground/5 p-3 rounded">
+																	<Checkbox
+																		id={`field-${columnName}`}
+																		disabled={isDisabled}
+																		checked={!!inputField.value}
+																		onCheckedChange={(c) => inputField.onChange(c === true)}
+																	/>
+																	<FieldLabel
+																		htmlFor={`field-${columnName}`}
+																		className="cursor-pointer mt-0! font-normal"
+																	>
+																		Enable {columnName.replace(/_/g, ' ')}
+																	</FieldLabel>
+																</div>
+															) : columnType.inputType === 'textarea' || columnType.inputType === 'json' ? (
+																<Textarea
+																	{...inputField}
+																	id={`field-${columnName}`}
+																	disabled={isDisabled}
+																	placeholder={`Enter ${columnName.replace(/_/g, ' ')}`}
+																	rows={5}
+																	value={(inputField.value as string) || ''}
+																/>
+															) : (
+																<Input
+																	{...inputField}
+																	id={`field-${columnName}`}
+																	disabled={isDisabled}
+																	type={columnType.inputType === 'number' ? 'number' : 'text'}
+																	placeholder={`Enter ${columnName.replace(/_/g, ' ')}`}
+																	value={(inputField.value as string) || ''}
+																	onChange={(e) =>
+																		inputField.onChange(
+																			columnType.inputType === 'number'
+																				? e.target.valueAsNumber
+																				: e.target.value,
+																		)
+																	}
+																/>
+															)}
+
+															{fieldState.invalid && (
+																<FieldError errors={[fieldState.error]} />
+															)}
+														</Field>
+													);
+												}}
+											/>
+										);
+									})
 								)}
 							</CardContent>
 
 							<CardFooter className="flex justify-end gap-4">
 								<Link to={`/tables/${tableName}?page=${page}`}>
-									<Button variant="outline" type="button">
-										Cancel
-									</Button>
+									<Button variant="outline" type="button">Cancel</Button>
 								</Link>
-								<Button
-									type="submit"
-									disabled={form.formState.isSubmitting}
-									onClick={() => {
-										console.log('=== SUBMIT BUTTON CLICKED ===');
-										console.log('Form values:', form.getValues());
-										console.log('Form errors:', form.formState.errors);
-										console.log('Is valid:', form.formState.isValid);
-									}}
-								>
+								<Button type="submit" disabled={form.formState.isSubmitting}>
 									{form.formState.isSubmitting ? (
-										<>
-											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-											Saving...
-										</>
+										<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</>
 									) : (
-										<>
-											<Save className="mr-2 h-4 w-4" />
-											Save
-										</>
+										<><Save className="mr-2 h-4 w-4" />Save</>
 									)}
 								</Button>
 							</CardFooter>

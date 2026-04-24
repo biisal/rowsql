@@ -82,7 +82,7 @@ func (q *Queries) ListColsMetaData(ctx context.Context, tableName string) ([]mod
 			logger.Error("failed to scan rows in list cols: %v", err)
 			return nil, err
 		}
-		i.ColumnType.DataType = utils.GetInputType(i.ColumnType.DataType)
+		i.ColumnType.InputType = utils.GetInputType(i.ColumnType.DataType)
 		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
