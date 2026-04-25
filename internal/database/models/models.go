@@ -63,7 +63,7 @@ type ColType struct {
 }
 type ColValue struct {
 	ColumnName   string  `json:"columnName"`
-	Value        any     `json:"value"`
+	Value        any     `json:"value,omitempty"`
 	DefaultValue any     `json:"defaultValue,omitempty"`
 	Size         int     `json:"size,omitempty"`
 	ColumnType   ColType `json:"columnType"`

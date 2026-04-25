@@ -122,7 +122,7 @@ func (q *Queries) ListTables(ctx context.Context) ([]models.ListTablesRow, error
 	return items, nil
 }
 
-func (q *Queries) ListRows(ctx context.Context, props models.ListDataProps) (models.RowSet, error) {
+func (q *Queries) ListRows(ctx context.Context, props models.ListDataProps) ([][]models.ColValue, error) {
 	query, args, err := q.queryBuilder.ListRows(props.TableName, props.Column, props.Order, props.Limit, props.Offset)
 	if err != nil {
 		return nil, err
@@ -139,8 +139,15 @@ func (q *Queries) ListRows(ctx context.Context, props models.ListDataProps) (mod
 			logger.Errorln(err)
 		}
 	}()
-	data := make(models.RowSet, 0)
+	data := make([][]models.ColValue, 0)
+	colValues, err := q.ListColsMetaData(ctx, props.TableName)
+	if err != nil {
+		return nil, err
+	}
 	for rows.Next() {
+		cvs := make([]models.ColValue, len(colValues))
+		copy(cvs, colValues)
+
 		row, err := rows.SliceScan()
 		if err != nil {
 			logger.Errorln(err.Error())
@@ -152,17 +159,15 @@ func (q *Queries) ListRows(ctx context.Context, props models.ListDataProps) (mod
 			if b, ok := v.([]byte); ok {
 				row[i] = string(b)
 			}
+			cvs[i].Value = v
 		}
 		rowHash, err := utils.MakeRowHash(row)
 		if err != nil {
 			logger.Error("failed to hash row: %v", err)
 			continue
 		}
-		q.cache.Set(rowHash, row)
-		data = append(data, models.DataRow{
-			Hash:   rowHash,
-			Values: row,
-		})
+		q.cache.Set(rowHash, cvs)
+		data = append(data, cvs)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -204,43 +209,53 @@ func (q *Queries) InsertRow(ctx context.Context, tableName string, form []models
 	return nil
 }
 
-func (q *Queries) GetRow(ctx context.Context, tableName, hash string, offest, limit int) (models.DataRow, error) {
+func (q *Queries) GetRow(ctx context.Context, tableName, hash string, offest, limit int) ([]models.ColValue, error) {
 	if row := q.cache.Get(hash); row != nil {
 		logger.Info("found data in cache: %v", row)
-		return models.DataRow{Hash: hash, Values: row}, nil
+		if cv, ok := row.([]models.ColValue); ok {
+			return cv, nil
+		}
+		return nil, apperr.ErrorNotSameRowColsSize
+	}
+	colValues, err := q.ListColsMetaData(ctx, tableName)
+	if err != nil {
+		return nil, err
 	}
 	logger.Info("not found in cache! Fetching from db limit=%d offset=%d", limit, offest)
 	for offest <= limit {
+		var colValue = make([]models.ColValue, len(colValues))
+		copy(colValue, colValues)
 		query, args, err := q.queryBuilder.GetRows(tableName, offest+1, offest)
 		if err != nil {
-			return models.DataRow{}, err
+			return nil, err
 		}
-		logger.Info("Query: %s offset=%d tableName=%s", query, offest, tableName)
 		data, err := q.db.QueryRowxContext(ctx, query, args...).SliceScan()
 		if err != nil {
 			logger.Error("failed to query: %v", err)
 			if !errors.Is(err, sql.ErrNoRows) {
-				return models.DataRow{}, err
+				return nil, err
 			}
 		}
+		logger.Debug("data: %+v", data)
 		for i, v := range data {
 			if b, ok := v.([]byte); ok {
 				data[i] = string(b)
 			}
+			colValue[i].Value = v
 		}
-		rowHash, err := utils.MakeRowHash(data)
+		rowHash, err := utils.MakeRowHash(colValue)
 		if err != nil {
 			logger.Error("failed to hash row: %v", err)
 			continue
 		}
 		if rowHash == hash {
-			q.cache.Set(rowHash, data)
+			q.cache.Set(rowHash, colValue)
 			logger.Info("found data in db: %v", data)
-			return models.DataRow{Hash: hash, Values: data}, nil
+			return colValue, nil
 		}
 		offest++
 	}
-	return models.DataRow{}, ErrorNotFound
+	return nil, ErrorNotFound
 }
 
 func (q *Queries) DeleteRow(ctx context.Context, props UpdateOrDeleteRowProps) error {

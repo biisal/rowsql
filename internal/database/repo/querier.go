@@ -10,11 +10,11 @@ import (
 type Querier interface {
 	ListTables(ctx context.Context) ([]models.ListTablesRow, error)
 	ListColsMetaData(ctx context.Context, tableName string) ([]models.ColValue, error)
-	ListRows(ctx context.Context, props models.ListDataProps) (models.RowSet, error)
+	ListRows(ctx context.Context, props models.ListDataProps) ([][]models.ColValue, error)
 	InsertRow(ctx context.Context, tableName string, colValues []models.ColValue) error
 	UpdateRow(ctx context.Context, props UpdateOrDeleteRowProps) error
 	DeleteRow(ctx context.Context, props UpdateOrDeleteRowProps) error
-	GetRow(ctx context.Context, tableName, hash string, offset, limit int) (models.DataRow, error)
+	GetRow(ctx context.Context, tableName, hash string, offset, limit int) ([]models.ColValue, error)
 	GetDriver() configs.Driver
 }
 

@@ -19,7 +19,7 @@ import { zColValue } from '@/client/zod.gen';
 
 const zColField = zColValue.extend({
 	size: z.coerce.number().optional(),
-	value: z.union([z.string(), z.boolean(), z.number()]).default(''),
+	value: z.union([z.string(), z.boolean(), z.number(), z.null()]).default(null),
 	useDefault: z.boolean().default(false),
 	useAutoIncrement: z.boolean().default(false),
 });
@@ -28,19 +28,27 @@ const formSchema = z.object({
 	cols: z.array(zColField).min(1, 'At least one column required'),
 });
 
-type FormSchema = z.infer<typeof formSchema>;
+
+type FormInput = z.input<typeof formSchema>;
+type FormSchema = z.output<typeof formSchema>;
 type ColField = z.infer<typeof zColField>;
 
 
+const colFieldValueSchema = z
+	.union([z.string(), z.boolean(), z.number(), z.null()])
+	.catch(null);
+
 function buildDefaultCols(cols: ColValue[]): ColField[] {
 	return cols.map((col) => ({
-		...col,
-		value: col.value,
+		columnName: col.columnName,
+		columnType: col.columnType,
+		defaultValue: col.defaultValue,
+		size: col.size !== undefined ? Number(col.size) : undefined,
+		value: colFieldValueSchema.parse(col.value),
 		useDefault: false,
 		useAutoIncrement: false,
 	}));
 }
-
 
 export function RowForm() {
 	const { tableName } = useParams<{ tableName: string }>();
@@ -63,11 +71,10 @@ export function RowForm() {
 	const cols: ColValue[] = data?.cols ?? [];
 
 
-	const form = useForm<FormSchema>({
+	const form = useForm<FormInput, unknown, FormSchema>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			cols: [],
-
 		},
 		mode: 'onChange',
 	});
@@ -202,7 +209,7 @@ export function RowForm() {
 																				checked={f.value}
 																				onCheckedChange={(checked) => {
 																					f.onChange(checked === true);
-																					if (checked) inputField.onChange('');
+																					if (checked) inputField.onChange(undefined);
 																				}}
 																			/>
 																			Auto Increment

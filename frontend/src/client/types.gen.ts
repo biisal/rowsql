@@ -15,6 +15,7 @@ export type ColType = {
     isNull: boolean;
     isPk: boolean;
     isUnique: boolean;
+    [key: string]: unknown;
 };
 
 export type ColValue = {
@@ -22,7 +23,8 @@ export type ColValue = {
     columnType: ColType;
     defaultValue?: unknown;
     size?: number;
-    value: unknown;
+    value?: unknown;
+    [key: string]: unknown;
 };
 
 export type CreeteNewTableInputBody = {
@@ -32,11 +34,7 @@ export type CreeteNewTableInputBody = {
     readonly $schema?: string;
     inputs: Array<ColValue> | null;
     tableName: string;
-};
-
-export type DataRow = {
-    hash: string;
-    values: Array<unknown> | null;
+    [key: string]: unknown;
 };
 
 export type DeleteTableRequest = {
@@ -46,6 +44,7 @@ export type DeleteTableRequest = {
     readonly $schema?: string;
     tableName: string;
     verificationQuery: string;
+    [key: string]: unknown;
 };
 
 export type ErrorDetail = {
@@ -61,6 +60,7 @@ export type ErrorDetail = {
      * The value at the given location
      */
     value?: unknown;
+    [key: string]: unknown;
 };
 
 export type ErrorModel = {
@@ -92,6 +92,7 @@ export type ErrorModel = {
      * A URI reference to human-readable documentation for the error.
      */
     type?: string;
+    [key: string]: unknown;
 };
 
 export type FormDatatype = {
@@ -101,12 +102,14 @@ export type FormDatatype = {
     readonly $schema?: string;
     numericType: Array<NumericDataType> | null;
     stringType: Array<StringDataType> | null;
+    [key: string]: unknown;
 };
 
 export type History = {
     id: number;
     message: string;
     time: string;
+    [key: string]: unknown;
 };
 
 export type ListRowsResponse = {
@@ -119,13 +122,15 @@ export type ListRowsResponse = {
     hasNextPage: boolean;
     page: number;
     rowCount: number;
-    rows: Array<DataRow> | null;
+    rows: Array<Array<ColValue> | null> | null;
     totalPages: number;
+    [key: string]: unknown;
 };
 
 export type ListTablesRow = {
     tableName: string;
     tableSchema: string;
+    [key: string]: unknown;
 };
 
 export type NumericDataType = {
@@ -133,6 +138,7 @@ export type NumericDataType = {
     hasDigit: boolean;
     hasSize: boolean;
     type: string;
+    [key: string]: unknown;
 };
 
 export type RowInsertOrUpdateFormOutputBody = {
@@ -141,22 +147,26 @@ export type RowInsertOrUpdateFormOutputBody = {
      */
     readonly $schema?: string;
     cols: Array<ColValue> | null;
+    [key: string]: unknown;
 };
 
 export type StringDataType = {
     hasSize: boolean;
     hasValues: boolean;
     type: string;
+    [key: string]: unknown;
 };
 
 export type CreeteNewTableInputBodyWritable = {
     inputs: Array<ColValue> | null;
     tableName: string;
+    [key: string]: unknown;
 };
 
 export type DeleteTableRequestWritable = {
     tableName: string;
     verificationQuery: string;
+    [key: string]: unknown;
 };
 
 export type ErrorModelWritable = {
@@ -184,11 +194,13 @@ export type ErrorModelWritable = {
      * A URI reference to human-readable documentation for the error.
      */
     type?: string;
+    [key: string]: unknown;
 };
 
 export type FormDatatypeWritable = {
     numericType: Array<NumericDataType> | null;
     stringType: Array<StringDataType> | null;
+    [key: string]: unknown;
 };
 
 export type ListRowsResponseWritable = {
@@ -197,12 +209,14 @@ export type ListRowsResponseWritable = {
     hasNextPage: boolean;
     page: number;
     rowCount: number;
-    rows: Array<DataRow> | null;
+    rows: Array<Array<ColValue> | null> | null;
     totalPages: number;
+    [key: string]: unknown;
 };
 
 export type RowInsertOrUpdateFormOutputBodyWritable = {
     cols: Array<ColValue> | null;
+    [key: string]: unknown;
 };
 
 export type ListHistoryData = {

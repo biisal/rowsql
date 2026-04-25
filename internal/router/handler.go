@@ -179,7 +179,15 @@ func (h DBHandler) RowInsertOrUpdateForm(ctx context.Context, input *RowInsertOr
 			return nil, err
 		}
 		slog.Info("Initial row", "data", initialRow)
+		return &RowInsertOrUpdateFormOutput{
+			Body: struct {
+				Cols []models.ColValue `json:"cols"`
+			}{
+				Cols: initialRow,
+			},
+		}, nil
 	}
+
 	return &RowInsertOrUpdateFormOutput{
 		Body: struct {
 			Cols []models.ColValue `json:"cols"`

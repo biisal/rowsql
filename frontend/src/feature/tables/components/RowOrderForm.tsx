@@ -8,18 +8,18 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
-import type { ColMetaData } from '@/client/types.gen';
 import { type SetURLSearchParams } from 'react-router-dom';
+import type { ColValue } from '@/client';
 
 interface InitialVal {
 	col: string | null;
-	order: string | null;
+	order: "ASC" | "DESC"
 }
 
 interface RowOrderFormProps {
-	cols: ColMetaData[];
+	cols: ColValue[];
 	setUrlParams: SetURLSearchParams;
-	initialValue?: InitialVal;
+	initialValue: InitialVal;
 }
 
 export const RowOrderForm = ({
@@ -28,11 +28,11 @@ export const RowOrderForm = ({
 	initialValue,
 }: RowOrderFormProps) => {
 	const [selectedCol, setSelectedCol] = useState<string | null>(
-		initialValue?.col ??
-		(columns && columns.length > 0 ? columns[0].colName : null),
+		initialValue.col ??
+		(columns && columns.length > 0 ? columns[0].columnName : null),
 	);
-	const [selectedOrder, setSelectedOrder] = useState<string | null>(
-		initialValue?.order ?? 'asc',
+	const [selectedOrder, setSelectedOrder] = useState<string>(
+		initialValue.order ?? 'asc',
 	);
 
 	useEffect(() => {
@@ -47,14 +47,6 @@ export const RowOrderForm = ({
 			return newParams;
 		});
 	}, []);
-
-	useEffect(() => {
-		setSelectedCol(
-			initialValue?.col ??
-			(columns && columns.length > 0 ? columns[0].colName : null),
-		);
-		setSelectedOrder(initialValue?.order ?? 'asc');
-	}, [initialValue?.col, initialValue?.order, columns]);
 
 	const handleColChange = (value: string) => {
 		setSelectedCol(value);
@@ -87,8 +79,8 @@ export const RowOrderForm = ({
 							<SelectGroup>
 								<SelectLabel>Columns</SelectLabel>
 								{columns.map((col, idx) => (
-									<SelectItem key={idx} value={col.colName || null!}>
-										{col.colName || <div className='h-6 w-full bg-primary-foreground'></div>}
+									<SelectItem key={idx} value={col.columnName || null!}>
+										{col.columnName || <div className='h-6 w-full bg-primary-foreground'></div>}
 									</SelectItem>
 								))}
 							</SelectGroup>
@@ -97,7 +89,7 @@ export const RowOrderForm = ({
 				</Select>
 
 				<Select
-					value={selectedOrder || undefined}
+					value={selectedOrder}
 					onValueChange={handleOrderChange}
 				>
 					<SelectTrigger className="w-[180px]">
@@ -105,8 +97,8 @@ export const RowOrderForm = ({
 						<SelectContent>
 							<SelectGroup>
 								<SelectLabel>Order</SelectLabel>
-								<SelectItem value={'asc'}>Ascending</SelectItem>
-								<SelectItem value={'desc'}>Descending</SelectItem>
+								<SelectItem value={'ASC'}>Ascending</SelectItem>
+								<SelectItem value={'DESC'}>Descending</SelectItem>
 							</SelectGroup>
 						</SelectContent>
 					</SelectTrigger>
