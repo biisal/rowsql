@@ -2,7 +2,6 @@
 package router
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/biisal/rowsql/frontend"
@@ -12,26 +11,27 @@ import (
 
 const apiPrefix = "/api/v1"
 
-func route(method methodType, path string) string {
-	return fmt.Sprintf("%s %s%s", method, apiPrefix, path)
-}
+func NewAPI(mux *http.ServeMux) huma.API {
+	config := huma.DefaultConfig("RowSQL API", "1.0.0")
+	config.AllowAdditionalPropertiesByDefault = true
+	config.Servers = []*huma.Server{
+		{
+			URL: "http://localhost:8000",
+		},
+	}
+	return humago.New(mux, config)
 
+}
 func MountRouter(handler DBHandler) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
 
 	mux.Handle("GET /", frontend.ReactHandler("/"))
-	config := huma.DefaultConfig("RowSQL API", "1.0.0")
-	config.AllowAdditionalPropertiesByDefault = true
-	api := humago.New(mux, config)
-
-	registerRoutes(api, handler)
-
-	// fs := http.FileServer(http.Dir("frontend/static"))
-	// mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
+	api := NewAPI(mux)
+	RegisterRoutes(api, handler)
 	return mux, nil
 }
 
-func registerRoutes(api huma.API, h DBHandler) {
+func RegisterRoutes(api huma.API, h DBHandler) {
 	huma.Register(api, huma.Operation{
 		OperationID: "listRows",
 		Method:      http.MethodGet,

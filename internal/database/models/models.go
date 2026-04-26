@@ -13,10 +13,6 @@ type QueryParts struct {
 	Placeholders string
 	Args         []any
 }
-type FormValue struct {
-	Value string `json:"value"`
-	Type  string `json:"type"`
-}
 
 type ListTablesRow struct {
 	TableSchema string `json:"tableSchema"`

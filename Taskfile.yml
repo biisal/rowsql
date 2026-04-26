@@ -15,6 +15,7 @@ tasks:
   backend-build:
     desc: build backend application
     cmds:
+      - go run ./cmd/schema/main.go
       - go build -o bin/rowsql ./cmd/server
   frontend-build:
     desc: build frontend application
@@ -46,9 +47,11 @@ tasks:
 
   build:
     desc: build frontend and backend
-    deps: [backend-build, frontend-build]
     cmds:
-      - echo "build was successfull"
+      - task: doc
+      - task: backend-build
+      - task: frontend-build
+      - echo "build was successful"
 
   run:
     desc: Run the application
@@ -58,7 +61,7 @@ tasks:
   doc:
     desc: generate documentation
     cmds:
-      - swag init -g ./cmd/server/main.go -o ./cmd/server/docs
+      - go run ./cmd/schema/...
   test:
     desc: test the application
     cmds:
