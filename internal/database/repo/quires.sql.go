@@ -19,26 +19,26 @@ func ErrorInvalidTable(tableName string) error {
 
 var ErrorNotFound = errors.New("not found")
 
-func getColValues(rows []any, cols []models.ColValue) ([]models.ColValue, error) {
-	if len(cols) != len(rows) {
-		return nil, apperr.ErrorNotSameRowColsSize
-	}
+// func getColValues(rows []any, cols []models.ColValue) ([]models.ColValue, error) {
+// 	if len(cols) != len(rows) {
+// 		return nil, apperr.ErrorNotSameRowColsSize
+// 	}
 
-	colWithValues := make([]models.ColValue, len(cols))
-	for i, col := range cols {
-		colWithValues[i] = models.ColValue{
-			ColumnName: col.ColumnName,
-			Value:      rows[i],
-			ColumnType: models.ColType{
-				DataType:         col.ColumnType.DataType,
-				IsUnique:         col.ColumnType.IsUnique,
-				HasAutoIncrement: col.ColumnType.HasAutoIncrement,
-				HasDefault:       col.ColumnType.HasDefault,
-			},
-		}
-	}
-	return colWithValues, nil
-}
+// 	colWithValues := make([]models.ColValue, len(cols))
+// 	for i, col := range cols {
+// 		colWithValues[i] = models.ColValue{
+// 			ColumnName: col.ColumnName,
+// 			Value:      rows[i],
+// 			ColumnType: models.ColType{
+// 				DataType:         col.ColumnType.DataType,
+// 				IsUnique:         col.ColumnType.IsUnique,
+// 				HasAutoIncrement: col.ColumnType.HasAutoIncrement,
+// 				HasDefault:       col.ColumnType.HasDefault,
+// 			},
+// 		}
+// 	}
+// 	return colWithValues, nil
+// }
 
 func (q *Queries) GetQuotedTableName(tableName string) string {
 	return q.queryBuilder.QuoteName(tableName)
@@ -233,7 +233,7 @@ func (q *Queries) GetRow(ctx context.Context, tableName, hash string, offest, li
 	}
 	logger.Info("not found in cache! Fetching from db limit=%d offset=%d", limit, offest)
 	for offest <= limit {
-		var colValue = make([]models.ColValue, len(colValues))
+		colValue := make([]models.ColValue, len(colValues))
 		copy(colValue, colValues)
 		query, args, err := q.queryBuilder.GetRows(tableName, offest+1, offest)
 		if err != nil {
@@ -282,6 +282,9 @@ func (q *Queries) DeleteRow(ctx context.Context, props UpdateOrDeleteRowProps) e
 	// 	return err
 	// }
 	query, args, err := q.queryBuilder.DeleteRow(props.TableName, props.Values, 1)
+	if err != nil {
+		return err
+	}
 	logger.Info("Query: %s", query)
 	_, err = q.db.ExecContext(ctx, query, args...)
 	if err != nil {

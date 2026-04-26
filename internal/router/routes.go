@@ -4,29 +4,31 @@ package router
 import (
 	"net/http"
 
+	"github.com/biisal/rowsql/configs"
 	"github.com/biisal/rowsql/frontend"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
 )
 
-const apiPrefix = "/api/v1"
-
-func NewAPI(mux *http.ServeMux) huma.API {
+func NewAPI(mux *http.ServeMux, cfg *configs.Config) huma.API {
 	config := huma.DefaultConfig("RowSQL API", "1.0.0")
 	config.AllowAdditionalPropertiesByDefault = true
-	config.Servers = []*huma.Server{
-		{
-			URL: "http://localhost:8000",
-		},
+
+	if configs.EnvDevelopment == cfg.Env {
+		config.Servers = []*huma.Server{
+			{
+				URL: "http://localhost" + cfg.Server.Port,
+			},
+		}
 	}
 	return humago.New(mux, config)
-
 }
-func MountRouter(handler DBHandler) (*http.ServeMux, error) {
+
+func MountRouter(handler DBHandler, cfg *configs.Config) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
 
 	mux.Handle("GET /", frontend.ReactHandler("/"))
-	api := NewAPI(mux)
+	api := NewAPI(mux, cfg)
 	RegisterRoutes(api, handler)
 	return mux, nil
 }

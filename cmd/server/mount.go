@@ -77,7 +77,7 @@ func mount(cfg *configs.Config) error {
 	dbService := service.NewService(dbRepo, queryBuilder, cfg.MaxItemsPerPage)
 	dbHandler := router.NewHandler(dbService, cfg.MaxItemsPerPage)
 
-	mux, err := router.MountRouter(dbHandler)
+	mux, err := router.MountRouter(dbHandler, cfg)
 	corsMux := router.CORS()(mux)
 	if err != nil {
 		logger.Errorln("Failed to mount router:", err)

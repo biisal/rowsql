@@ -32,18 +32,9 @@ tasks:
     cmds:
       - cd ./frontend/ && pnpm run dev
 
-  frontend-dev-with-delay:
-    desc: run frontend server in development mode with delay
-    cmds:
-      - echo "waiting for 5 seconds"
-      - sleep 5
-      - task: frontend-dev
-
   dev:
     desc: Run the application in development mode
-    deps: [backend-dev, frontend-dev-with-delay]
-    cmds:
-      - echo "Done!"
+    deps: [backend-dev, frontend-dev]
 
   build:
     desc: build frontend and backend
@@ -66,3 +57,29 @@ tasks:
     desc: test the application
     cmds:
       - go test ./... -failfast
+
+  release:
+    desc: make a release for test
+    cmds:
+      - goreleaser release --clean --snapshot
+
+  lint:
+    desc: Run linter only
+    cmds:
+      - golangci-lint run
+      - cd ./frontend && pnpm lint
+
+  clean:
+    desc: Clean build artifacts and dependencies
+    cmds:
+      - rm -rf dist/
+      - rm -rf bin/
+      - rm -rf tmp/
+      - rm -rf frontend/dist/
+      - rm -rf frontend/node_modules/
+
+  install:
+    desc: Install dependencies
+    cmds:
+      - go mod download
+      - cd ./frontend && pnpm install

@@ -83,7 +83,7 @@
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
 						"examples": [
-							"http://localhost:8000/schemas/CreeteNewTableInputBody.json"
+							"https://example.com/schemas/CreeteNewTableInputBody.json"
 						],
 						"format": "uri",
 						"readOnly": true,
@@ -114,7 +114,7 @@
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
 						"examples": [
-							"http://localhost:8000/schemas/DeleteTableRequest.json"
+							"https://example.com/schemas/DeleteTableRequest.json"
 						],
 						"format": "uri",
 						"readOnly": true,
@@ -156,7 +156,7 @@
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
 						"examples": [
-							"http://localhost:8000/schemas/ErrorModel.json"
+							"https://example.com/schemas/ErrorModel.json"
 						],
 						"format": "uri",
 						"readOnly": true,
@@ -220,7 +220,7 @@
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
 						"examples": [
-							"http://localhost:8000/schemas/FormDatatype.json"
+							"https://example.com/schemas/FormDatatype.json"
 						],
 						"format": "uri",
 						"readOnly": true,
@@ -279,7 +279,7 @@
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
 						"examples": [
-							"http://localhost:8000/schemas/ListRowsResponse.json"
+							"https://example.com/schemas/ListRowsResponse.json"
 						],
 						"format": "uri",
 						"readOnly": true,
@@ -355,7 +355,7 @@
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
 						"examples": [
-							"http://localhost:8000/schemas/RowInsertOrUpdateFormOutputBody.json"
+							"https://example.com/schemas/RowInsertOrUpdateFormOutputBody.json"
 						],
 						"format": "uri",
 						"readOnly": true,
@@ -953,10 +953,5 @@
 				]
 			}
 		}
-	},
-	"servers": [
-		{
-			"url": "http://localhost:8000"
-		}
-	]
+	}
 }

@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"flag"
@@ -7,7 +7,7 @@ import (
 	"github.com/fatih/color"
 )
 
-func perseFlags(command string) (envPath string) {
+func ParseFlags(command string) (envPath string) {
 	pathInstruction := color.CyanString(fmt.Sprintf("Path to the environment file\nExample: %s -env=./env", command))
 	envPath = *flag.String("env", "", pathInstruction)
 	flag.Parse()

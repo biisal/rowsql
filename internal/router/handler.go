@@ -32,30 +32,13 @@ func NewHandler(service service.DBService, itemsLimit int) DBHandler {
 		itemsLimit,
 	}
 }
+
 func (h *DBHandler) checkTableExists(ctx context.Context, tableName string) error {
 	if err := h.service.CheckTableExits(ctx, tableName); err != nil {
 		logger.Error("%s", err)
 		return huma.Error404NotFound("table not found", err)
 	}
 	return nil
-}
-
-// TODO : remove ths function
-func (h DBHandler) getBaseData(ctx context.Context, tableName ...string) (*BaseHTMLData, error) {
-	tables, err := h.service.ListTables(ctx)
-	if err != nil {
-		logger.Error("%s", err)
-		return nil, err
-	}
-	if len(tableName) == 0 {
-		return &BaseHTMLData{Tables: tables}, nil
-	}
-	cols, err := h.service.ListCols(ctx, tableName[0])
-	if err != nil {
-		logger.Error("%s", err)
-		return nil, err
-	}
-	return &BaseHTMLData{Tables: tables, Cols: cols}, nil
 }
 
 func (h DBHandler) ListTables(ctx context.Context, input *struct{}) (*struct{ Body []models.ListTablesRow }, error) {

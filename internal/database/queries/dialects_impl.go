@@ -39,7 +39,7 @@ func quoteName(name string, format ...string) string {
 
 	needsQuoting := false
 	for _, r := range name {
-		if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_') {
+		if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '_' {
 			needsQuoting = true
 			break
 		}

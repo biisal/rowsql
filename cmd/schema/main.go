@@ -5,14 +5,20 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/biisal/rowsql/cmd"
+	"github.com/biisal/rowsql/configs"
 	"github.com/biisal/rowsql/internal/logger"
 	"github.com/biisal/rowsql/internal/router"
 )
 
 func main() {
-	mux := http.NewServeMux()
-	api := router.NewAPI(mux)
+	command := os.Args[0]
 
+	envPath := cmd.ParseFlags(command)
+	cfg := configs.MustLoad(envPath)
+	mux := http.NewServeMux()
+
+	api := router.NewAPI(mux, cfg)
 	router.RegisterRoutes(api, router.DBHandler{})
 
 	b, err := json.MarshalIndent(api.OpenAPI(), "", "\t")
@@ -20,7 +26,7 @@ func main() {
 		panic(err)
 	}
 	logger.Info("Creating openapi.json in ./frontend/ ")
-	if err = os.WriteFile("frontend/openapi.json", b, 0644); err != nil {
+	if err = os.WriteFile("frontend/openapi.json", b, 0o644); err != nil {
 		panic(err)
 	}
 	logger.Info("Done")

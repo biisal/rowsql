@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/biisal/rowsql/cmd"
 	"github.com/biisal/rowsql/configs"
 	"github.com/biisal/rowsql/internal/logger"
 )
@@ -13,7 +14,7 @@ var version = "dev"
 func main() {
 	command := os.Args[0]
 
-	envPath := perseFlags(command)
+	envPath := cmd.ParseFlags(command)
 	printLogo(version)
 	cfg := configs.MustLoad(envPath)
 
