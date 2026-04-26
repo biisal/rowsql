@@ -1,41 +1,47 @@
 package database
 
-var MySQLNumericDataTypes = []NumericDataType{
-	{Type: "BIT", HasSize: true, HasDigit: false, HasAutoIncrement: false},
-	{Type: "TINYINT", HasSize: true, HasDigit: false, HasAutoIncrement: true},
-	{Type: "BOOL", HasSize: false, HasDigit: false, HasAutoIncrement: false},
-	{Type: "BOOLEAN", HasSize: false, HasDigit: false, HasAutoIncrement: false},
-	{Type: "SMALLINT", HasSize: true, HasDigit: false, HasAutoIncrement: true},
-	{Type: "MEDIUMINT", HasSize: true, HasDigit: false, HasAutoIncrement: true},
-	{Type: "INT", HasSize: true, HasDigit: false, HasAutoIncrement: true},
-	{Type: "INTEGER", HasSize: true, HasDigit: false, HasAutoIncrement: true},
-	{Type: "BIGINT", HasSize: true, HasDigit: false, HasAutoIncrement: true},
-	{Type: "FLOAT", HasSize: true, HasDigit: true, HasAutoIncrement: false},
-	{Type: "FLOAT_PRECISION", HasSize: true, HasDigit: false, HasAutoIncrement: false},
-	{Type: "DOUBLE", HasSize: true, HasDigit: true, HasAutoIncrement: false},
-	{Type: "DOUBLE PRECISION", HasSize: true, HasDigit: true, HasAutoIncrement: false},
-	{Type: "DECIMAL", HasSize: true, HasDigit: true, HasAutoIncrement: false},
-	{Type: "DEC", HasSize: true, HasDigit: true, HasAutoIncrement: false},
+var MySQLNumericDataTypes = []VarianDataType{
+	{Type: "BIT", HasSize: true},
+	{Type: "TINYINT", HasSize: true, HasAutoIncrement: true},
+	{Type: "BOOL"},
+	{Type: "BOOLEAN"},
+	{Type: "SMALLINT", HasSize: true, HasAutoIncrement: true},
+	{Type: "MEDIUMINT", HasSize: true, HasAutoIncrement: true},
+	{Type: "INT", HasSize: true, HasAutoIncrement: true},
+	{Type: "INTEGER", HasSize: true, HasAutoIncrement: true},
+	{Type: "BIGINT", HasSize: true, HasAutoIncrement: true},
+	{Type: "FLOAT", HasSize: true, HasDigit: true},
+	{Type: "FLOAT_PRECISION", HasSize: true},
+	{Type: "DOUBLE", HasSize: true, HasDigit: true},
+	{Type: "DOUBLE PRECISION", HasSize: true, HasDigit: true},
+	{Type: "DECIMAL", HasSize: true, HasDigit: true},
+	{Type: "DEC", HasSize: true, HasDigit: true},
 }
 
-var MySQLStringDataTypes = []StringDataType{
-	{Type: "CHAR", HasSize: true, HasValues: false},
-	{Type: "VARCHAR", HasSize: true, HasValues: false},
-	{Type: "BINARY", HasSize: true, HasValues: false},
-	{Type: "VARBINARY", HasSize: true, HasValues: false},
+func init() {
+	for i := range MySQLNumericDataTypes {
+		MySQLNumericDataTypes[i].IsNumeric = true
+	}
+}
 
-	{Type: "TINYBLOB", HasSize: false, HasValues: false},
-	{Type: "TINYTEXT", HasSize: false, HasValues: false},
+var MySQLStringDataTypes = []VarianDataType{
+	{Type: "CHAR", HasSize: true},
+	{Type: "VARCHAR", HasSize: true},
+	{Type: "BINARY", HasSize: true},
+	{Type: "VARBINARY", HasSize: true},
 
-	{Type: "TEXT", HasSize: true, HasValues: false}, // TEXT(size)
-	{Type: "BLOB", HasSize: true, HasValues: false}, // BLOB(size)
+	{Type: "TINYBLOB"},
+	{Type: "TINYTEXT"},
 
-	{Type: "MEDIUMTEXT", HasSize: false, HasValues: false},
-	{Type: "MEDIUMBLOB", HasSize: false, HasValues: false},
+	{Type: "TEXT", HasSize: true}, // TEXT(size)
+	{Type: "BLOB", HasSize: true}, // BLOB(size)
 
-	{Type: "LONGTEXT", HasSize: false, HasValues: false},
-	{Type: "LONGBLOB", HasSize: false, HasValues: false},
+	{Type: "MEDIUMTEXT"},
+	{Type: "MEDIUMBLOB"},
 
-	{Type: "ENUM", HasSize: false, HasValues: true}, // ENUM(val1, val2, ...)
-	{Type: "SET", HasSize: false, HasValues: true},  // SET(val1, val2, ...)
+	{Type: "LONGTEXT"},
+	{Type: "LONGBLOB"},
+
+	{Type: "ENUM", HasValues: true}, // ENUM(val1, val2, ...)
+	{Type: "SET", HasValues: true},  // SET(val1, val2, ...)
 }

@@ -64,27 +64,9 @@ export const zHistory = z.object({
     time: z.iso.datetime()
 });
 
-export const zListRowsResponse = z.object({
-    $schema: z.url().readonly().optional(),
-    activeTable: z.string(),
-    cols: z.array(zColValue).nullable(),
-    hasNextPage: z.boolean(),
-    page: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-    rowCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-    rows: z.array(z.array(zColValue).nullable()).nullable(),
-    totalPages: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
-});
-
 export const zListTablesRow = z.object({
     tableName: z.string(),
     tableSchema: z.string()
-});
-
-export const zNumericDataType = z.object({
-    hasAutoIncrement: z.boolean(),
-    hasDigit: z.boolean(),
-    hasSize: z.boolean(),
-    type: z.string()
 });
 
 export const zRowInsertOrUpdateFormOutputBody = z.object({
@@ -92,16 +74,35 @@ export const zRowInsertOrUpdateFormOutputBody = z.object({
     cols: z.array(zColValue).nullable()
 });
 
-export const zStringDataType = z.object({
+export const zRowSet = z.object({
+    columns: z.array(zColValue).nullable(),
+    hash: z.string()
+});
+
+export const zListRowsResponse = z.object({
+    $schema: z.url().readonly().optional(),
+    activeTable: z.string(),
+    cols: z.array(zColValue).nullable(),
+    hasNextPage: z.boolean(),
+    page: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    rowCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    rows: z.array(zRowSet).nullable(),
+    totalPages: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
+});
+
+export const zVarianDataType = z.object({
+    hasAutoIncrement: z.boolean(),
+    hasDigit: z.boolean(),
     hasSize: z.boolean(),
     hasValues: z.boolean(),
+    isNumeric: z.boolean(),
     type: z.string()
 });
 
 export const zFormDatatype = z.object({
     $schema: z.url().readonly().optional(),
-    numericType: z.array(zNumericDataType).nullable(),
-    stringType: z.array(zStringDataType).nullable()
+    numericType: z.array(zVarianDataType).nullable(),
+    stringType: z.array(zVarianDataType).nullable()
 });
 
 export const zCreeteNewTableInputBodyWritable = z.object({
@@ -124,8 +125,8 @@ export const zErrorModelWritable = z.object({
 });
 
 export const zFormDatatypeWritable = z.object({
-    numericType: z.array(zNumericDataType).nullable(),
-    stringType: z.array(zStringDataType).nullable()
+    numericType: z.array(zVarianDataType).nullable(),
+    stringType: z.array(zVarianDataType).nullable()
 });
 
 export const zListRowsResponseWritable = z.object({
@@ -134,7 +135,7 @@ export const zListRowsResponseWritable = z.object({
     hasNextPage: z.boolean(),
     page: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
     rowCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-    rows: z.array(z.array(zColValue).nullable()).nullable(),
+    rows: z.array(zRowSet).nullable(),
     totalPages: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 

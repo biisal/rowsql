@@ -1092,6 +1092,7 @@ func TestCreateTable(t *testing.T) {
 					Size:       255,
 					ColumnType: models.ColType{
 						DataType: "VARCHAR",
+						HasSize:  true,
 					},
 				},
 			},
@@ -1113,6 +1114,7 @@ func TestCreateTable(t *testing.T) {
 					Size:       255,
 					ColumnType: models.ColType{
 						DataType: "VARCHAR",
+						HasSize:  true,
 						IsNull:   true,
 					},
 				},
@@ -1135,6 +1137,7 @@ func TestCreateTable(t *testing.T) {
 					Size:       255,
 					ColumnType: models.ColType{
 						DataType: "VARCHAR",
+						HasSize:  true,
 						IsNull:   true,
 					},
 				},
@@ -1157,6 +1160,7 @@ func TestCreateTable(t *testing.T) {
 					Size:       255,
 					ColumnType: models.ColType{
 						DataType: "VARCHAR",
+						HasSize:  true,
 						IsNull:   true,
 					},
 				},

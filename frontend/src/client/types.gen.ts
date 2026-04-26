@@ -100,8 +100,8 @@ export type FormDatatype = {
      * A URL to the JSON Schema for this object.
      */
     readonly $schema?: string;
-    numericType: Array<NumericDataType> | null;
-    stringType: Array<StringDataType> | null;
+    numericType: Array<VarianDataType> | null;
+    stringType: Array<VarianDataType> | null;
     [key: string]: unknown;
 };
 
@@ -122,7 +122,7 @@ export type ListRowsResponse = {
     hasNextPage: boolean;
     page: number;
     rowCount: number;
-    rows: Array<Array<ColValue> | null> | null;
+    rows: Array<RowSet> | null;
     totalPages: number;
     [key: string]: unknown;
 };
@@ -130,14 +130,6 @@ export type ListRowsResponse = {
 export type ListTablesRow = {
     tableName: string;
     tableSchema: string;
-    [key: string]: unknown;
-};
-
-export type NumericDataType = {
-    hasAutoIncrement: boolean;
-    hasDigit: boolean;
-    hasSize: boolean;
-    type: string;
     [key: string]: unknown;
 };
 
@@ -150,9 +142,18 @@ export type RowInsertOrUpdateFormOutputBody = {
     [key: string]: unknown;
 };
 
-export type StringDataType = {
+export type RowSet = {
+    columns: Array<ColValue> | null;
+    hash: string;
+    [key: string]: unknown;
+};
+
+export type VarianDataType = {
+    hasAutoIncrement: boolean;
+    hasDigit: boolean;
     hasSize: boolean;
     hasValues: boolean;
+    isNumeric: boolean;
     type: string;
     [key: string]: unknown;
 };
@@ -198,8 +199,8 @@ export type ErrorModelWritable = {
 };
 
 export type FormDatatypeWritable = {
-    numericType: Array<NumericDataType> | null;
-    stringType: Array<StringDataType> | null;
+    numericType: Array<VarianDataType> | null;
+    stringType: Array<VarianDataType> | null;
     [key: string]: unknown;
 };
 
@@ -209,7 +210,7 @@ export type ListRowsResponseWritable = {
     hasNextPage: boolean;
     page: number;
     rowCount: number;
-    rows: Array<Array<ColValue> | null> | null;
+    rows: Array<RowSet> | null;
     totalPages: number;
     [key: string]: unknown;
 };

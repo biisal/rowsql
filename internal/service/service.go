@@ -17,7 +17,7 @@ type DBService interface {
 	CheckTableExits(ctx context.Context, tableName string) error
 	ListTables(ctx context.Context) ([]models.ListTablesRow, error)
 	ListCols(ctx context.Context, tableName string) ([]models.ColValue, error)
-	ListRows(ctx context.Context, tableName string, page int, column string, order string) ([][]models.ColValue, error)
+	ListRows(ctx context.Context, tableName string, page int, column string, order string) ([]models.RowSet, error)
 	InsertRow(ctx context.Context, tableName string, form []models.ColValue) error
 	GetRow(ctx context.Context, tableName string, hash string, page int) ([]models.ColValue, error)
 	UpdateRow(ctx context.Context, values []models.ColValue, tableName, hash string, page int) error
@@ -80,8 +80,8 @@ func (s *svc) InsertRow(ctx context.Context, tableName string, form []models.Col
 	return s.repo.InsertRow(ctx, tableName, form)
 }
 
-func (s *svc) ListRows(ctx context.Context, tableName string, page int, column string, order string) ([][]models.ColValue, error) {
-	return s.repo.ListRows(ctx, models.ListDataProps{
+func (s *svc) ListRows(ctx context.Context, tableName string, page int, column string, order string) ([]models.RowSet, error) {
+	return s.repo.ListRows(ctx, repo.ListDataProps{
 		TableName: tableName,
 		Limit:     s.limit,
 		Offset:    s.getOffset(page),
@@ -114,8 +114,8 @@ func (s *svc) GetRowCount(ctx context.Context, tableName string) (int, error) {
 }
 
 type FormDatatype struct {
-	NumericDataType []database.NumericDataType `json:"numericType"`
-	StringDataType  []database.StringDataType  `json:"stringType"`
+	NumericDataType []database.VarianDataType `json:"numericType"`
+	StringDataType  []database.VarianDataType `json:"stringType"`
 }
 
 func (s *svc) GetTableFormDataTypes() *FormDatatype {

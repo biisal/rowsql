@@ -122,24 +122,32 @@ func (q *Queries) ListTables(ctx context.Context) ([]models.ListTablesRow, error
 	return items, nil
 }
 
-func (q *Queries) ListRows(ctx context.Context, props models.ListDataProps) ([][]models.ColValue, error) {
+type ListDataProps struct {
+	TableName string `json:"tableName"`
+	Limit     int    `json:"limit"`
+	Offset    int    `json:"offset"`
+	Column    string `json:"column"`
+	Order     string `json:"order"`
+}
+
+func (q *Queries) ListRows(ctx context.Context, props ListDataProps) ([]models.RowSet, error) {
 	query, args, err := q.queryBuilder.ListRows(props.TableName, props.Column, props.Order, props.Limit, props.Offset)
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Info("Query :: %s", query)
+	logger.Info("Query : %s", query)
 	rows, err := q.db.QueryxContext(ctx, query, args...)
 	if err != nil {
 		logger.Errorln(err.Error())
 		return nil, err
 	}
 	defer func() {
-		if err := rows.Close(); err != nil {
+		if err = rows.Close(); err != nil {
 			logger.Errorln(err)
 		}
 	}()
-	data := make([][]models.ColValue, 0)
+	data := make([]models.RowSet, 0)
 	colValues, err := q.ListColsMetaData(ctx, props.TableName)
 	if err != nil {
 		return nil, err
@@ -155,7 +163,6 @@ func (q *Queries) ListRows(ctx context.Context, props models.ListDataProps) ([][
 		}
 
 		for i, v := range row {
-			logger.Info("Row: %T", v)
 			if b, ok := v.([]byte); ok {
 				row[i] = string(b)
 			}
@@ -167,7 +174,10 @@ func (q *Queries) ListRows(ctx context.Context, props models.ListDataProps) ([][
 			continue
 		}
 		q.cache.Set(rowHash, cvs)
-		data = append(data, cvs)
+		data = append(data, models.RowSet{
+			Columns: cvs,
+			Hash:    rowHash,
+		})
 	}
 
 	if err := rows.Err(); err != nil {

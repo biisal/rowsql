@@ -3,30 +3,10 @@ package models
 
 import "time"
 
-type ListDataCol struct {
-	IsUnique         bool   `json:"isUnique"`
-	Value            any    `json:"value"`
-	ColumnName       string `json:"columnName"`
-	DataType         string `json:"dataType"`
-	InputType        string `json:"inputType"`
-	HasAutoIncrement bool   `json:"hasAutoIncrement"`
-	HasDefault       bool   `json:"hasDefault"`
+type RowSet struct {
+	Columns []ColValue `json:"columns"`
+	Hash    string     `json:"hash"`
 }
-
-type ListDataProps struct {
-	TableName string `json:"tableName"`
-	Limit     int    `json:"limit"`
-	Offset    int    `json:"offset"`
-	Column    string `json:"column"`
-	Order     string `json:"order"`
-}
-
-type DataRow struct {
-	Hash   string `json:"hash"`
-	Values []any  `json:"values"`
-}
-
-type RowSet []DataRow
 
 type QueryParts struct {
 	Columns      string

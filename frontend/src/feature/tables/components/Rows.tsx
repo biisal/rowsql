@@ -57,10 +57,10 @@ export const Rows = ({
 				{/* Data Columns Headers */}
 				{data.cols?.map((col) => (
 					<div
-						key={col.colName}
+						key={col.columnName}
 						className="h-10 px-2 text-left align-middle font-medium text-muted-foreground flex items-center border-b bg-muted/50 sticky top-0 z-20"
 					>
-						{col.colName}
+						{col.columnName}
 					</div>
 				))}
 
@@ -91,7 +91,7 @@ export const Rows = ({
 									/>
 								</div>
 
-								{row?.values?.map((cell, cellIndex) => (
+								{row.columns?.map((cell, cellIndex) => (
 									<div
 										key={cellIndex}
 										className={cn(
@@ -99,7 +99,7 @@ export const Rows = ({
 											isSelected && 'bg-muted',
 										)}
 									>
-										{cell === null ? 'NULL' : String(cell)}
+										{cell.value === null ? 'NULL' : String(cell.value)}
 									</div>
 								))}
 

@@ -10,7 +10,7 @@ import (
 type Querier interface {
 	ListTables(ctx context.Context) ([]models.ListTablesRow, error)
 	ListColsMetaData(ctx context.Context, tableName string) ([]models.ColValue, error)
-	ListRows(ctx context.Context, props models.ListDataProps) ([][]models.ColValue, error)
+	ListRows(ctx context.Context, props ListDataProps) ([]models.RowSet, error)
 	InsertRow(ctx context.Context, tableName string, colValues []models.ColValue) error
 	UpdateRow(ctx context.Context, props UpdateOrDeleteRowProps) error
 	DeleteRow(ctx context.Context, props UpdateOrDeleteRowProps) error

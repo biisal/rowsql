@@ -8,12 +8,8 @@ import {
 	CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import type {
-	Form as FormType,
-	Input as InputType,
-} from '@/lib/types';
-import { useEffect, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { useMemo } from 'react';
+import { Controller, useForm, type Resolver, useFieldArray } from 'react-hook-form';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,157 +20,103 @@ import {
 	FieldGroup,
 	FieldLabel,
 } from '@/components/ui/field';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { createNewTableMutation, listTablesQueryKey, newTableFormFiledsOptions } from '@/client/@tanstack/react-query.gen';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { createNewTableMutation, newTableFormFiledsOptions } from '@/client/@tanstack/react-query.gen';
 import { Loader2 } from 'lucide-react';
-const formSchema = z.object({
-	tableName: z.string().min(1, 'Table name is required'),
-	inputs: z
-		.array(
-			z.object({
-				colName: z.string().min(1, 'Column name is required'),
-				isNull: z.boolean(),
-				isPk: z.boolean(),
-				isUnique: z.boolean(),
-				default: z.any(),
-				dataType: z.object({
-					type: z.string().min(1, 'Data type is required'),
-					size: z.number().optional(),
-					hasSize: z.boolean(),
-					hasBool: z.boolean().optional(),
-					autoIncrement: z.boolean().optional(),
-				}),
-			}),
-		)
-		.min(1, 'At least one column is required'),
+import { zColValue } from '@/client/zod.gen';
+
+const zColValueFixed = zColValue.extend({
+	size: z.coerce.number().optional(),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+const formSchema = z.object({
+	tableName: z.string().min(1, 'Table name is required'),
+	inputs: z.array(zColValueFixed)
 
+})
+export type FormValues = z.infer<typeof formSchema>;
+type zcolFixedType = z.infer<typeof zColValueFixed>;
+
+function getDefalutInputs(): zcolFixedType {
+	return {
+		columnName: "",
+		columnType: {
+			dataType: "INT",
+			hasSize: false,
+			hasAutoIncrement: false,
+			hasDefault: false,
+			inputType: "text",
+			isNull: false,
+			isPk: false,
+			isUnique: false,
+		},
+	}
+}
 export const TableForm = () => {
-	const queryClient = useQueryClient();
 	const navigate = useNavigate();
 
 	const { data: serverDataTypes, isLoading: loadingDataTypes } = useQuery(newTableFormFiledsOptions());
 
 	const createTableMutation = useMutation({
 		...createNewTableMutation(),
-		mutationKey: ['createNewTable'],
 		onSuccess: (_, variable) => {
 			const tableName = variable.body.tableName;
 			toast.success('Table created successfully');
-			queryClient.invalidateQueries({ queryKey: listTablesQueryKey() });
 			navigate(`/tables/${tableName}`);
 		},
-		onError: (err) => {
-			toast.error(
-				err?.detail || 'Something went wrong',
-			);
-		},
 	});
 
-	const [formData, setFormData] = useState<FormType>({
-		inputs: [],
-		dataTypes: [],
-		selectedDataType: {
-			type: 'VARCHAR',
-			size: 255,
-			hasSize: true,
-		},
-		tableName: '',
-	});
-	const [mount, setMount] = useState(false);
+	const dataTypes = useMemo(() => {
+		if (!serverDataTypes) return [];
+		return [...(serverDataTypes.numericType || []), ...(serverDataTypes.stringType || [])];
+	}, [serverDataTypes]);
+
+	const initialValues = useMemo(() => {
+		if (dataTypes.length === 0) return undefined;
+		const initialInput = getDefalutInputs();
+		return {
+			tableName: '',
+			inputs: [initialInput],
+		};
+	}, [dataTypes]);
 
 	const form = useForm<FormValues>({
-		resolver: zodResolver(formSchema),
-		defaultValues: {
-			tableName: '',
-			inputs: [],
+		resolver: zodResolver(formSchema) as Resolver<FormValues>,
+		values: initialValues,
+		resetOptions: {
+			keepDirtyValues: true,
 		},
 		mode: 'onChange',
 		reValidateMode: 'onChange',
 	});
 
+	const { fields, append, remove } = useFieldArray({
+		control: form.control,
+		name: 'inputs',
+	});
+
 	function addCol() {
-		const currentInputs = form.getValues('inputs');
-		const newInput: InputType = {
-			default: "",
-			colName: '',
-			isNull: false,
-			isPk: false,
-			isUnique: false,
-			dataType: formData.selectedDataType,
-		};
-
-		const newInputs = [...currentInputs, newInput];
-		form.setValue('inputs', newInputs, {
-			shouldValidate: true,
-			shouldDirty: true,
-			shouldTouch: true,
-		});
-
-		const updatedFormData = {
-			...formData,
-			inputs: [...formData.inputs, newInput],
-		};
-		setFormData(updatedFormData);
+		const newInput = getDefalutInputs();
+		if (dataTypes.length > 0) {
+			newInput.columnType.dataType = dataTypes[0].type;
+			newInput.columnType.hasSize = dataTypes[0].hasSize;
+			newInput.columnType.hasAutoIncrement = dataTypes[0].hasAutoIncrement;
+			newInput.columnType.hasDigit = dataTypes[0].hasDigit;
+			newInput.columnType.hasValues = dataTypes[0].hasValues;
+		}
+		append(newInput);
 	}
 
 	function removeCol(index: number) {
-		const currentInputs = form.getValues('inputs');
-		if (currentInputs.length <= 1) {
+		if (fields.length <= 1) {
 			toast.error('At least one column is required');
 			return;
 		}
-
-		const newInputs = currentInputs.filter((_, idx) => idx !== index);
-		form.setValue('inputs', newInputs, { shouldValidate: true });
-
-		const updatedFormData = { ...formData };
-		updatedFormData.inputs = updatedFormData.inputs.filter(
-			(_, idx) => idx !== index,
-		);
-		setFormData(updatedFormData);
+		remove(index);
 	}
 
-	useEffect(() => {
-		if (serverDataTypes) {
-			const types = [...(serverDataTypes.numericType || []), ...(serverDataTypes.stringType || [])];
-			if (types.length === 0) {
-				toast.error('No data types found');
-				return;
-			}
-			const newForm: FormType = {
-				tableName: '',
-				dataTypes: types,
-				inputs: [
-					{
-						default: null,
-						colName: '',
-						isNull: false,
-						isPk: false,
-						isUnique: false,
-						dataType: types[0],
-					},
-				],
-				selectedDataType: types[0],
-			};
-			// eslint-disable-next-line react-hooks/set-state-in-effect
-			setFormData(newForm);
-
-			form.reset(
-				{
-					tableName: newForm.tableName,
-					inputs: newForm.inputs,
-				},
-				{ keepDefaultValues: false },
-			);
-			setMount(true);
-		}
-	}, [serverDataTypes, form]);
-
 	async function onSubmit(values: FormValues) {
-		const emptyColumns = values.inputs.filter((input) => !input.colName.trim());
+		const emptyColumns = values.inputs.filter((input) => !input.columnName.trim());
 		if (emptyColumns.length > 0) {
 			toast.error('Please fill in all column names');
 			return;
@@ -182,21 +124,12 @@ export const TableForm = () => {
 		await createTableMutation.mutateAsync({
 			body: {
 				tableName: values.tableName,
-				inputs: values.inputs.map((input) => ({
-					colName: input.colName,
-					isNull: input.isNull,
-					isPk: input.isPk,
-					isUnique: input.isUnique,
-					default: input.default,
-					type: input.dataType.type,
-					size: input.dataType.size,
-					value: null,
-				})),
+				inputs: values.inputs,
 			},
 		});
 	}
 
-	if (!mount || loadingDataTypes) {
+	if (!initialValues || loadingDataTypes) {
 		return <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 	}
 
@@ -230,14 +163,16 @@ export const TableForm = () => {
 											<FieldError errors={[form.formState.errors.inputs]} />
 										</div>
 									)}
-								{formData?.inputs.map((_, index) => (
-									<div key={index} className="relative">
+								{fields.map((field, index) => (
+									<div key={field.id} className="relative">
 										<TableFormInput
-											formData={formData}
+											dataTypes={dataTypes}
 											index={index}
 											control={form.control}
+											setValue={form.setValue}
+											getValues={form.getValues}
 										/>
-										{formData.inputs.length > 1 && (
+										{fields.length > 1 && (
 											<Button
 												type="button"
 												variant="danger"
@@ -282,7 +217,7 @@ export const TableForm = () => {
 												'Is submitting:',
 												form.formState.isSubmitting,
 											);
-											console.log('Local formData:', formData);
+											console.log('Fields:', fields);
 										}}
 									>
 										Debug

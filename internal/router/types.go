@@ -14,11 +14,11 @@ const (
 )
 
 type ListRowsResponse struct {
-	Page        int                 `json:"page"`
-	Rows        [][]models.ColValue `json:"rows"`
-	Cols        []models.ColValue   `json:"cols"`
-	RowCount    int                 `json:"rowCount"`
-	ActiveTable string              `json:"activeTable"`
-	HasNextPage bool                `json:"hasNextPage"`
-	TotalPages  int                 `json:"totalPages"`
+	Page        int               `json:"page"`
+	Rows        []models.RowSet   `json:"rows"`
+	Cols        []models.ColValue `json:"cols"`
+	RowCount    int               `json:"rowCount"`
+	ActiveTable string            `json:"activeTable"`
+	HasNextPage bool              `json:"hasNextPage"`
+	TotalPages  int               `json:"totalPages"`
 }

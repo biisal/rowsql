@@ -91,6 +91,7 @@ func TestFormatColumnDefinition(t *testing.T) {
 				Size:       255,
 				ColumnType: models.ColType{
 					DataType: "varchar",
+					HasSize:  true,
 				},
 			},
 			want: "name varchar(255) NOT NULL",
