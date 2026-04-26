@@ -44,6 +44,10 @@ export function TableFormInput({
     );
   }
 
+  const showAutoIncrement = columnType?.dataType
+    ? getDataTypeByType(columnType.dataType).hasAutoIncrement
+    : false;
+
   return (
     <div className="flex flex-col bg-foreground/5 rounded-md p-4 w-full gap-4">
       <Controller
@@ -135,7 +139,7 @@ export function TableFormInput({
           </Field>
         )}
 
-        {columnType?.hasAutoIncrement && (
+        {showAutoIncrement && (
           <Field
             orientation="horizontal"
             className="cursor-pointer p-2 rounded"
@@ -143,9 +147,9 @@ export function TableFormInput({
             <Checkbox
               className="cursor-pointer"
               id={`dataHasAutoIncrement-${index}`}
-              checked={columnType.isPk}
+              checked={columnType.hasAutoIncrement}
               onCheckedChange={(checked) => {
-                setValue(`inputs.${index}.columnType.isPk`, checked === true, { shouldDirty: true });
+                setValue(`inputs.${index}.columnType.hasAutoIncrement`, checked === true, { shouldDirty: true });
                 if (checked === true) {
                   setValue(`inputs.${index}.columnType.isNull`, false, { shouldDirty: true });
                 }

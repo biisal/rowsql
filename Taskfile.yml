@@ -40,8 +40,8 @@ tasks:
     desc: build frontend and backend
     cmds:
       - task: doc
-      - task: backend-build
       - task: frontend-build
+      - task: backend-build
       - echo "build was successful"
 
   run:

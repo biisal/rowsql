@@ -13,14 +13,6 @@ import (
 func NewAPI(mux *http.ServeMux, cfg *configs.Config) huma.API {
 	config := huma.DefaultConfig("RowSQL API", "1.0.0")
 	config.AllowAdditionalPropertiesByDefault = true
-
-	if configs.EnvDevelopment == cfg.Env {
-		config.Servers = []*huma.Server{
-			{
-				URL: "http://localhost" + cfg.Server.Port,
-			},
-		}
-	}
 	return humago.New(mux, config)
 }
 
