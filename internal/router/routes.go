@@ -18,7 +18,6 @@ func NewAPI(mux *http.ServeMux, cfg *configs.Config) huma.API {
 
 func MountRouter(handler DBHandler, cfg *configs.Config) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
-
 	mux.Handle("GET /", frontend.ReactHandler("/"))
 	api := NewAPI(mux, cfg)
 	RegisterRoutes(api, handler)
