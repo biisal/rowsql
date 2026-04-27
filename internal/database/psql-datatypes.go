@@ -1,43 +1,45 @@
 package database
 
-var PostgresNumericDataTypes = []NumericDataType{
-	{Type: "SMALLINT", HasDigit: false, HasAutoIncrement: true},
-	{Type: "INT2", HasDigit: false, HasAutoIncrement: true},
-	{Type: "INTEGER", HasDigit: false, HasAutoIncrement: true},
-	{Type: "INT", HasDigit: false, HasAutoIncrement: true},
-	{Type: "INT4", HasDigit: false, HasAutoIncrement: true},
-	{Type: "BIGINT", HasDigit: false, HasAutoIncrement: true},
-	{Type: "INT8", HasDigit: false, HasAutoIncrement: true},
-
-	{Type: "DECIMAL", HasDigit: true, HasAutoIncrement: false}, // DECIMAL(p, s)
-	{Type: "NUMERIC", HasDigit: true, HasAutoIncrement: false}, // NUMERIC(p, s)
-
-	{Type: "REAL", HasDigit: false, HasAutoIncrement: false},
-	{Type: "FLOAT4", HasDigit: false, HasAutoIncrement: false},
-	{Type: "DOUBLE PRECISION", HasDigit: false, HasAutoIncrement: false},
-	{Type: "FLOAT8", HasDigit: false, HasAutoIncrement: false},
-
-	{Type: "SMALLSERIAL", HasDigit: false, HasAutoIncrement: true},
-	{Type: "SERIAL2", HasDigit: false, HasAutoIncrement: true},
-	{Type: "SERIAL", HasDigit: false, HasAutoIncrement: true},
-	{Type: "SERIAL4", HasDigit: false, HasAutoIncrement: true},
-	{Type: "BIGSERIAL", HasDigit: false, HasAutoIncrement: true},
-	{Type: "SERIAL8", HasDigit: false, HasAutoIncrement: true},
-
-	{Type: "MONEY", HasDigit: false, HasAutoIncrement: false},
+var PostgresNumericDataTypes = []VarianDataType{
+	{Type: "SMALLINT", HasAutoIncrement: true},
+	{Type: "INT2", HasAutoIncrement: true},
+	{Type: "INTEGER", HasAutoIncrement: true},
+	{Type: "INT", HasAutoIncrement: true},
+	{Type: "INT4", HasAutoIncrement: true},
+	{Type: "BIGINT", HasAutoIncrement: true},
+	{Type: "INT8", HasAutoIncrement: true},
+	{Type: "DECIMAL", HasDigit: true}, // DECIMAL(p, s)
+	{Type: "NUMERIC", HasDigit: true}, // NUMERIC(p, s)
+	{Type: "REAL"},
+	{Type: "FLOAT4"},
+	{Type: "DOUBLE PRECISION"},
+	{Type: "FLOAT8"},
+	{Type: "SMALLSERIAL", HasAutoIncrement: true},
+	{Type: "SERIAL2", HasAutoIncrement: true},
+	{Type: "SERIAL", HasAutoIncrement: true},
+	{Type: "SERIAL4", HasAutoIncrement: true},
+	{Type: "BIGSERIAL", HasAutoIncrement: true},
+	{Type: "SERIAL8", HasAutoIncrement: true},
+	{Type: "MONEY"},
 }
 
-var PostgresStringDataTypes = []StringDataType{
-	{Type: "CHAR", HasSize: true, HasValues: false},              // CHAR(n)
-	{Type: "CHARACTER", HasSize: true, HasValues: false},         // CHARACTER(n)
-	{Type: "VARCHAR", HasSize: true, HasValues: false},           // VARCHAR(n)
-	{Type: "CHARACTER VARYING", HasSize: true, HasValues: false}, // CHARACTER VARYING(n)
-	{Type: "TEXT", HasValues: false},                             // No size limit
-	{Type: "BPCHAR", HasSize: true, HasValues: false},            // Internal name for CHAR
-	{Type: "BYTEA", HasValues: false},                            // Binary data
-	{Type: "UUID", HasValues: false},
-	{Type: "JSON", HasValues: false},
-	{Type: "JSONB", HasValues: false},
-	{Type: "XML", HasValues: false},
-	{Type: "CITEXT", HasValues: false}, // Case-insensitive text (requires extension)
+func init() {
+	for i := range PostgresNumericDataTypes {
+		PostgresNumericDataTypes[i].IsNumeric = true
+	}
+}
+
+var PostgresStringDataTypes = []VarianDataType{
+	{Type: "CHAR", HasSize: true},              // CHAR(n)
+	{Type: "CHARACTER", HasSize: true},         // CHARACTER(n)
+	{Type: "VARCHAR", HasSize: true},           // VARCHAR(n)
+	{Type: "CHARACTER VARYING", HasSize: true}, // CHARACTER VARYING(n)
+	{Type: "TEXT"},                             // No size limit
+	{Type: "BPCHAR", HasSize: true},            // Internal name for CHAR
+	{Type: "BYTEA"},                            // Binary data
+	{Type: "UUID"},
+	{Type: "JSON"},
+	{Type: "JSONB"},
+	{Type: "XML"},
+	{Type: "CITEXT"}, // Case-insensitive text (requires extension)
 }

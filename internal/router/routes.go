@@ -2,43 +2,114 @@
 package router
 
 import (
-	"fmt"
 	"net/http"
 
+	"github.com/biisal/rowsql/configs"
 	"github.com/biisal/rowsql/frontend"
-	httpSwagger "github.com/swaggo/http-swagger"
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/danielgtaylor/huma/v2/adapters/humago"
 )
 
-const apiPrefix = "/api/v1"
-
-func route(method methodType, path string) string {
-	return fmt.Sprintf("%s %s%s", method, apiPrefix, path)
+func NewAPI(mux *http.ServeMux, cfg *configs.Config) huma.API {
+	config := huma.DefaultConfig("RowSQL API", "1.0.0")
+	config.AllowAdditionalPropertiesByDefault = true
+	return humago.New(mux, config)
 }
 
-func MountRouter(handler DBHandler) (*http.ServeMux, error) {
+func MountRouter(handler DBHandler, cfg *configs.Config) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
-
 	mux.Handle("GET /", frontend.ReactHandler("/"))
-
-	mux.Handle(route(GET, "/swag/"), httpSwagger.Handler(
-		httpSwagger.URL("http://localhost:8000/api/v1/swag/doc.json"),
-		httpSwagger.BeforeScript(`console.log("this is a test")`),
-	))
-
-	mux.HandleFunc(route(GET, "/tables"), handler.ListTables)
-	mux.Handle(route(GET, "/tables/{tableName}"), handler.withTable(handler.ListRows))
-	mux.Handle(route(GET, "/tables/{tableName}/form"), handler.withTable(handler.RowInsertOrUpdateForm))
-	mux.Handle(route(GET, "/tables/{tableName}/columns"), handler.withTable(handler.ListColumns))
-	mux.Handle(route(POST, "/tables/{tableName}/form"), handler.withTable(handler.InsertOrUpdateRow))
-	mux.Handle(route(DELETE, "/tables/{tableName}/row/{hash}"), handler.withTable(handler.DeleteRow))
-
-	mux.HandleFunc(route(GET, "/tables/form/new"), handler.NewTableFormFileds)
-	mux.HandleFunc(route(POST, "/tables/form/new"), handler.CreeteNewTable)
-	mux.HandleFunc(route(DELETE, "/tables"), handler.DeleteTable)
-	mux.HandleFunc(route(GET, "/history"), handler.ListHistory)
-	mux.HandleFunc(route(GET, "/history/recent"), handler.ListRecentHistory)
-
-	// fs := http.FileServer(http.Dir("frontend/static"))
-	// mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
+	api := NewAPI(mux, cfg)
+	RegisterRoutes(api, handler)
 	return mux, nil
+}
+
+func RegisterRoutes(api huma.API, h DBHandler) {
+	huma.Register(api, huma.Operation{
+		OperationID: "listRows",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/tables/{tableName}",
+		Summary:     "List rows of a table",
+		Tags:        []string{"rows"},
+	}, h.ListRows)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "listTables",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/tables",
+		Summary:     "List of all tables",
+		Tags:        []string{"tables"},
+	}, h.ListTables)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "listColumns",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/tables/{tableName}/columns",
+		Summary:     "List columns of a table",
+		Tags:        []string{"columns"},
+	}, h.ListColumns)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "rowInsertOrUpdateForm",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/tables/{tableName}/form",
+		Summary:     "Get row insert/update form metadata",
+		Tags:        []string{"rows"},
+	}, h.RowInsertOrUpdateForm)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "insertOrUpdateRow",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/tables/{tableName}/form",
+		Summary:     "Insert or update a row",
+		Tags:        []string{"rows"},
+	}, h.InsertOrUpdateRow)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "deleteRow",
+		Method:      http.MethodDelete,
+		Path:        "/api/v1/tables/{tableName}/row/{hash}",
+		Summary:     "Delete a row",
+		Tags:        []string{"rows"},
+	}, h.DeleteRow)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "newTableFormFileds",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/tables/form/new",
+		Summary:     "Get data types for new table form",
+		Tags:        []string{"tables"},
+	}, h.NewTableFormFileds)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "createNewTable",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/tables/form/new",
+		Summary:     "Create a new table",
+		Tags:        []string{"tables"},
+	}, h.CreeteNewTable)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "deleteTable",
+		Method:      http.MethodDelete,
+		Path:        "/api/v1/tables",
+		Summary:     "Delete a table",
+		Tags:        []string{"tables"},
+	}, h.DeleteTable)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "listHistory",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/history",
+		Summary:     "List query history",
+		Tags:        []string{"history"},
+	}, h.ListHistory)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "listRecentHistory",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/history/recent",
+		Summary:     "List recent history",
+		Tags:        []string{"history"},
+	}, h.ListRecentHistory)
 }

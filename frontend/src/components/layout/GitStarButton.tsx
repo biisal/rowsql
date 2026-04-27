@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Link } from 'react-router-dom';
-import { Button } from './ui/button';
+import { Button } from '@/components/ui/button';
 import { Github, Star } from 'lucide-react';
 
 async function fetchGitStar() {

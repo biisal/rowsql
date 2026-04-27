@@ -30,13 +30,13 @@ func Success(w http.ResponseWriter, status int, data any) {
 
 func Error(w http.ResponseWriter, status int, errMsg error) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
 	jsonData, err := json.Marshal(Response{Error: errMsg.Error()})
 	if err != nil {
 		logger.Error("failed to marshal response: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(status)
 	if _, err = w.Write(jsonData); err != nil {
 		logger.Error("failed to write error response: %v", err)
 	}

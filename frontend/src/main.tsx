@@ -1,23 +1,36 @@
 import { StrictMode } from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import '@/index.css';
 
-import { Home } from '@/pages/Home.tsx';
-import { AboutPage } from '@/pages/about.tsx';
-import { Layout } from '@/components/Layout.tsx';
-import { History } from '@/pages/History.tsx';
+import {
+	MutationCache,
+	QueryClient,
+	QueryClientProvider,
+} from '@tanstack/react-query';
+import { toast } from 'sonner';
+import type { ErrorModel } from '@/client';
+import { Layout } from '@/components/layout/Layout.tsx';
+import { AboutPage } from '@/pages/About.tsx';
 import { Docs } from '@/pages/Docs.tsx';
-
-import { TableRows } from '@/pages/TableRows.tsx';
-import { RowForm } from '@/pages/RowForm.tsx';
-import { TableForm } from '@/pages/table-form.tsx';
+import { History } from '@/pages/History.tsx';
+import { Home } from '@/pages/Home.tsx';
 import { NotFound } from '@/pages/NotFound.tsx';
-
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { RowForm } from '@/pages/RowForm.tsx';
 import TableEditForm from '@/pages/TableEditForm.tsx';
+import { TableForm } from '@/pages/TableForm.tsx';
+import { TablePage } from '@/pages/TableRows.tsx';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+	mutationCache: new MutationCache({
+		onError: (error) => {
+			const err = error as unknown as ErrorModel;
+			toast.error(
+				err.errors?.[0]?.message || err.detail || 'An unknown error occurred',
+			);
+		},
+	}),
+});
 
 createRoot(document.getElementById('root')!).render(
 	<StrictMode>
@@ -28,7 +41,7 @@ createRoot(document.getElementById('root')!).render(
 						<Route path="/" element={<Home />} />
 
 						<Route path="/new-table" element={<TableForm />} />
-						<Route path="/tables/:tableName" element={<TableRows />} />
+						<Route path="/tables/:tableName" element={<TablePage />} />
 						<Route path="/tables/:tableName/edit" element={<TableEditForm />} />
 						<Route path="/tables/:tableName/rows/" element={<RowForm />} />
 

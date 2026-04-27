@@ -1,9 +1,10 @@
-import * as React from 'react';
+import { Clock, Plus, Table as TableIcon } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
-import { Table as TableIcon, Plus, Clock } from 'lucide-react';
+import type { ListTablesRow } from '@/client/types.gen';
 import {
 	Sidebar as ShadcnSidebar,
 	SidebarContent,
+	SidebarFooter,
 	SidebarGroup,
 	SidebarGroupContent,
 	SidebarGroupLabel,
@@ -11,17 +12,11 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
-	SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Skeleton } from './ui/skeleton';
-
-interface Table {
-	tableName: string;
-	tableSchema: string;
-}
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface SidebarProps extends React.ComponentProps<typeof ShadcnSidebar> {
-	tables: Table[];
+	tables: ListTablesRow[];
 	refreshing: boolean;
 	isAppending: boolean;
 }

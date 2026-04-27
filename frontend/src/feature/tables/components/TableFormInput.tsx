@@ -1,4 +1,4 @@
-import { type Control, Controller } from 'react-hook-form';
+import { type Control, Controller, type UseFormSetValue, type UseFormGetValues, useWatch } from 'react-hook-form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -9,71 +9,74 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Form } from '@/lib/types';
+import type { FormValues } from '@/pages/TableForm';
+import type { VarianDataType } from '@/client';
 
 interface TableInputProps {
   index: number;
-  formData: Form;
-  control: Control<{
-    tableName: string;
-    inputs: Array<{
-      colName: string;
-      isNull: boolean;
-      isPk: boolean;
-      isUnique: boolean;
-      default: any,
-      dataType: {
-        type: string;
-        size?: number;
-        hasSize: boolean;
-        hasBool?: boolean;
-        autoIncrement?: boolean;
-        hasAutoIncrement?: boolean;
-      };
-    }>;
-  }>;
+  dataTypes: VarianDataType[];
+  control: Control<FormValues>;
+  setValue: UseFormSetValue<FormValues>;
+  getValues: UseFormGetValues<FormValues>;
 }
 
-export default function TableFromInput({
+export function TableFormInput({
   index,
-  formData,
+  dataTypes,
   control,
+  setValue,
+  getValues,
 }: TableInputProps) {
+  const columnType = useWatch({
+    control,
+    name: `inputs.${index}.columnType`,
+  });
+
+  const columnSize = useWatch({
+    control,
+    name: `inputs.${index}.size`,
+  });
+
   function getDataTypeByType(type: string) {
     return (
-      formData.dataTypes.find(({ type: t }) => t === type) ||
-      formData.dataTypes[0]
+      dataTypes.find(({ type: t }) => t === type) ||
+      dataTypes[0]
     );
   }
+
+  const showAutoIncrement = columnType?.dataType
+    ? getDataTypeByType(columnType.dataType).hasAutoIncrement
+    : false;
 
   return (
     <div className="flex flex-col bg-foreground/5 rounded-md p-4 w-full gap-4">
       <Controller
         control={control}
-        name={`inputs.${index}.colName`}
+        name={`inputs.${index}.columnName`}
         render={({ field, fieldState }) => (
           <Field>
-            <FieldLabel htmlFor={`colName-${index}`}>Column Name</FieldLabel>
+            <FieldLabel htmlFor={`columnName-${index}`}>Column Name</FieldLabel>
             <Input
               {...field}
-              id={`colName-${index}`}
+              id={`columnName-${index}`}
               placeholder="Enter column name"
             />
             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
           </Field>
         )}
       />
-      {/* TODO: based on col data type  the input type show defalut value input*/}
+
       <Controller
         control={control}
-        name={`inputs.${index}.defalut`}
+        name={`inputs.${index}.defaultValue`}
         render={({ field, fieldState }) => (
           <Field>
-            <FieldLabel htmlFor={`colName-${index}`}>Default value</FieldLabel>
+            <FieldLabel htmlFor={`defaultValue-${index}`}>Default value</FieldLabel>
             <Input
               {...field}
-              id={`defalut-${index}`}
+              id={`defaultValue-${index}`}
               placeholder="Enter default value"
+              value={(field.value as string) || ''}
             />
             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
           </Field>
@@ -83,22 +86,32 @@ export default function TableFromInput({
       <div className="grid grid-cols-2 gap-4">
         <Controller
           control={control}
-          name={`inputs.${index}.dataType`}
+          name={`inputs.${index}.columnType.dataType`}
           render={({ field, fieldState }) => (
             <Field>
               <FieldLabel htmlFor={`dataType-${index}`}>Data Type</FieldLabel>
               <Select
                 onValueChange={(type) => {
                   const dataType = getDataTypeByType(type);
-                  field.onChange(dataType);
+                  // Update the entire columnType object to ensure all flags are set correctly
+                  setValue(`inputs.${index}.columnType`, {
+                    ...getValues(`inputs.${index}.columnType`),
+                    dataType: dataType.type,
+                    hasSize: dataType.hasSize,
+                    hasAutoIncrement: dataType.hasAutoIncrement,
+                    hasDigit: dataType.hasDigit,
+                    hasValues: dataType.hasValues,
+                  }, { shouldDirty: true });
+
+                  field.onChange(dataType.type);
                 }}
-                value={field.value?.type}
+                value={field.value}
               >
                 <SelectTrigger id={`dataType-${index}`}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {formData.dataTypes.map(({ type }, idx) => (
+                  {dataTypes.map(({ type }, idx) => (
                     <SelectItem key={idx} value={type}>
                       {type}
                     </SelectItem>
@@ -110,74 +123,49 @@ export default function TableFromInput({
           )}
         />
 
-        <Controller
-          control={control}
-          name={`inputs.${index}.dataType`}
-          render={({ field, fieldState }) => {
-            if (!field.value?.hasSize) return <></>;
+        {columnType?.hasSize && (
+          <Field>
+            <FieldLabel htmlFor={`dataSize-${index}`}>
+              Size/Length
+            </FieldLabel>
+            <Input
+              id={`dataSize-${index}`}
+              type="number"
+              value={columnSize?.toString() || ''}
+              onChange={(e) => {
+                setValue(`inputs.${index}.size`, e.target.value ? Number(e.target.value) : undefined, { shouldDirty: true });
+              }}
+            />
+          </Field>
+        )}
 
-            return (
-              <Field>
-                <FieldLabel htmlFor={`dataSize-${index}`}>
-                  Size/Length
-                </FieldLabel>
-                <Input
-                  id={`dataSize-${index}`}
-                  type="number"
-                  value={field.value.size || ''}
-                  onChange={(e) => {
-                    field.onChange({
-                      ...field.value,
-                      size: Number(e.target.value),
-                    });
-                  }}
-                />
-
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            );
-          }}
-        />
-        <Controller
-          control={control}
-          name={`inputs.${index}.dataType`}
-          render={({ field, fieldState }) => {
-            if (!field.value?.hasAutoIncrement) return <></>;
-
-            return (
-              <Field
-                orientation="horizontal"
-                className="cursor-pointer  p-2 rounded"
-              >
-                <Checkbox
-                  className="cursor-pointer"
-                  id={`dataHasAutoIncrement-${index}`}
-                  checked={field.value.autoIncrement}
-                  onCheckedChange={(checked) =>
-                    field.onChange({
-                      ...field.value,
-                      autoIncrement: checked === true,
-                    })
-                  }
-                />
-                <FieldLabel htmlFor={`dataHasAutoIncrement-${index}`}>
-                  Auto Increment
-                </FieldLabel>
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            );
-          }}
-        />
+        {showAutoIncrement && (
+          <Field
+            orientation="horizontal"
+            className="cursor-pointer p-2 rounded"
+          >
+            <Checkbox
+              className="cursor-pointer"
+              id={`dataHasAutoIncrement-${index}`}
+              checked={columnType.hasAutoIncrement}
+              onCheckedChange={(checked) => {
+                setValue(`inputs.${index}.columnType.hasAutoIncrement`, checked === true, { shouldDirty: true });
+                if (checked === true) {
+                  setValue(`inputs.${index}.columnType.isNull`, false, { shouldDirty: true });
+                }
+              }}
+            />
+            <FieldLabel htmlFor={`dataHasAutoIncrement-${index}`}>
+              Auto Increment
+            </FieldLabel>
+          </Field>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-2">
         <Controller
           control={control}
-          name={`inputs.${index}.isNull`}
+          name={`inputs.${index}.columnType.isNull`}
           render={({ field, fieldState }) => (
             <Field
               orientation="horizontal"
@@ -202,7 +190,7 @@ export default function TableFromInput({
 
         <Controller
           control={control}
-          name={`inputs.${index}.isPk`}
+          name={`inputs.${index}.columnType.isPk`}
           render={({ field, fieldState }) => (
             <Field
               orientation="horizontal"
@@ -227,7 +215,7 @@ export default function TableFromInput({
 
         <Controller
           control={control}
-          name={`inputs.${index}.isUnique`}
+          name={`inputs.${index}.columnType.isUnique`}
           render={({ field, fieldState }) => (
             <Field
               orientation="horizontal"
@@ -253,3 +241,5 @@ export default function TableFromInput({
     </div>
   );
 }
+
+

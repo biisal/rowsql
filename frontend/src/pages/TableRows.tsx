@@ -1,89 +1,56 @@
-import * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
-import axios from 'axios';
-import api from '@/lib/axios';
-
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { listRowsOptions, deleteRowMutation, listRowsQueryKey } from '@/client/@tanstack/react-query.gen';
 import { Button } from '@/components/ui/button';
-import { AppPagination } from '@/components/app-pagination';
+import { AppPagination } from '@/components/shared/AppPagination';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { DeletAlert } from '@/components/delete-alert';
-import { RowOrderForm } from '@/components/row-order-form';
-import { Rows } from '@/components/rows';
-import type { TableData } from '@/lib/types';
+import { DeleteAlert, RowOrderForm, Rows } from '@/feature/tables';
 
-export function TableRows() {
+export function TablePage() {
 	const { tableName } = useParams<{ tableName: string }>();
 	const [searchParams, setSearchParams] = useSearchParams();
-	const [refresh, setRefesh] = useState(0);
-	const [data, setData] = useState<TableData | null>(null);
-	const [error, setError] = useState<string | null>(null);
+	const queryClient = useQueryClient();
 	const [selectedRows, setSelectedRows] = useState<Record<number, boolean>>({});
 	const page = parseInt(searchParams.get('page') || '1');
 	const col = searchParams.get('col');
-	const order = searchParams.get('order') || 'asc';
+	const order = searchParams.get('order')?.toUpperCase() as 'ASC' | 'DESC';
 
-	const fetchData = React.useCallback(async () => {
-		if (!tableName) return;
-		setError(null);
-
-		try {
-			const response = await api.get(
-				`/tables/${tableName}?page=${page}${col ? `&column=${col}&order=${order}` : ''}`,
-			);
-			if (response.data.success) {
-				setData(response.data.data);
-				setSelectedRows({});
-			}
-		} catch (err) {
-			if (axios.isAxiosError(err)) {
-				const { response } = err;
-				const errorMessage =
-					response?.data?.error || err.message || 'Something went wrong';
-				toast.error(errorMessage);
-				setError(errorMessage);
-			} else {
-				setError(
-					err instanceof Error ? err.message : 'An unknown error occurred',
-				);
-			}
+	const { data, isLoading, error } = useQuery(listRowsOptions({
+		path: { tableName: tableName! },
+		query: {
+			page,
+			column: col || undefined,
+			order: order || undefined,
 		}
-	}, [tableName, page, col, order, refresh]);
+	}));
 
-	useEffect(() => {
-		(async function () {
-			fetchData();
-		})();
-	}, [fetchData]);
+	const deleteMutation = useMutation({
+		...deleteRowMutation(),
+		onSuccess: () => {
+			toast.success('Row deleted successfully');
+			queryClient.invalidateQueries({ queryKey: listRowsQueryKey({ path: { tableName: tableName! } }) });
+		},
+		onError: (err) => {
+			const errorMessage = err?.detail || 'Failed to delete row';
+			toast.error(errorMessage);
+		}
+	});
 
 	const deleteRow = async (hash: string) => {
-		try {
-			const res = await api.delete(`/tables/${tableName}/row/${hash}`);
-			if (res.data.success) {
-				toast.success('Row deleted successfully');
-				setRefesh((r) => r + 1);
-				return;
-			}
-			toast.error('Failed to delete row');
-		} catch (err) {
-			if (axios.isAxiosError(err)) {
-				setError(
-					err.response?.data?.error || err.message || 'Something went wrong',
-				);
-			} else {
-				setError(
-					err instanceof Error ? err.message : 'An unknown error occurred',
-				);
-			}
-		}
+		await deleteMutation.mutateAsync({
+			path: { tableName: tableName!, hash },
+			query: { page }
+		});
 	};
 
 	// Reset search params when table name changes
-	useEffect(() => {
-		setSearchParams({}, { replace: true });
-	}, [tableName]); // eslint-disable-line react-hooks/exhaustive-deps
+	// useEffect(() => {
+	// 	setSearchParams({}, { replace: true });
+	// 	setSelectedRows({});
+	// }, [tableName, setSearchParams]);
 
 	const toggleRowSelection = (index: number) => {
 		setSelectedRows((prev) => ({
@@ -93,7 +60,7 @@ export function TableRows() {
 	};
 
 	const toggleAllSelection = () => {
-		if (!data) return;
+		if (!data?.rows) return;
 		const allSelected =
 			data.rows.length > 0 && data.rows.every((_, idx) => selectedRows[idx]);
 		if (allSelected) {
@@ -107,15 +74,19 @@ export function TableRows() {
 		}
 	};
 
+	if (isLoading) {
+		return <div className="p-8">Loading...</div>;
+	}
+
 	if (error) {
 		return (
 			<div className="flex items-center justify-center h-full">
-				<div className="text-destructive font-medium">Error: {error}</div>
+				<div className="text-destructive font-medium">Error: {error?.detail || 'An unknown error occurred'}</div>
 			</div>
 		);
 	}
 
-	if (!data) {
+	if (!data || !data.rows) {
 		return <div className="p-8">No data found.</div>;
 	}
 
@@ -132,7 +103,7 @@ export function TableRows() {
 						{data.activeTable}
 					</h1>
 					<div className="flex items-center justify-center gap-1">
-						<DeletAlert tableName={data.activeTable} />
+						<DeleteAlert tableName={data.activeTable} />
 						<Link to={`/tables/${data.activeTable}/rows/`}>
 							<Button className="shadow-lg shadow-primary/20">
 								<Plus className="mr-2 h-4 w-4" /> Insert Record
@@ -145,7 +116,7 @@ export function TableRows() {
 					<CardHeader className="px-6 py-4 flex justify-between items-center flex-wrap border-b border-border/50">
 						<CardTitle className="text-lg font-medium">Table Data</CardTitle>
 						<RowOrderForm
-							cols={data.cols}
+							cols={data.cols || []}
 							initialValue={{ col, order }}
 							setUrlParams={setSearchParams}
 						/>
@@ -163,11 +134,11 @@ export function TableRows() {
 						<div className="flex items-center flex-col sm:flex-row justify-center md:justify-between  py-4">
 							<div className="text-muted-foreground flex-1  text-sm">
 								{Object.values(selectedRows).filter(Boolean).length} of{' '}
-								{data.rows.length} row(s) selected.
+								{data.rows?.length || 0} row(s) selected.
 							</div>
 							<AppPagination
 								currentPage={page}
-								totalPages={data.totalPages}
+								totalPages={data.totalPages || 0}
 								onPageChange={(newPage) =>
 									setSearchParams((prev) => {
 										const newParams = new URLSearchParams(prev);

@@ -6,18 +6,18 @@ type RowCache struct {
 	mu   sync.RWMutex
 	Max  int
 	Keys []string
-	Rows map[string][]any
+	Rows map[string]any
 }
 
 func NewRowCache(max int) *RowCache {
 	return &RowCache{
 		Max:  max,
 		Keys: make([]string, 0, max),
-		Rows: make(map[string][]any),
+		Rows: make(map[string]any),
 	}
 }
 
-func (c *RowCache) Set(key string, row []any) {
+func (c *RowCache) Set(key string, row any) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if _, ok := c.Rows[key]; ok {
@@ -31,7 +31,7 @@ func (c *RowCache) Set(key string, row []any) {
 	}
 }
 
-func (c *RowCache) Get(key string) []any {
+func (c *RowCache) Get(key string) any {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.Rows[key]

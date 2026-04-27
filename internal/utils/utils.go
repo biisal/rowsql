@@ -201,7 +201,7 @@ func GetInputType(dbType string) string {
 	return textInput
 }
 
-func MakeRowHash(data []any) (string, error) {
+func MakeRowHash(data any) (string, error) {
 	h := sha256.New()
 	if _, err := fmt.Fprint(h, data); err != nil {
 		logger.Error("failed to hash data: %v", err)

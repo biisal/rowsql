@@ -1,9 +1,9 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 
-version: '3'
+version: "3"
 
 vars:
-  GREETING: Hello from RowSQL! 
+  GREETING: Hello from RowSQL!
 
 tasks:
   default:
@@ -13,8 +13,9 @@ tasks:
     silent: true
 
   backend-build:
-    desc: build backend application 
+    desc: build backend application
     cmds:
+      - go run ./cmd/schema/main.go
       - go build -o bin/rowsql ./cmd/server
   frontend-build:
     desc: build frontend application
@@ -33,15 +34,15 @@ tasks:
 
   dev:
     desc: Run the application in development mode
-    deps: [backend-dev , frontend-dev]
-    cmds:
-      - echo "Done!" 
+    deps: [backend-dev, frontend-dev]
 
   build:
     desc: build frontend and backend
-    deps: [backend-build , frontend-build]
     cmds:
-      - echo "build was successfull"
+      - task: doc
+      - task: frontend-build
+      - task: backend-build
+      - echo "build was successful"
 
   run:
     desc: Run the application
@@ -51,8 +52,34 @@ tasks:
   doc:
     desc: generate documentation
     cmds:
-      - swag init -g ./cmd/server/main.go -o ./cmd/server/docs
+      - go run ./cmd/schema/...
   test:
     desc: test the application
     cmds:
       - go test ./... -failfast
+
+  release:
+    desc: make a release for test
+    cmds:
+      - goreleaser release --clean --snapshot
+
+  lint:
+    desc: Run linter only
+    cmds:
+      - golangci-lint run
+      - cd ./frontend && pnpm lint
+
+  clean:
+    desc: Clean build artifacts and dependencies
+    cmds:
+      - rm -rf dist/
+      - rm -rf bin/
+      - rm -rf tmp/
+      - rm -rf frontend/dist/
+      - rm -rf frontend/node_modules/
+
+  install:
+    desc: Install dependencies
+    cmds:
+      - go mod download
+      - cd ./frontend && pnpm install

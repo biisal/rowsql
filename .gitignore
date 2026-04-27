@@ -16,3 +16,6 @@ node_modules/
 pnpm-lock.yaml
 VERSION
 TESTING_PLAN.md
+
+# this thiing changes too often
+frontend/openapi.json 

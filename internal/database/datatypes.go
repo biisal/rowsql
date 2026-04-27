@@ -1,14 +1,10 @@
 package database
 
-type NumericDataType struct {
+type VarianDataType struct {
 	Type             string `json:"type"`
 	HasSize          bool   `json:"hasSize"`
 	HasDigit         bool   `json:"hasDigit"`
 	HasAutoIncrement bool   `json:"hasAutoIncrement"`
-}
-
-type StringDataType struct {
-	Type      string `json:"type"`
-	HasSize   bool   `json:"hasSize"`
-	HasValues bool   `json:"hasValues"`
+	HasValues        bool   `json:"hasValues"`
+	IsNumeric        bool   `json:"isNumeric"`
 }

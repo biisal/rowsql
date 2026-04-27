@@ -19,24 +19,26 @@ func ErrorInvalidTable(tableName string) error {
 
 var ErrorNotFound = errors.New("not found")
 
-func getColValues(rows []any, cols []models.ColMetaData) ([]models.ColValues, error) {
-	if len(cols) != len(rows) {
-		return nil, apperr.ErrorNotSameRowColsSize
-	}
+// func getColValues(rows []any, cols []models.ColValue) ([]models.ColValue, error) {
+// 	if len(cols) != len(rows) {
+// 		return nil, apperr.ErrorNotSameRowColsSize
+// 	}
 
-	colWithValues := make([]models.ColValues, len(cols))
-	for i, col := range cols {
-		colWithValues[i] = models.ColValues{
-			Name:          col.Name,
-			Value:         rows[i],
-			Type:          col.Type,
-			IsUnique:      col.IsUnique,
-			AutoIncrement: col.HasAutoIncrement,
-			Default:       col.HasDefault,
-		}
-	}
-	return colWithValues, nil
-}
+// 	colWithValues := make([]models.ColValue, len(cols))
+// 	for i, col := range cols {
+// 		colWithValues[i] = models.ColValue{
+// 			ColumnName: col.ColumnName,
+// 			Value:      rows[i],
+// 			ColumnType: models.ColType{
+// 				DataType:         col.ColumnType.DataType,
+// 				IsUnique:         col.ColumnType.IsUnique,
+// 				HasAutoIncrement: col.ColumnType.HasAutoIncrement,
+// 				HasDefault:       col.ColumnType.HasDefault,
+// 			},
+// 		}
+// 	}
+// 	return colWithValues, nil
+// }
 
 func (q *Queries) GetQuotedTableName(tableName string) string {
 	return q.queryBuilder.QuoteName(tableName)
@@ -61,7 +63,7 @@ func (q *Queries) CheckTableExitsInDB(ctx context.Context, tableName string) err
 	return nil
 }
 
-func (q *Queries) ListColsMetaData(ctx context.Context, tableName string) ([]models.ColMetaData, error) {
+func (q *Queries) ListColsMetaData(ctx context.Context, tableName string) ([]models.ColValue, error) {
 	query, args := q.queryBuilder.ColumnsList(tableName)
 	rows, err := q.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -73,14 +75,14 @@ func (q *Queries) ListColsMetaData(ctx context.Context, tableName string) ([]mod
 			logger.Errorln(err)
 		}
 	}()
-	var items []models.ColMetaData
+	var items []models.ColValue
 	for rows.Next() {
-		var i models.ColMetaData
-		if err := rows.Scan(&i.Name, &i.Type, &i.HasDefault, &i.IsUnique, &i.HasAutoIncrement); err != nil {
+		var i models.ColValue
+		if err := rows.Scan(&i.ColumnName, &i.ColumnType.DataType, &i.ColumnType.HasDefault, &i.ColumnType.IsUnique, &i.ColumnType.HasAutoIncrement); err != nil {
 			logger.Error("failed to scan rows in list cols: %v", err)
 			return nil, err
 		}
-		i.Type = utils.GetInputType(i.Type)
+		i.ColumnType.InputType = utils.GetInputType(i.ColumnType.DataType)
 		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
@@ -120,7 +122,15 @@ func (q *Queries) ListTables(ctx context.Context) ([]models.ListTablesRow, error
 	return items, nil
 }
 
-func (q *Queries) ListRows(ctx context.Context, props models.ListDataProps) (models.ListDataRow, error) {
+type ListDataProps struct {
+	TableName string `json:"tableName"`
+	Limit     int    `json:"limit"`
+	Offset    int    `json:"offset"`
+	Column    string `json:"column"`
+	Order     string `json:"order"`
+}
+
+func (q *Queries) ListRows(ctx context.Context, props ListDataProps) ([]models.RowSet, error) {
 	query, args, err := q.queryBuilder.ListRows(props.TableName, props.Column, props.Order, props.Limit, props.Offset)
 	if err != nil {
 		return nil, err
@@ -133,12 +143,19 @@ func (q *Queries) ListRows(ctx context.Context, props models.ListDataProps) (mod
 		return nil, err
 	}
 	defer func() {
-		if err := rows.Close(); err != nil {
+		if err = rows.Close(); err != nil {
 			logger.Errorln(err)
 		}
 	}()
-	data := make(models.ListDataRow, 0)
+	data := make([]models.RowSet, 0)
+	colValues, err := q.ListColsMetaData(ctx, props.TableName)
+	if err != nil {
+		return nil, err
+	}
 	for rows.Next() {
+		cvs := make([]models.ColValue, len(colValues))
+		copy(cvs, colValues)
+
 		row, err := rows.SliceScan()
 		if err != nil {
 			logger.Errorln(err.Error())
@@ -149,15 +166,18 @@ func (q *Queries) ListRows(ctx context.Context, props models.ListDataProps) (mod
 			if b, ok := v.([]byte); ok {
 				row[i] = string(b)
 			}
+			cvs[i].Value = v
 		}
 		rowHash, err := utils.MakeRowHash(row)
 		if err != nil {
 			logger.Error("failed to hash row: %v", err)
 			continue
 		}
-		q.cache.Set(rowHash, row)
-		row = append([]any{rowHash}, row...)
-		data = append(data, row)
+		q.cache.Set(rowHash, cvs)
+		data = append(data, models.RowSet{
+			Columns: cvs,
+			Hash:    rowHash,
+		})
 	}
 
 	if err := rows.Err(); err != nil {
@@ -180,8 +200,8 @@ func (q *Queries) GetRowCount(ctx context.Context, tableName string) (int, error
 	return count, nil
 }
 
-func (q *Queries) InsertRow(ctx context.Context, props models.InsertDataProps) error {
-	query, args, err := q.queryBuilder.InsertRow(props.TableName, props.Values)
+func (q *Queries) InsertRow(ctx context.Context, tableName string, form []models.ColValue) error {
+	query, args, err := q.queryBuilder.InsertRow(tableName, form)
 	if err != nil {
 		return err
 	}
@@ -193,24 +213,32 @@ func (q *Queries) InsertRow(ctx context.Context, props models.InsertDataProps) e
 		return err
 	}
 
-	historyMsg := fmt.Sprintf("Inserted row into table '%s'", props.TableName)
+	historyMsg := fmt.Sprintf("Inserted row into table '%s'", tableName)
 	q.InsertHistory(ctx, historyMsg)
 
 	return nil
 }
 
-func (q *Queries) GetRow(ctx context.Context, tableName, hash string, offest, limit int) ([]any, error) {
+func (q *Queries) GetRow(ctx context.Context, tableName, hash string, offest, limit int) ([]models.ColValue, error) {
 	if row := q.cache.Get(hash); row != nil {
 		logger.Info("found data in cache: %v", row)
-		return row, nil
+		if cv, ok := row.([]models.ColValue); ok {
+			return cv, nil
+		}
+		return nil, apperr.ErrorNotSameRowColsSize
+	}
+	colValues, err := q.ListColsMetaData(ctx, tableName)
+	if err != nil {
+		return nil, err
 	}
 	logger.Info("not found in cache! Fetching from db limit=%d offset=%d", limit, offest)
 	for offest <= limit {
+		colValue := make([]models.ColValue, len(colValues))
+		copy(colValue, colValues)
 		query, args, err := q.queryBuilder.GetRows(tableName, offest+1, offest)
 		if err != nil {
 			return nil, err
 		}
-		logger.Info("Query: %s offset=%d tableName=%s", query, offest, tableName)
 		data, err := q.db.QueryRowxContext(ctx, query, args...).SliceScan()
 		if err != nil {
 			logger.Error("failed to query: %v", err)
@@ -218,20 +246,22 @@ func (q *Queries) GetRow(ctx context.Context, tableName, hash string, offest, li
 				return nil, err
 			}
 		}
+		logger.Debug("data: %+v", data)
 		for i, v := range data {
 			if b, ok := v.([]byte); ok {
 				data[i] = string(b)
 			}
+			colValue[i].Value = v
 		}
-		rowHash, err := utils.MakeRowHash(data)
+		rowHash, err := utils.MakeRowHash(colValue)
 		if err != nil {
 			logger.Error("failed to hash row: %v", err)
 			continue
 		}
 		if rowHash == hash {
-			q.cache.Set(rowHash, data)
+			q.cache.Set(rowHash, colValue)
 			logger.Info("found data in db: %v", data)
-			return data, nil
+			return colValue, nil
 		}
 		offest++
 	}
@@ -239,23 +269,19 @@ func (q *Queries) GetRow(ctx context.Context, tableName, hash string, offest, li
 }
 
 func (q *Queries) DeleteRow(ctx context.Context, props UpdateOrDeleteRowProps) error {
-	row := q.cache.Get(props.Hash)
-	if row == nil {
-		var err error
-		row, err = q.GetRow(ctx, props.TableName, props.Hash, props.Offset, props.Limit)
-		if err != nil {
-			return err
-		}
-	}
-	cols, err := q.ListColsMetaData(ctx, props.TableName)
-	if err != nil {
-		return err
-	}
-	colVals, err := getColValues(row, cols)
-	if err != nil {
-		return err
-	}
-	query, args, err := q.queryBuilder.DeleteRow(props.TableName, colVals, row, 1)
+	// var rowValues []any
+	// if cached := q.cache.Get(props.Hash); cached != nil {
+	// 	rowValues = cached
+	// } else {
+	// 	row, err := q.GetRow(ctx, props.TableName, props.Hash, props.Offset, props.Limit)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	rowValues = row.Values
+
+	// 	return err
+	// }
+	query, args, err := q.queryBuilder.DeleteRow(props.TableName, props.Values, 1)
 	if err != nil {
 		return err
 	}
@@ -274,32 +300,25 @@ func (q *Queries) DeleteRow(ctx context.Context, props UpdateOrDeleteRowProps) e
 
 type UpdateOrDeleteRowProps struct {
 	TableName string
-	Values    []models.RowItem
+	Values    []models.ColValue
 	Hash      string
 	Limit     int
 	Offset    int
 }
 
 func (q *Queries) UpdateRow(ctx context.Context, props UpdateOrDeleteRowProps) error {
-	row := q.cache.Get(props.Hash)
-	if row == nil {
-		var err error
-		row, err = q.GetRow(ctx, props.TableName, props.Hash, props.Offset, props.Limit)
-		if err != nil {
-			return err
-		}
-	}
+	// var rowValues []any
+	// if cached := q.cache.Get(props.Hash); cached != nil {
+	// 	rowValues = cached
+	// } else {
+	// 	row, err := q.GetRow(ctx, props.TableName, props.Hash, props.Offset, props.Limit)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	rowValues = row.Values
+	// }
 
-	cols, err := q.ListColsMetaData(ctx, props.TableName)
-	if err != nil {
-		return err
-	}
-	colVals, err := getColValues(row, cols)
-	if err != nil {
-		return err
-	}
-
-	query, args, err := q.queryBuilder.UpdateRow(props.TableName, props.Values, colVals, row)
+	query, args, err := q.queryBuilder.UpdateRow(props.TableName, props.Values)
 	logger.Info("Query to Update : %s", query)
 	if err != nil {
 		return err
@@ -317,8 +336,8 @@ func (q *Queries) UpdateRow(ctx context.Context, props UpdateOrDeleteRowProps) e
 }
 
 type CreateTableProps struct {
-	TableName string             `json:"tableName"`
-	Inputs    []models.ColValues `json:"inputs"`
+	TableName string            `json:"tableName"`
+	Inputs    []models.ColValue `json:"inputs"`
 }
 
 func (q *Queries) CreateTable(ctx context.Context, props CreateTableProps) error {

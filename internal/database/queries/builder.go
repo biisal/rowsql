@@ -22,10 +22,10 @@ type Builder interface {
 	ListRows(tableName, orderCol, orderBy string, limit, offset int) (string, []any, error)
 	DeleteTable(tableName string) string
 	GetRows(tableName string, limit, offset int) (string, []any, error)
-	DeleteRow(string, []models.ColValues, []any, int) (string, []any, error)
-	UpdateRow(tableName string, form []models.RowItem, columns []models.ColValues, row []any) (string, []any, error)
-	InsertRow(tableName string, form []models.RowItem) (string, []any, error)
-	CreateTable(tableName string, inputs []models.ColValues) (string, error)
+	DeleteRow(string, []models.ColValue, int) (string, []any, error)
+	UpdateRow(tableName string, form []models.ColValue) (string, []any, error)
+	InsertRow(tableName string, form []models.ColValue) (string, []any, error)
+	CreateTable(tableName string, inputs []models.ColValue) (string, error)
 	QuoteName(name string) string
 }
 
@@ -110,7 +110,7 @@ func (b *builder) ListRows(tableName, orderCol, orderBy string, limit, offset in
 	return strings.Join(parts, " "), args, nil
 }
 
-func (b *builder) InsertRow(tableName string, form []models.RowItem) (string, []any, error) {
+func (b *builder) InsertRow(tableName string, form []models.ColValue) (string, []any, error) {
 	if tableName == "" {
 		return "", nil, apperr.ErrorEmptyTableName
 	}
@@ -135,9 +135,13 @@ func (b *builder) InsertRow(tableName string, form []models.RowItem) (string, []
 		}
 		placeholders = append(placeholders, ph)
 
-		if field.Type == "json" {
+		if field.ColumnType.DataType == "json" {
 			var jsonVal any
-			if err := json.Unmarshal([]byte(field.Value), &jsonVal); err != nil {
+			str, ok := field.Value.(string)
+			if !ok {
+				return "", nil, apperr.ErrorInvalidJSON
+			}
+			if err := json.Unmarshal([]byte(str), &jsonVal); err != nil {
 				logger.Errorln(err)
 				var syntaxErr *json.SyntaxError
 				if errors.As(err, &syntaxErr) || errors.Is(err, io.ErrUnexpectedEOF) {
@@ -204,12 +208,12 @@ func (b *builder) GetRows(tableName string, limit, offset int) (string, []any, e
 	return strings.Join(parts, " "), args, nil
 }
 
-func (b *builder) DeleteRow(tableName string, columns []models.ColValues, rows []any, argIdx int) (string, []any, error) {
+func (b *builder) DeleteRow(tableName string, columns []models.ColValue, argIdx int) (string, []any, error) {
 	tableName = strings.TrimSpace(tableName)
 	if tableName == "" {
 		return "", nil, apperr.ErrorEmptyTableName
 	}
-	clause, args, err := b.dialect.WhereCluse(columns, rows, argIdx)
+	clause, args, err := b.dialect.WhereCluse(columns, argIdx)
 	logger.Info("Clause: %s", clause)
 	if err != nil {
 		logger.Error("Error in clause: %s", err)
@@ -219,7 +223,7 @@ func (b *builder) DeleteRow(tableName string, columns []models.ColValues, rows [
 	return query, args, nil
 }
 
-func (b *builder) UpdateRow(tableName string, form []models.RowItem, columns []models.ColValues, row []any) (string, []any, error) {
+func (b *builder) UpdateRow(tableName string, form []models.ColValue) (string, []any, error) {
 	tableName = strings.TrimSpace(tableName)
 	if tableName == "" {
 		return "", nil, apperr.ErrorInvalidTableName
@@ -238,7 +242,7 @@ func (b *builder) UpdateRow(tableName string, form []models.RowItem, columns []m
 		index++
 	}
 	updateQuery := strings.Join(parts, ",")
-	whereClause, whereClauseArgs, err := b.dialect.WhereCluse(columns, row, len(args)+1)
+	whereClause, whereClauseArgs, err := b.dialect.WhereCluse(form, len(args)+1)
 	if err != nil {
 		return "", nil, err
 	}
@@ -250,11 +254,11 @@ func (b *builder) UpdateRow(tableName string, form []models.RowItem, columns []m
 	return query, fullArgs, nil
 }
 
-func (b *builder) CreateTable(tableName string, inputs []models.ColValues) (string, error) {
+func (b *builder) CreateTable(tableName string, inputs []models.ColValue) (string, error) {
 	logger.Info("Building create table query")
 	columnDefs := make([]string, 0, len(inputs))
 	for _, input := range inputs {
-		if input.Name == "" {
+		if input.ColumnName == "" {
 			continue
 		}
 		formattedColDef, err := b.formatColumnDefinition(input)

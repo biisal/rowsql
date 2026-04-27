@@ -10,25 +10,40 @@ import {
 	AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
-import useTableStore from '@/lib/store/use-table';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { deleteTableMutation, listTablesQueryKey } from '@/client/@tanstack/react-query.gen';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Input } from './ui/input';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
-export function DeletAlert({ tableName }: { tableName: string }) {
-	const { deleteTable, tableDeleting } = useTableStore();
+export function DeleteAlert({ tableName }: { tableName: string }) {
+	const queryClient = useQueryClient();
+	const navigate = useNavigate();
 	const [verificationQuery, setVerificationQuery] = useState('');
 	const [open, setOpen] = useState(false);
-	const navigate = useNavigate();
+
+	const deleteMutation = useMutation({
+		...deleteTableMutation(),
+		onSuccess: () => {
+			toast.success('Table deleted successfully');
+			queryClient.invalidateQueries({ queryKey: listTablesQueryKey() });
+			setOpen(false);
+			navigate('/');
+		},
+		onError: (err) => {
+			toast.error(err?.detail || 'Failed to delete table');
+		}
+	});
 
 	async function handleDelete(e: React.MouseEvent) {
 		e.preventDefault();
-
-		const success = await deleteTable(tableName, verificationQuery);
-		if (success) {
-			setOpen(false);
-			navigate('/');
-		}
+		await deleteMutation.mutateAsync({
+			body: {
+				tableName,
+				verificationQuery
+			}
+		});
 	}
 
 	return (
@@ -54,10 +69,10 @@ export function DeletAlert({ tableName }: { tableName: string }) {
 					onChange={(e) => setVerificationQuery(e.target.value)}
 				/>
 				<AlertDialogFooter>
-					<AlertDialogCancel disabled={tableDeleting}>Cancel</AlertDialogCancel>
+					<AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={handleDelete}
-						disabled={tableDeleting}
+						disabled={deleteMutation.isPending}
 						className={buttonVariants({ variant: 'danger' })}
 					>
 						Delete
