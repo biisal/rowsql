@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { CreateNewTableData, CreateNewTableErrors, CreateNewTableResponses, DeleteRowData, DeleteRowErrors, DeleteRowResponses, DeleteTableData, DeleteTableErrors, DeleteTableResponses, InsertOrUpdateRowData, InsertOrUpdateRowErrors, InsertOrUpdateRowResponses, ListColumnsData, ListColumnsErrors, ListColumnsResponses, ListHistoryData, ListHistoryErrors, ListHistoryResponses, ListRecentHistoryData, ListRecentHistoryErrors, ListRecentHistoryResponses, ListRowsData, ListRowsErrors, ListRowsResponses, ListTablesData, ListTablesErrors, ListTablesResponses, NewTableFormFiledsData, NewTableFormFiledsErrors, NewTableFormFiledsResponses, RowInsertOrUpdateFormData, RowInsertOrUpdateFormErrors, RowInsertOrUpdateFormResponses } from './types.gen';
+import type { CreateNewTableData, CreateNewTableErrors, CreateNewTableResponses, DeleteRowData, DeleteRowErrors, DeleteRowResponses, DeleteTableData, DeleteTableErrors, DeleteTableResponses, InsertOrUpdateRowData, InsertOrUpdateRowErrors, InsertOrUpdateRowResponses, ListColumnsData, ListColumnsErrors, ListColumnsResponses, ListHistoryData, ListHistoryErrors, ListHistoryResponses, ListRecentHistoryData, ListRecentHistoryErrors, ListRecentHistoryResponses, ListRowsData, ListRowsErrors, ListRowsResponses, ListTablesData, ListTablesErrors, ListTablesResponses, NewTableFormFiledsData, NewTableFormFiledsErrors, NewTableFormFiledsResponses, RowInsertOrUpdateFormData, RowInsertOrUpdateFormErrors, RowInsertOrUpdateFormResponses, RunSqlQueryData, RunSqlQueryErrors, RunSqlQueryResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -27,6 +27,18 @@ export const listHistory = <ThrowOnError extends boolean = false>(options?: Opti
  * List recent history
  */
 export const listRecentHistory = <ThrowOnError extends boolean = false>(options?: Options<ListRecentHistoryData, ThrowOnError>) => (options?.client ?? client).get<ListRecentHistoryResponses, ListRecentHistoryErrors, ThrowOnError>({ url: '/api/v1/history/recent', ...options });
+
+/**
+ * Run SQL query
+ */
+export const runSqlQuery = <ThrowOnError extends boolean = false>(options: Options<RunSqlQueryData, ThrowOnError>) => (options.client ?? client).post<RunSqlQueryResponses, RunSqlQueryErrors, ThrowOnError>({
+    url: '/api/v1/run-sql',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Delete a table

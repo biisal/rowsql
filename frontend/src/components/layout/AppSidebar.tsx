@@ -1,4 +1,4 @@
-import { Clock, Plus, Table as TableIcon } from 'lucide-react';
+import { Clock, Code, Plus, Table as TableIcon } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import type { ListTablesRow } from '@/client/types.gen';
 import {
@@ -53,6 +53,20 @@ export function AppSidebar({
 				</SidebarMenu>
 			</SidebarHeader>
 
+			<SidebarMenu className='p-2'>
+				<SidebarMenuItem>
+					<SidebarMenuButton
+						asChild
+						className="bg-primary text-primary-foreground hover:bg-primary/90 justify-center shadow-lg shadow-primary/20"
+					>
+						<Link to="/editor">
+							<Code />
+							<span>SQL Editor</span>
+						</Link>
+					</SidebarMenuButton>
+				</SidebarMenuItem>
+			</SidebarMenu>
+
 			<SidebarContent>
 				<SidebarGroup>
 					<SidebarGroupLabel>Tables</SidebarGroupLabel>
@@ -103,6 +117,7 @@ export function AppSidebar({
 							</Link>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
+
 				</SidebarMenu>
 			</SidebarFooter>
 		</ShadcnSidebar>

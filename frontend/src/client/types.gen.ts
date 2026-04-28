@@ -148,6 +148,25 @@ export type RowSet = {
     [key: string]: unknown;
 };
 
+export type RunSqlQueryInputBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    query: string;
+    [key: string]: unknown;
+};
+
+export type RunSqlQueryOutputBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    columns: Array<string> | null;
+    rows: Array<Array<unknown> | null> | null;
+    [key: string]: unknown;
+};
+
 export type VarianDataType = {
     hasAutoIncrement: boolean;
     hasDigit: boolean;
@@ -220,6 +239,17 @@ export type RowInsertOrUpdateFormOutputBodyWritable = {
     [key: string]: unknown;
 };
 
+export type RunSqlQueryInputBodyWritable = {
+    query: string;
+    [key: string]: unknown;
+};
+
+export type RunSqlQueryOutputBodyWritable = {
+    columns: Array<string> | null;
+    rows: Array<Array<unknown> | null> | null;
+    [key: string]: unknown;
+};
+
 export type ListHistoryData = {
     body?: never;
     path?: never;
@@ -271,6 +301,31 @@ export type ListRecentHistoryResponses = {
 };
 
 export type ListRecentHistoryResponse = ListRecentHistoryResponses[keyof ListRecentHistoryResponses];
+
+export type RunSqlQueryData = {
+    body: RunSqlQueryInputBodyWritable;
+    path?: never;
+    query?: never;
+    url: '/api/v1/run-sql';
+};
+
+export type RunSqlQueryErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type RunSqlQueryError = RunSqlQueryErrors[keyof RunSqlQueryErrors];
+
+export type RunSqlQueryResponses = {
+    /**
+     * OK
+     */
+    200: RunSqlQueryOutputBody;
+};
+
+export type RunSqlQueryResponse = RunSqlQueryResponses[keyof RunSqlQueryResponses];
 
 export type DeleteTableData = {
     body: DeleteTableRequestWritable;

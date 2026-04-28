@@ -3,8 +3,8 @@
 import { type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { createNewTable, deleteRow, deleteTable, insertOrUpdateRow, listColumns, listHistory, listRecentHistory, listRows, listTables, newTableFormFileds, type Options, rowInsertOrUpdateForm } from '../sdk.gen';
-import type { CreateNewTableData, CreateNewTableError, CreateNewTableResponse, DeleteRowData, DeleteRowError, DeleteRowResponse, DeleteTableData, DeleteTableError, DeleteTableResponse, InsertOrUpdateRowData, InsertOrUpdateRowError, InsertOrUpdateRowResponse, ListColumnsData, ListColumnsError, ListColumnsResponse, ListHistoryData, ListHistoryError, ListHistoryResponse, ListRecentHistoryData, ListRecentHistoryError, ListRecentHistoryResponse, ListRowsData, ListRowsError, ListRowsResponse2, ListTablesData, ListTablesError, ListTablesResponse, NewTableFormFiledsData, NewTableFormFiledsError, NewTableFormFiledsResponse, RowInsertOrUpdateFormData, RowInsertOrUpdateFormError, RowInsertOrUpdateFormResponse } from '../types.gen';
+import { createNewTable, deleteRow, deleteTable, insertOrUpdateRow, listColumns, listHistory, listRecentHistory, listRows, listTables, newTableFormFileds, type Options, rowInsertOrUpdateForm, runSqlQuery } from '../sdk.gen';
+import type { CreateNewTableData, CreateNewTableError, CreateNewTableResponse, DeleteRowData, DeleteRowError, DeleteRowResponse, DeleteTableData, DeleteTableError, DeleteTableResponse, InsertOrUpdateRowData, InsertOrUpdateRowError, InsertOrUpdateRowResponse, ListColumnsData, ListColumnsError, ListColumnsResponse, ListHistoryData, ListHistoryError, ListHistoryResponse, ListRecentHistoryData, ListRecentHistoryError, ListRecentHistoryResponse, ListRowsData, ListRowsError, ListRowsResponse2, ListTablesData, ListTablesError, ListTablesResponse, NewTableFormFiledsData, NewTableFormFiledsError, NewTableFormFiledsResponse, RowInsertOrUpdateFormData, RowInsertOrUpdateFormError, RowInsertOrUpdateFormResponse, RunSqlQueryData, RunSqlQueryError, RunSqlQueryResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -130,6 +130,23 @@ export const listRecentHistoryOptions = (options?: Options<ListRecentHistoryData
     },
     queryKey: listRecentHistoryQueryKey(options)
 });
+
+/**
+ * Run SQL query
+ */
+export const runSqlQueryMutation = (options?: Partial<Options<RunSqlQueryData>>): UseMutationOptions<RunSqlQueryResponse, RunSqlQueryError, Options<RunSqlQueryData>> => {
+    const mutationOptions: UseMutationOptions<RunSqlQueryResponse, RunSqlQueryError, Options<RunSqlQueryData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await runSqlQuery({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 /**
  * Delete a table

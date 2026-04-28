@@ -20,6 +20,7 @@ import { RowForm } from '@/pages/RowForm.tsx';
 import TableEditForm from '@/pages/TableEditForm.tsx';
 import { TableForm } from '@/pages/TableForm.tsx';
 import { TablePage } from '@/pages/TableRows.tsx';
+import { Editor } from '@/pages/Editor';
 
 const queryClient = new QueryClient({
 	mutationCache: new MutationCache({
@@ -40,6 +41,7 @@ createRoot(document.getElementById('root')!).render(
 					<Route element={<Layout />}>
 						<Route path="/" element={<Home />} />
 
+						<Route path="/editor" element={<Editor />} />
 						<Route path="/new-table" element={<TableForm />} />
 						<Route path="/tables/:tableName" element={<TablePage />} />
 						<Route path="/tables/:tableName/edit" element={<TableEditForm />} />
