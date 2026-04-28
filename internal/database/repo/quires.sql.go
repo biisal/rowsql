@@ -388,3 +388,45 @@ func (q *Queries) DeleteTable(ctx context.Context, tableName string) error {
 func (q *Queries) GetDriver() configs.Driver {
 	return q.driver
 }
+
+func (q *Queries) RunSQLQuery(ctx context.Context, query string) (*models.RunSQLQueryOutput, error) {
+	rows, err := q.db.QueryxContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer func(e error) {
+		if e := rows.Close(); e != nil {
+			logger.Errorln(e)
+		}
+	}(err)
+
+	cols, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+
+	var result [][]any
+	for rows.Next() {
+		values, err := rows.SliceScan()
+		if err != nil {
+			return nil, err
+		}
+		row := make([]any, len(values))
+		for i, v := range values {
+			if b, ok := v.([]byte); ok {
+				row[i] = string(b)
+			} else {
+				row[i] = v
+			}
+		}
+		result = append(result, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return &models.RunSQLQueryOutput{
+		Columns: cols,
+		Rows:    result,
+	}, nil
+}

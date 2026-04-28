@@ -28,6 +28,7 @@ type DBService interface {
 	DeleteTable(ctx context.Context, tableName, verificationQuery string) error
 	ListHistory(ctx context.Context, page int) ([]models.History, error)
 	HasNextPage(ctx context.Context, total, page int) bool
+	RunSQLQuery(ctx context.Context, query string) (*models.RunSQLQueryOutput, error)
 }
 
 type svc struct {
@@ -142,4 +143,8 @@ func (s *svc) GetTableFormDataTypes() *FormDatatype {
 
 func (s *svc) ListHistory(ctx context.Context, page int) ([]models.History, error) {
 	return s.repo.ListHistory(ctx, s.limit, s.getOffset(page))
+}
+
+func (s *svc) RunSQLQuery(ctx context.Context, query string) (*models.RunSQLQueryOutput, error) {
+	return s.repo.RunSQLQuery(ctx, query)
 }

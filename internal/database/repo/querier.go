@@ -16,6 +16,7 @@ type Querier interface {
 	DeleteRow(ctx context.Context, props UpdateOrDeleteRowProps) error
 	GetRow(ctx context.Context, tableName, hash string, offset, limit int) ([]models.ColValue, error)
 	GetDriver() configs.Driver
+	RunSQLQuery(ctx context.Context, query string) (*models.RunSQLQueryOutput, error)
 }
 
 var _ Querier = (*Queries)(nil)

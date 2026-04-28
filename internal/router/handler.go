@@ -312,3 +312,30 @@ func (h *DBHandler) ListRecentHistory(ctx context.Context, input *struct{}) (*st
 
 	return &struct{ Body []models.History }{Body: history}, nil
 }
+
+type RunSQLQueryInput struct {
+	Body struct {
+		Query string `json:"query"`
+	}
+}
+
+type RunSQLQueryOutput struct {
+	Body struct {
+		*models.RunSQLQueryOutput
+	}
+}
+
+func (h *DBHandler) HandleRunSQLQuery(ctx context.Context, input *RunSQLQueryInput) (*RunSQLQueryOutput, error) {
+	result, err := h.service.RunSQLQuery(ctx, input.Body.Query)
+	if err != nil {
+		logger.Error("Failed to run SQL query: %v", err)
+		return nil, err
+	}
+	return &RunSQLQueryOutput{
+		Body: struct {
+			*models.RunSQLQueryOutput
+		}{
+			RunSQLQueryOutput: result,
+		},
+	}, nil
+}

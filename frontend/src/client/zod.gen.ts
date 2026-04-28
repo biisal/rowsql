@@ -90,6 +90,17 @@ export const zListRowsResponse = z.object({
     totalPages: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
+export const zRunSqlQueryInputBody = z.object({
+    $schema: z.url().readonly().optional(),
+    query: z.string()
+});
+
+export const zRunSqlQueryOutputBody = z.object({
+    $schema: z.url().readonly().optional(),
+    columns: z.array(z.string()).nullable(),
+    rows: z.array(z.array(z.unknown()).nullable()).nullable()
+});
+
 export const zVarianDataType = z.object({
     hasAutoIncrement: z.boolean(),
     hasDigit: z.boolean(),
@@ -143,6 +154,15 @@ export const zRowInsertOrUpdateFormOutputBodyWritable = z.object({
     cols: z.array(zColValue).nullable()
 });
 
+export const zRunSqlQueryInputBodyWritable = z.object({
+    query: z.string()
+});
+
+export const zRunSqlQueryOutputBodyWritable = z.object({
+    columns: z.array(z.string()).nullable(),
+    rows: z.array(z.array(z.unknown()).nullable()).nullable()
+});
+
 export const zListHistoryQuery = z.object({
     page: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional().default(BigInt(1))
 });
@@ -156,6 +176,13 @@ export const zListHistoryResponse = z.array(zHistory).nullable();
  * OK
  */
 export const zListRecentHistoryResponse = z.array(zHistory).nullable();
+
+export const zRunSqlQueryBody = zRunSqlQueryInputBodyWritable;
+
+/**
+ * OK
+ */
+export const zRunSqlQueryResponse = zRunSqlQueryOutputBody;
 
 export const zDeleteTableBody = zDeleteTableRequestWritable;
 

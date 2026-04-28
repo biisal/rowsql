@@ -112,4 +112,11 @@ func RegisterRoutes(api huma.API, h DBHandler) {
 		Summary:     "List recent history",
 		Tags:        []string{"history"},
 	}, h.ListRecentHistory)
+	huma.Register(api, huma.Operation{
+		OperationID: "runSQLQuery",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/run-sql",
+		Summary:     "Run SQL query",
+		Tags:        []string{"sql"},
+	}, h.HandleRunSQLQuery)
 }

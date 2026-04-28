@@ -44,3 +44,8 @@ type ColValue struct {
 	Size         int     `json:"size,omitempty"`
 	ColumnType   ColType `json:"columnType"`
 }
+
+type RunSQLQueryOutput struct {
+	Columns []string `json:"columns"`
+	Rows    [][]any  `json:"rows"`
+}

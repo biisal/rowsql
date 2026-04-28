@@ -398,6 +398,68 @@
 				],
 				"type": "object"
 			},
+			"RunSQLQueryInputBody": {
+				"additionalProperties": true,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": [
+							"https://example.com/schemas/RunSQLQueryInputBody.json"
+						],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"query": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"query"
+				],
+				"type": "object"
+			},
+			"RunSQLQueryOutputBody": {
+				"additionalProperties": true,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": [
+							"https://example.com/schemas/RunSQLQueryOutputBody.json"
+						],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"columns": {
+						"items": {
+							"type": "string"
+						},
+						"type": [
+							"array",
+							"null"
+						]
+					},
+					"rows": {
+						"items": {
+							"items": {},
+							"type": [
+								"array",
+								"null"
+							]
+						},
+						"type": [
+							"array",
+							"null"
+						]
+					}
+				},
+				"required": [
+					"columns",
+					"rows"
+				],
+				"type": "object"
+			},
 			"VarianDataType": {
 				"additionalProperties": true,
 				"properties": {
@@ -521,6 +583,47 @@
 				"summary": "List recent history",
 				"tags": [
 					"history"
+				]
+			}
+		},
+		"/api/v1/run-sql": {
+			"post": {
+				"operationId": "runSQLQuery",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/RunSQLQueryInputBody"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/RunSQLQueryOutputBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"default": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Error"
+					}
+				},
+				"summary": "Run SQL query",
+				"tags": [
+					"sql"
 				]
 			}
 		},
