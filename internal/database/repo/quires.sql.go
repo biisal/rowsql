@@ -394,7 +394,11 @@ func (q *Queries) RunSQLQuery(ctx context.Context, query string) (*models.RunSQL
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(e error) {
+		if e := rows.Close(); e != nil {
+			logger.Errorln(e)
+		}
+	}(err)
 
 	cols, err := rows.Columns()
 	if err != nil {
