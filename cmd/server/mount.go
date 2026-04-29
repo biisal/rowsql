@@ -23,12 +23,16 @@ func printLogo(version string) {
 	gitLink := color.HiGreenString("https://github.com/biisal/rowsql")
 	version = color.HiYellowString("You are using version %s", version)
 
-	logo := fmt.Sprintf(`
+	logo := fmt.Sprintf(`\x1b[1G
                           ❤️ Thanks for using
 █▀█ █▀█ █░█░█ █▀ █▀█ █░░  ⭐ Star on GitHub: %s
 █▀▄ █▄█ ▀▄▀▄▀ ▄█ ▀▀█ █▄▄  %s
 `, gitLink, version)
 	fmt.Println(logo)
+}
+
+func cleanPort(port int) string {
+	return fmt.Sprintf(":%d", port)
 }
 
 func mount(cfg *configs.Config) error {
@@ -85,10 +89,10 @@ func mount(cfg *configs.Config) error {
 	}
 
 	server := http.Server{
-		Addr:    cfg.Server.Port,
+		Addr:    cleanPort(cfg.Port),
 		Handler: corsMux,
 	}
-	logger.Success("Running server on port %s", cfg.Server.Port)
+	logger.Success("Running server on port %d", cfg.Port)
 	if err := server.ListenAndServe(); err != nil {
 		logger.Errorln("Failed to start server:", err)
 		return err

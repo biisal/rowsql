@@ -2,16 +2,11 @@
 package configs
 
 import (
-	"fmt"
-	"log"
+	"encoding/json"
 	"os"
-	"reflect"
-	"strings"
 
+	"github.com/biisal/rowsql/internal/apperr"
 	"github.com/biisal/rowsql/internal/logger"
-	"github.com/fatih/color"
-	"github.com/ilyakaznacheev/cleanenv"
-	"github.com/joho/godotenv"
 )
 
 type Driver string
@@ -30,57 +25,31 @@ var Drivers = map[Driver]Driver{
 	"sqlite": DriverSQLite,
 }
 
-type ServerConfig struct {
-	Host string `env:"HOST"`
-	Port string `env:"PORT" env-required:"true"`
+type ConnectionConfig struct {
+	Port     int    `json:"port"`
+	DBString string `json:"db_string"`
+	Env      string `json:"env,omitempty"`
 }
 
-type AutoUpdateConfig struct {
-	DisableAutoUpdate bool `env:"DISABLE_AUTO_UPDATE" env-default:"false"`
+type AppConfig struct {
+	DisableAutoUpdate bool `json:"disable_auto_update,omitempty"`
+	Driver            Driver
+
+	MaxItemsPerPage int    `json:"max_items_per_page,omitempty"`
+	LogFilePath     string `json:"log_file_path,omitempty"`
+}
+
+type ConfigFileFileds struct {
+	Connections []ConnectionConfig `json:"connections"`
+	AppConfig
 }
 
 type Config struct {
-	DBString        string `env:"DBSTRING" env-required:"true"`
-	Server          ServerConfig
-	Update          AutoUpdateConfig
-	Driver          Driver
-	MaxItemsPerPage int    `env:"MAX_ITEMS_PER_PAGE" env-default:"10"`
-	Env             string `env:"ENV" env-default:"production"`
-	LogFilePath     string `env:"LOG_FILE_PATH" env-default:"~/.rowsql/rowsql.log"`
-	Logo            string
+	ConnectionConfig
+	AppConfig
 }
 
-func promptForDefaultEnv(dir, fileName string) {
-	path := dir + "/" + fileName
-	color.Cyan("No %s found in %s\nDo you want to create one with default values? (y/n): ", fileName, dir)
-	var choice string
-	if _, err := fmt.Scan(&choice); err != nil {
-		logger.Errorln(err)
-		os.Exit(0)
-	}
-	if strings.ToLower(choice) == "y" {
-		file, err := os.Create(path)
-		if err != nil {
-			logger.Error("Error creating %s file: %s", fileName, err)
-			os.Exit(1)
-		}
-		if _, err = file.WriteString("DBSTRING=test.db\nPORT=8000"); err != nil {
-			logger.Errorln(err)
-			os.Exit(0)
-		}
-		defer func() {
-			if err := file.Close(); err != nil {
-				logger.Errorln(err)
-			}
-		}()
-		logger.Info("Default %s file created in %s", fileName, path)
-	} else {
-		logger.Error("No %s file found", fileName)
-		os.Exit(1)
-	}
-}
-
-func getEnvPath() string {
+func getCofigPath() string {
 	userHome, err := os.UserHomeDir()
 	if err != nil {
 		logger.Error("Error getting user home directory: %s", err)
@@ -91,7 +60,7 @@ func getEnvPath() string {
 		logger.Error("Error creating .rowsql directory: %s", err)
 		os.Exit(1)
 	}
-	fileName := ".env"
+	fileName := "config.json"
 	fullPath := path + "/" + fileName
 	_, err = os.OpenFile(fullPath, os.O_RDONLY, 0o644)
 	if err != nil {
@@ -105,36 +74,61 @@ func getEnvPath() string {
 	return fullPath
 }
 
-func MustLoad(envPath ...string) *Config {
+func MustLoad(configPath ...string) *Config {
 	var cfg Config
 
 	var path string
-	if len(envPath) > 0 && envPath[0] != "" {
-		path = envPath[0]
+	if len(configPath) > 0 && configPath[0] != "" {
+		path = configPath[0]
 	} else {
-		path = getEnvPath()
+		path = getCofigPath()
+	}
+	configFileFileds, err := listConfig(path)
+	if err != nil {
+		logger.Errorln(err)
+		os.Exit(1)
 	}
 
-	if err := godotenv.Load(path); err != nil {
-		log.Fatal(err)
-	}
-	if err := cleanenv.ReadEnv(&cfg); err != nil {
-		log.Fatal(err)
-	}
-	if cfg.DBString == "" {
-		t := reflect.TypeFor[Config]()
-		field, _ := t.FieldByName("DBSTRING")
-		tagVal := field.Tag.Get("env")
-		logger.Error("%s not found in .env", tagVal)
+	appConfig, err := askConfig(configFileFileds.Connections)
+	if err != nil {
+		logger.Errorln(err)
 		os.Exit(1)
 	}
-	if !strings.HasPrefix(cfg.Server.Port, ":") {
-		cfg.Server.Port = ":" + cfg.Server.Port
+
+	cfg.ConnectionConfig = *appConfig
+	if cfg.Env == "" {
+		cfg.Env = EnvProduction
 	}
-	if cfg.Env != string(EnvDevelopment) && cfg.Env != string(EnvProduction) {
-		logger.Error("%s env can't be set! Make sure it's '%s' or '%s', Default '%s'",
-			cfg.Env, EnvDevelopment, EnvProduction, EnvProduction)
-		os.Exit(1)
+	if cfg.LogFilePath == "" {
+		userHome, err := os.UserHomeDir()
+		if err != nil {
+			logger.Error("Error getting user home directory: %s", err)
+			os.Exit(1)
+		}
+		cfg.LogFilePath = userHome + "/.rowsql/rowsql.log"
 	}
+
+	if cfg.MaxItemsPerPage < 1 {
+		cfg.MaxItemsPerPage = 1
+	}
+
 	return &cfg
+}
+
+func listConfig(path string) (ConfigFileFileds, error) {
+	var configFileFields ConfigFileFileds
+	fileData, err := os.ReadFile(path)
+	if err != nil {
+		return configFileFields, err
+	}
+	if err := json.Unmarshal(fileData, &configFileFields); err != nil {
+		return configFileFields, apperr.ErrorInvalidJSONFile
+	}
+
+	for _, conn := range configFileFields.Connections {
+		if conn.Port == 0 || conn.DBString == "" {
+			return ConfigFileFileds{}, apperr.ErrorInvalidJSONFile
+		}
+	}
+	return configFileFields, nil
 }

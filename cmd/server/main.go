@@ -15,10 +15,16 @@ func main() {
 	command := os.Args[0]
 
 	envPath := cmd.ParseFlags(command)
-	printLogo(version)
+
 	cfg := configs.MustLoad(envPath)
 
-	if err := runAutoUpdate(command, version, &cfg.Update); err != nil {
+	if cfg == nil {
+		logger.Error("Failed to load config")
+		return
+	}
+
+	printLogo(version)
+	if err := runAutoUpdate(command, version, cfg.DisableAutoUpdate); err != nil {
 		logger.ErrorWriteOnlyFile("Error while updating: %s", err)
 	}
 

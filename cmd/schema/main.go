@@ -5,20 +5,15 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/biisal/rowsql/cmd"
 	"github.com/biisal/rowsql/configs"
 	"github.com/biisal/rowsql/internal/logger"
 	"github.com/biisal/rowsql/internal/router"
 )
 
 func main() {
-	command := os.Args[0]
-
-	envPath := cmd.ParseFlags(command)
-	cfg := configs.MustLoad(envPath)
 	mux := http.NewServeMux()
 
-	api := router.NewAPI(mux, cfg)
+	api := router.NewAPI(mux, &configs.Config{})
 	router.RegisterRoutes(api, router.DBHandler{})
 
 	b, err := json.MarshalIndent(api.OpenAPI(), "", "\t")

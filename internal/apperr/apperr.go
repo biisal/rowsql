@@ -21,6 +21,8 @@ var (
 	ErrorNoRowsInArgs            = errors.New("no rows in args")
 	ErrorNoColumnsInArgs         = errors.New("no colums in args")
 	ErrorInvalidAutoIncrement    = errors.New("auto-increment can only be set on primary key columns")
+	ErrorNoConfigsFound          = errors.New("no configs found")
+	ErrorInvalidJSONFile         = errors.New("invlaid json file! fix the config.json")
 )
 
 func ErrorLimitTooLarge(max int) error {
