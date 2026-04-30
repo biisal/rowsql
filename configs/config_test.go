@@ -57,8 +57,6 @@ func toJSON(v any) string {
 }
 
 func TestListConfig(t *testing.T) {
-	tempDir := t.TempDir()
-
 	tests := []struct {
 		name       string
 		input      any
@@ -85,16 +83,15 @@ func TestListConfig(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			configPath := filepath.Join(tempDir, test.name+".json")
+			tempDir := t.TempDir()
+			configPath := filepath.Join(tempDir, "config.json")
 			createTestConfigFile(t, configPath, toJSON(test.input))
 
 			configService := &ConfigServiceImpl{}
 			got, err := configService.parseConfig(configPath)
 
-			if test.wantError != nil {
-				assertError(t, err, test.wantError)
-			} else {
-				assertError(t, err, nil)
+			assertError(t, err, test.wantError)
+			if test.wantError == nil {
 				assertConfigs(t, got.Connections, test.wantConfig)
 			}
 		})
@@ -109,8 +106,6 @@ func assertConfig(t testing.TB, got Config, want Config) {
 }
 
 func TestLoadConfig(t *testing.T) {
-	tempDir := t.TempDir()
-
 	tests := []struct {
 		name       string
 		wantErr    error
@@ -180,7 +175,8 @@ func TestLoadConfig(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			configPath := filepath.Join(tempDir, test.name+".json")
+			tempDir := t.TempDir()
+			configPath := filepath.Join(tempDir, "config.json")
 			createTestConfigFile(t, configPath, toJSON(test.input))
 
 			configService := NewConfigService(&MockPrompter{})
@@ -188,8 +184,10 @@ func TestLoadConfig(t *testing.T) {
 			got, err := configService.LoadConfig(configPath)
 			assertError(t, err, test.wantErr)
 
-			test.wantConfig.LogFilePath = got.LogFilePath
-			assertConfig(t, got, test.wantConfig)
+			if test.wantErr == nil {
+				test.wantConfig.LogFilePath = got.LogFilePath
+				assertConfig(t, got, test.wantConfig)
+			}
 		})
 	}
 }
