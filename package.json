@@ -1,0 +1,7 @@
+{
+  "name": "rowsql-root",
+  "private": true,
+  "scripts": {
+    "prepare": "husky"
+  }
+}
