@@ -1,9 +1,10 @@
 package configs
 
 import (
+	"encoding/json"
 	"fmt"
-	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/biisal/rowsql/internal/apperr"
@@ -27,45 +28,35 @@ type Prompter interface {
 
 type PrompterImpl struct{}
 
-func promptForDefaultEnv(dir, fileName string) {
-	path := dir + "/" + fileName
+func promptForDefaultEnv(dir, fileName string) error {
+	path := filepath.Join(dir, fileName)
 	color.Cyan("No %s found in %s\nDo you want to create one with default values? (y/n): ", fileName, dir)
 	var choice string
 	if _, err := fmt.Scan(&choice); err != nil {
-		logger.Errorln(err)
-		os.Exit(1)
+		return fmt.Errorf("reading choice: %w", err)
 	}
-	if strings.ToLower(choice) == "y" {
-		file, err := os.Create(path)
-		if err != nil {
-			logger.Error("Error creating %s file: %s", fileName, err)
-			os.Exit(1)
-		}
-		if _, err = file.WriteString(`
-		{
-			"env" : "production",
-			"log_file_path" : "~/.rowsql/rowsql.log",
-			"connections":[
-				{
-				"port" : 8080,
-				"db_string" : "test.db"
-				}
-			]
-		}
-		`); err != nil {
-			logger.Errorln(err)
-			os.Exit(0)
-		}
-		defer func() {
-			if err := file.Close(); err != nil {
-				logger.Errorln(err)
-			}
-		}()
-		logger.Info("Default %s file created in %s", fileName, path)
-	} else {
-		logger.Error("No %s file found", fileName)
-		os.Exit(1)
+
+	if strings.ToLower(choice) != "y" {
+		return fmt.Errorf("no %s file found and user declined creation", fileName)
 	}
+
+	cfg := DefaultConfig()
+	fields := ConfigFileFields{
+		Connections: []ConnectionConfig{cfg.ConnectionConfig},
+		AppConfig:   cfg.AppConfig,
+	}
+
+	data, err := json.MarshalIndent(fields, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshaling default config: %w", err)
+	}
+
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		return fmt.Errorf("writing config file: %w", err)
+	}
+
+	logger.Info("Default %s file created in %s", fileName, path)
+	return nil
 }
 
 func makeListString(configs []ConnectionConfig, selected int) string {
@@ -94,7 +85,7 @@ func makeListString(configs []ConnectionConfig, selected int) string {
 func (p *PrompterImpl) AskConnection(configs []ConnectionConfig) (*ConnectionConfig, error) {
 	oldState, err := term.MakeRaw(int(os.Stdout.Fd()))
 	if err != nil {
-		log.Fatal("Failed to make terminal raw:", err)
+		return nil, fmt.Errorf("failed to make terminal raw: %w", err)
 	}
 	defer func() {
 		if err := term.Restore(int(os.Stdout.Fd()), oldState); err != nil {
@@ -105,11 +96,12 @@ func (p *PrompterImpl) AskConnection(configs []ConnectionConfig) (*ConnectionCon
 	}()
 	fmt.Print(AnsiAlternateScreen)
 	fmt.Print(AnsiHideCursor)
-	configsLastIdx := len(configs) - 1
-	if configs == nil || configsLastIdx == -1 {
+
+	if len(configs) == 0 {
 		return nil, apperr.ErrorNoConfigsFound
 	}
 
+	configsLastIdx := len(configs) - 1
 	currentIndex := 0
 
 	fmt.Println(makeListString(configs, currentIndex))
@@ -118,13 +110,12 @@ func (p *PrompterImpl) AskConnection(configs []ConnectionConfig) (*ConnectionCon
 	for {
 		n, err := os.Stdin.Read(input)
 		if err != nil || n == 0 {
-			logger.Error("error taking input %s", err)
 			continue
 		}
 		char := input[0]
 		switch char {
 		case 'q':
-			return nil, fmt.Errorf("okay")
+			return nil, fmt.Errorf("operation cancelled by user")
 		case 'j':
 			if currentIndex < configsLastIdx {
 				currentIndex++
@@ -138,8 +129,8 @@ func (p *PrompterImpl) AskConnection(configs []ConnectionConfig) (*ConnectionCon
 		case '\n', '\r':
 			return &configs[currentIndex], nil
 		default:
-			fmt.Printf("Invalid input %v\n", char)
+			// Ignore other inputs
 		}
-
 	}
 }
+

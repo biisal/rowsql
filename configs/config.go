@@ -3,10 +3,11 @@ package configs
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/biisal/rowsql/internal/apperr"
-	"github.com/biisal/rowsql/internal/logger"
 )
 
 type Driver string
@@ -34,15 +35,14 @@ type ConnectionConfig struct {
 }
 
 type AppConfig struct {
-	DisableAutoUpdate bool `json:"disable_auto_update,omitempty"`
-	Driver            Driver
-
-	MaxItemsPerPage int    `json:"max_items_per_page,omitempty"`
-	MinItemsPerPage int    `json:"min_items_per_page,omitempty"`
-	LogFilePath     string `json:"log_file_path,omitempty"`
+	DisableAutoUpdate bool   `json:"disable_auto_update,omitempty"`
+	Driver            Driver `json:"driver,omitempty"`
+	MaxItemsPerPage   int    `json:"max_items_per_page,omitempty"`
+	MinItemsPerPage   int    `json:"min_items_per_page,omitempty"`
+	LogFilePath       string `json:"log_file_path,omitempty"`
 }
 
-type ConfigFileFileds struct {
+type ConfigFileFields struct {
 	Connections []ConnectionConfig `json:"connections"`
 	AppConfig
 }
@@ -52,115 +52,133 @@ type Config struct {
 	AppConfig
 }
 
+func DefaultConfig() Config {
+	userHome, _ := os.UserHomeDir()
+	return Config{
+		ConnectionConfig: ConnectionConfig{
+			Port:     8080,
+			DBString: "test.db",
+			Env:      EnvProduction,
+		},
+		AppConfig: AppConfig{
+			MaxItemsPerPage: MaxItemsPerPage,
+			MinItemsPerPage: MinItemsPerPage,
+			LogFilePath:     filepath.Join(userHome, ".rowsql", "rowsql.log"),
+		},
+	}
+}
+
 type ConfigService interface {
-	ParseConfig(path string) (ConfigFileFileds, error)
-	LoadConfig(path ...string) *Config
-	GetConfigPath() string
+	LoadConfig(path ...string) (Config, error)
+	GetConfigPath() (string, error)
 }
 
 type ConfigServiceImpl struct {
 	prompter Prompter
 }
 
-func NewConfigService() ConfigService {
+func NewConfigService(prompter Prompter) ConfigService {
 	return &ConfigServiceImpl{
-		prompter: &PrompterImpl{},
+		prompter: prompter,
 	}
 }
 
-func (c *ConfigServiceImpl) LoadConfig(configPath ...string) *Config {
-	var cfg Config
-
+func (c *ConfigServiceImpl) LoadConfig(configPath ...string) (Config, error) {
 	var path string
 	if len(configPath) > 0 && configPath[0] != "" {
 		path = configPath[0]
 	} else {
-		path = c.GetConfigPath()
-	}
-	configFileFileds, err := c.ParseConfig(path)
-	if err != nil {
-		logger.Errorln(err)
-		os.Exit(1)
-	}
-
-	cfg.AppConfig = configFileFileds.AppConfig
-
-	var appConfig *ConnectionConfig
-	if len(configFileFileds.Connections) == 1 {
-		appConfig = &configFileFileds.Connections[0]
-	} else {
-		appConfig, err = c.prompter.AskConnection(configFileFileds.Connections)
+		var err error
+		path, err = c.GetConfigPath()
 		if err != nil {
-			logger.Errorln(err)
-			os.Exit(1)
+			return Config{}, err
 		}
 	}
 
-	cfg.ConnectionConfig = *appConfig
+	fields, err := c.parseConfig(path)
+	if err != nil {
+		return Config{}, fmt.Errorf("parsing config: %w", err)
+	}
+
+	var conn *ConnectionConfig
+	if len(fields.Connections) == 0 {
+		return Config{}, apperr.ErrorNoConfigsFound
+	} else if len(fields.Connections) == 1 {
+		conn = &fields.Connections[0]
+	} else {
+		conn, err = c.prompter.AskConnection(fields.Connections)
+		if err != nil {
+			return Config{}, fmt.Errorf("selecting connection: %w", err)
+		}
+	}
+
+	cfg := Config{
+		ConnectionConfig: *conn,
+		AppConfig:        fields.AppConfig,
+	}
+
+	c.applyDefaults(&cfg)
+	return cfg, nil
+}
+
+func (c *ConfigServiceImpl) applyDefaults(cfg *Config) {
 	if cfg.Env == "" {
 		cfg.Env = EnvProduction
 	}
 	if cfg.LogFilePath == "" {
-		userHome, err := os.UserHomeDir()
-		if err != nil {
-			logger.Error("Error getting user home directory: %s", err)
-			os.Exit(1)
-		}
-		cfg.LogFilePath = userHome + "/.rowsql/rowsql.log"
+		userHome, _ := os.UserHomeDir()
+		cfg.LogFilePath = filepath.Join(userHome, ".rowsql", "rowsql.log")
 	}
-
 	if cfg.MaxItemsPerPage == 0 {
-		logger.Warning("max_items_per_page not set or set to 0, defaulting to %d", MaxItemsPerPage)
 		cfg.MaxItemsPerPage = MaxItemsPerPage
 	}
-
 	if cfg.MinItemsPerPage == 0 {
-		logger.Warning("min_items_per_page not set or set to 0, defaulting to %d", MinItemsPerPage)
 		cfg.MinItemsPerPage = MinItemsPerPage
 	}
-
-	return &cfg
 }
 
-func (c *ConfigServiceImpl) GetConfigPath() string {
+func (c *ConfigServiceImpl) GetConfigPath() (string, error) {
 	userHome, err := os.UserHomeDir()
 	if err != nil {
-		logger.Error("Error getting user home directory: %s", err)
-		os.Exit(1)
+		return "", fmt.Errorf("getting home dir: %w", err)
 	}
-	path := userHome + "/.rowsql"
-	if err = os.MkdirAll(path, 0o755); err != nil {
-		logger.Error("Error creating .rowsql directory: %s", err)
-		os.Exit(1)
+
+	configDir := filepath.Join(userHome, ".rowsql")
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		return "", fmt.Errorf("creating config directory: %w", err)
 	}
+
 	fileName := "config.json"
-	fullPath := path + "/" + fileName
-	_, err = os.OpenFile(fullPath, os.O_RDONLY, 0o644)
-	if err != nil {
-		if os.IsNotExist(err) {
-			promptForDefaultEnv(path, fileName)
-		} else {
-			logger.Error("Error opening .env file: %s", err)
-			os.Exit(1)
+	fullPath := filepath.Join(configDir, fileName)
+
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		if err := promptForDefaultEnv(configDir, fileName); err != nil {
+			return "", err
 		}
+	} else if err != nil {
+		return "", fmt.Errorf("checking config file: %w", err)
 	}
-	return fullPath
+
+	return fullPath, nil
 }
 
-func (c *ConfigServiceImpl) ParseConfig(path string) (ConfigFileFileds, error) {
-	var configFileFields ConfigFileFileds
-	fileData, err := os.ReadFile(path)
+func (c *ConfigServiceImpl) parseConfig(path string) (ConfigFileFields, error) {
+	var fields ConfigFileFields
+	data, err := os.ReadFile(path)
 	if err != nil {
-		return configFileFields, err
-	}
-	if err := json.Unmarshal(fileData, &configFileFields); err != nil {
-		return configFileFields, apperr.ErrorInvalidJSONFile
+		return fields, fmt.Errorf("reading file: %w", err)
 	}
 
-	for _, conn := range configFileFields.Connections {
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return fields, apperr.ErrorInvalidJSONFile
+	}
+
+	for _, conn := range fields.Connections {
 		if conn.Port == 0 || conn.DBString == "" {
-			return ConfigFileFileds{}, apperr.ErrorInvalidJSONFile
+			return ConfigFileFields{}, apperr.ErrorInvalidJSONFile
 		}
 	}
-	return configFileFields, nil
+	return fields, nil
 }
+
+

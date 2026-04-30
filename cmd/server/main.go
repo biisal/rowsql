@@ -16,20 +16,19 @@ func main() {
 	command := os.Args[0]
 
 	envPath := cmd.ParseFlags(command)
-	configService := configs.NewConfigService()
+	configService := configs.NewConfigService(&configs.PrompterImpl{})
 
-	cfg := configService.LoadConfig(envPath)
-
-	if cfg == nil {
-		logger.Error("Failed to load config")
-		return
+	cfg, err := configService.LoadConfig(envPath)
+	if err != nil {
+		logger.Error("Failed to load config: %v", err)
+		os.Exit(1)
 	}
 
 	if err := runAutoUpdate(command, version, cfg.DisableAutoUpdate); err != nil {
 		logger.ErrorWriteOnlyFile("Error while updating: %s", err)
 	}
 
-	if err := mount(cfg); err != nil {
+	if err := mount(&cfg); err != nil {
 		log.Fatal("Failed to mount app:", err)
 		return
 	}
