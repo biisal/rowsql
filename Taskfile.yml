@@ -83,3 +83,9 @@ tasks:
     cmds:
       - go mod download
       - cd ./frontend && pnpm install
+
+  format:
+    desc: Run gofmt
+    cmds:
+      - gofmt -w .
+      - cd ./frontend && pnpm run format

@@ -12,11 +12,13 @@ import (
 type Driver string
 
 const (
-	DriverPostgres Driver = "pgx"
-	DriverMySQL    Driver = "mysql"
-	DriverSQLite   Driver = "sqlite"
-	EnvDevelopment string = "development"
-	EnvProduction  string = "production"
+	DriverPostgres  Driver = "pgx"
+	DriverMySQL     Driver = "mysql"
+	DriverSQLite    Driver = "sqlite"
+	EnvDevelopment  string = "development"
+	EnvProduction   string = "production"
+	MinItemsPerPage int    = 10
+	MaxItemsPerPage int    = 100
 )
 
 var Drivers = map[Driver]Driver{
@@ -36,6 +38,7 @@ type AppConfig struct {
 	Driver            Driver
 
 	MaxItemsPerPage int    `json:"max_items_per_page,omitempty"`
+	MinItemsPerPage int    `json:"min_items_per_page,omitempty"`
 	LogFilePath     string `json:"log_file_path,omitempty"`
 }
 
@@ -49,7 +52,77 @@ type Config struct {
 	AppConfig
 }
 
-func getCofigPath() string {
+type ConfigService interface {
+	ParseConfig(path string) (ConfigFileFileds, error)
+	LoadConfig(path ...string) *Config
+	GetConfigPath() string
+}
+
+type ConfigServiceImpl struct {
+	prompter Prompter
+}
+
+func NewConfigService() ConfigService {
+	return &ConfigServiceImpl{
+		prompter: &PrompterImpl{},
+	}
+}
+
+func (c *ConfigServiceImpl) LoadConfig(configPath ...string) *Config {
+	var cfg Config
+
+	var path string
+	if len(configPath) > 0 && configPath[0] != "" {
+		path = configPath[0]
+	} else {
+		path = c.GetConfigPath()
+	}
+	configFileFileds, err := c.ParseConfig(path)
+	if err != nil {
+		logger.Errorln(err)
+		os.Exit(1)
+	}
+
+	cfg.AppConfig = configFileFileds.AppConfig
+
+	var appConfig *ConnectionConfig
+	if len(configFileFileds.Connections) == 1 {
+		appConfig = &configFileFileds.Connections[0]
+	} else {
+		appConfig, err = c.prompter.AskConnection(configFileFileds.Connections)
+		if err != nil {
+			logger.Errorln(err)
+			os.Exit(1)
+		}
+	}
+
+	cfg.ConnectionConfig = *appConfig
+	if cfg.Env == "" {
+		cfg.Env = EnvProduction
+	}
+	if cfg.LogFilePath == "" {
+		userHome, err := os.UserHomeDir()
+		if err != nil {
+			logger.Error("Error getting user home directory: %s", err)
+			os.Exit(1)
+		}
+		cfg.LogFilePath = userHome + "/.rowsql/rowsql.log"
+	}
+
+	if cfg.MaxItemsPerPage == 0 {
+		logger.Warning("max_items_per_page not set or set to 0, defaulting to %d", MaxItemsPerPage)
+		cfg.MaxItemsPerPage = MaxItemsPerPage
+	}
+
+	if cfg.MinItemsPerPage == 0 {
+		logger.Warning("min_items_per_page not set or set to 0, defaulting to %d", MinItemsPerPage)
+		cfg.MinItemsPerPage = MinItemsPerPage
+	}
+
+	return &cfg
+}
+
+func (c *ConfigServiceImpl) GetConfigPath() string {
 	userHome, err := os.UserHomeDir()
 	if err != nil {
 		logger.Error("Error getting user home directory: %s", err)
@@ -74,48 +147,7 @@ func getCofigPath() string {
 	return fullPath
 }
 
-func MustLoad(configPath ...string) *Config {
-	var cfg Config
-
-	var path string
-	if len(configPath) > 0 && configPath[0] != "" {
-		path = configPath[0]
-	} else {
-		path = getCofigPath()
-	}
-	configFileFileds, err := listConfig(path)
-	if err != nil {
-		logger.Errorln(err)
-		os.Exit(1)
-	}
-
-	appConfig, err := askConfig(configFileFileds.Connections)
-	if err != nil {
-		logger.Errorln(err)
-		os.Exit(1)
-	}
-
-	cfg.ConnectionConfig = *appConfig
-	if cfg.Env == "" {
-		cfg.Env = EnvProduction
-	}
-	if cfg.LogFilePath == "" {
-		userHome, err := os.UserHomeDir()
-		if err != nil {
-			logger.Error("Error getting user home directory: %s", err)
-			os.Exit(1)
-		}
-		cfg.LogFilePath = userHome + "/.rowsql/rowsql.log"
-	}
-
-	if cfg.MaxItemsPerPage < 1 {
-		cfg.MaxItemsPerPage = 1
-	}
-
-	return &cfg
-}
-
-func listConfig(path string) (ConfigFileFileds, error) {
+func (c *ConfigServiceImpl) ParseConfig(path string) (ConfigFileFileds, error) {
 	var configFileFields ConfigFileFileds
 	fileData, err := os.ReadFile(path)
 	if err != nil {

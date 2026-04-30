@@ -12,6 +12,21 @@ import (
 	"golang.org/x/term"
 )
 
+const (
+	AnsiBackCursorToLineStart = "\x1b[1G"
+	AnsiClearScreen           = "\033[2J\033[H"
+	AnsiHideCursor            = "\x1b[?25l"
+	AnsiShowCursor            = "\x1b[?25h"
+	AnsiAlternateScreen       = "\x1b[?1049h"
+	AnsiExitAlternateScreen   = "\x1b[?1049l"
+)
+
+type Prompter interface {
+	AskConnection(connections []ConnectionConfig) (*ConnectionConfig, error)
+}
+
+type PrompterImpl struct{}
+
 func promptForDefaultEnv(dir, fileName string) {
 	path := dir + "/" + fileName
 	color.Cyan("No %s found in %s\nDo you want to create one with default values? (y/n): ", fileName, dir)
@@ -53,15 +68,6 @@ func promptForDefaultEnv(dir, fileName string) {
 	}
 }
 
-const (
-	AnsiBackCursorToLineStart = "\x1b[1G"
-	AnsiClearScreen           = "\033[2J\033[H"
-	AnsiHideCursor            = "\x1b[?25l"
-	AnsiShowCursor            = "\x1b[?25h"
-	AnsiAlternateScreen       = "\x1b[?1049h"
-	AnsiExitAlternateScreen   = "\x1b[?1049l"
-)
-
 func makeListString(configs []ConnectionConfig, selected int) string {
 	var sb strings.Builder
 	sb.WriteString(AnsiClearScreen)
@@ -85,13 +91,15 @@ func makeListString(configs []ConnectionConfig, selected int) string {
 	return sb.String()
 }
 
-func askConfig(configs []ConnectionConfig) (*ConnectionConfig, error) {
+func (p *PrompterImpl) AskConnection(configs []ConnectionConfig) (*ConnectionConfig, error) {
 	oldState, err := term.MakeRaw(int(os.Stdout.Fd()))
 	if err != nil {
 		log.Fatal("Failed to make terminal raw:", err)
 	}
 	defer func() {
-		term.Restore(int(os.Stdout.Fd()), oldState)
+		if err := term.Restore(int(os.Stdout.Fd()), oldState); err != nil {
+			logger.Error("Failed to restore terminal: %s", err)
+		}
 		fmt.Print(AnsiShowCursor)
 		fmt.Print(AnsiExitAlternateScreen)
 	}()

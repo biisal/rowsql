@@ -29,23 +29,6 @@ func assertError(t testing.TB, err error, want error) {
 	}
 }
 
-// func assertConfig(t testing.TB, cfg *Config) {
-// 	t.Helper()
-// 	if cfg == nil {
-// 		t.Error("MustLoad returned nil")
-// 		return
-// 	}
-// 	if cfg.Port != 8000 {
-// 		t.Errorf("Expected port 8000, got %d", cfg.Port)
-// 	}
-// 	if cfg.DBString != "test.db" {
-// 		t.Errorf("Expected DBString test.db, got %s", cfg.DBString)
-// 	}
-// 	if cfg.Env != "development" {
-// 		t.Errorf("Expected env development, got %s", cfg.Env)
-// 	}
-// }
-
 func assertConfigs(t testing.TB, configs []ConnectionConfig, want []ConnectionConfig) {
 	t.Helper()
 	if !slices.Equal(configs, want) {
@@ -75,6 +58,12 @@ func makeJSONString(configs []map[string]any) string {
 	}`, connString)
 
 	return sb.String()
+}
+
+type MockPromter struct{}
+
+func (m *MockPromter) AskConnection(configs []ConnectionConfig) (*ConnectionConfig, error) {
+	return &configs[0], nil
 }
 
 func TestListConfig(t *testing.T) {
@@ -114,16 +103,72 @@ func TestListConfig(t *testing.T) {
 		},
 	}
 
+	configService := &ConfigServiceImpl{
+		prompter: &MockPromter{},
+	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			configPath := filepath.Join(tempDir, "config.json")
 
 			createTestConfigFile(t, configPath, makeJSONString(test.fileConfig))
 
-			got, err := listConfig(configPath)
+			got, err := configService.ParseConfig(configPath)
 
 			assertConfigs(t, got.Connections, test.wantConfig)
 			assertError(t, err, test.wantError)
+		})
+	}
+}
+
+func assertCofig(t testing.TB, got Config, want Config) {
+	t.Helper()
+	if got != want {
+		t.Errorf("Expected %+v, got %+v", want, got)
+	}
+}
+
+func TestLoadConfig(t *testing.T) {
+	tests := []struct {
+		name       string
+		wantErr    error
+		configPath []string
+		wantConfig *Config
+		fileConfig []map[string]any
+	}{
+		{
+			name: "valid config path",
+			fileConfig: []map[string]any{
+				{
+					"port":      8000,
+					"env":       "production",
+					"db_string": "test.db",
+				},
+			},
+			wantErr: nil,
+			wantConfig: &Config{
+				AppConfig: AppConfig{
+					LogFilePath: "~/.rowsql/rowsql.log",
+				},
+				ConnectionConfig: ConnectionConfig{
+					Port:     8000,
+					DBString: "test.db",
+					Env:      "production",
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			configService := &ConfigServiceImpl{
+				prompter: &MockPromter{},
+			}
+			configPath := ""
+			if len(test.configPath) > 0 {
+				configPath = test.configPath[0]
+			}
+			got := configService.LoadConfig(configPath)
+			assertCofig(t, *got, *test.wantConfig)
 		})
 	}
 }

@@ -12,18 +12,19 @@ import (
 var version = "dev"
 
 func main() {
+	printLogo(version)
 	command := os.Args[0]
 
 	envPath := cmd.ParseFlags(command)
+	configService := configs.NewConfigService()
 
-	cfg := configs.MustLoad(envPath)
+	cfg := configService.LoadConfig(envPath)
 
 	if cfg == nil {
 		logger.Error("Failed to load config")
 		return
 	}
 
-	printLogo(version)
 	if err := runAutoUpdate(command, version, cfg.DisableAutoUpdate); err != nil {
 		logger.ErrorWriteOnlyFile("Error while updating: %s", err)
 	}

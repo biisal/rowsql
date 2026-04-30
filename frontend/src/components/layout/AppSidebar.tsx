@@ -1,4 +1,4 @@
-import { Clock, Code, Plus, Table as TableIcon } from 'lucide-react';
+import { ArrowRight, Clock, Plus, SquareCode, Table as TableIcon } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import type { ListTablesRow } from '@/client/types.gen';
 import {
@@ -57,10 +57,10 @@ export function AppSidebar({
 				<SidebarMenuItem>
 					<SidebarMenuButton
 						asChild
-						className="bg-primary text-primary-foreground hover:bg-primary/90 justify-center shadow-lg shadow-primary/20"
+						className="bg-primary hover:bg-primary/90 active:bg-primary/50"
 					>
 						<Link to="/editor">
-							<Code />
+							<SquareCode className="h-4 w-4" />
 							<span>SQL Editor</span>
 						</Link>
 					</SidebarMenuButton>
@@ -99,17 +99,20 @@ export function AppSidebar({
 			<SidebarFooter>
 				<SidebarMenu>
 					<SidebarMenuItem>
-						<SidebarMenuButton asChild isActive={isHistory}>
-							<Link to="/history">
-								<Clock />
-								<span>Recent Activity</span>
+						<SidebarMenuButton asChild isActive={isHistory} className='bg-muted-foreground/5'>
+							<Link to="/history" className="flex items-center justify-between w-full">
+								<div className="flex items-center gap-2">
+									<Clock className="h-4 w-4" />
+									<span>Recent Activity</span>
+								</div>
+								<ArrowRight />
 							</Link>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 					<SidebarMenuItem>
 						<SidebarMenuButton
 							asChild
-							className="bg-primary text-primary-foreground hover:bg-primary/90 justify-center shadow-lg shadow-primary/20"
+							className="flex justify-center border border-border bg-primary hover:bg-primary/90 "
 						>
 							<Link to="/new-table">
 								<Plus />
@@ -120,7 +123,7 @@ export function AppSidebar({
 
 				</SidebarMenu>
 			</SidebarFooter>
-		</ShadcnSidebar>
+		</ShadcnSidebar >
 	);
 }
 

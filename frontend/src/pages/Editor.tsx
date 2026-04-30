@@ -20,6 +20,7 @@ export const Editor = () => {
     const [queryError, setQueryError] = useState<string>("");
     const [runText, setRunText] = useState<"Run" | "Run Selected">("Run");
     const { data: tables } = useQuery(listTablesOptions());
+    const { refetch } = useQuery(listTablesOptions());
 
     const tablesRef = useRef(tables);
     useEffect(() => {
@@ -87,6 +88,9 @@ export const Editor = () => {
                 onSuccess: (data) => {
                     setQueryError("");
                     setQueryResult(data);
+                    if (query.toLowerCase().includes("table")) {
+                        refetch();
+                    }
                 },
                 onError: (error) => {
                     const err = error as unknown as ErrorModel;

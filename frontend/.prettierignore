@@ -1,0 +1,9 @@
+node_modules
+dist
+build
+public
+src/client
+coverage
+.env*
+*.log
+pnpm-lock.yaml

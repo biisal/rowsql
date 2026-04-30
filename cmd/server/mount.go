@@ -23,7 +23,7 @@ func printLogo(version string) {
 	gitLink := color.HiGreenString("https://github.com/biisal/rowsql")
 	version = color.HiYellowString("You are using version %s", version)
 
-	logo := fmt.Sprintf(`\x1b[1G
+	logo := fmt.Sprintf(`
                           ❤️ Thanks for using
 █▀█ █▀█ █░█░█ █▀ █▀█ █░░  ⭐ Star on GitHub: %s
 █▀▄ █▄█ ▀▄▀▄▀ ▄█ ▀▀█ █▄▄  %s
@@ -36,6 +36,7 @@ func cleanPort(port int) string {
 }
 
 func mount(cfg *configs.Config) error {
+	logger.Debug("Config %+v", *cfg)
 	ctx := context.Background()
 
 	logFilePath, err := utils.ReplaceTildeWithHomeDir(cfg.LogFilePath)
