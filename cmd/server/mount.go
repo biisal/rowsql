@@ -31,7 +31,12 @@ func printLogo(version string) {
 	fmt.Println(logo)
 }
 
+func cleanPort(port int) string {
+	return fmt.Sprintf(":%d", port)
+}
+
 func mount(cfg *configs.Config) error {
+	logger.Debug("Config %+v", *cfg)
 	ctx := context.Background()
 
 	logFilePath, err := utils.ReplaceTildeWithHomeDir(cfg.LogFilePath)
@@ -85,10 +90,10 @@ func mount(cfg *configs.Config) error {
 	}
 
 	server := http.Server{
-		Addr:    cfg.Server.Port,
+		Addr:    cleanPort(cfg.Port),
 		Handler: corsMux,
 	}
-	logger.Success("Running server on port %s", cfg.Server.Port)
+	logger.Success("Running server on port %d", cfg.Port)
 	if err := server.ListenAndServe(); err != nil {
 		logger.Errorln("Failed to start server:", err)
 		return err

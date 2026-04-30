@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/biisal/rowsql/configs"
 	"github.com/biisal/rowsql/internal/logger"
 	"github.com/creativeprojects/go-selfupdate"
 	"github.com/fatih/color"
 )
 
-func runAutoUpdate(cmd string, currentVersion string, cfg *configs.AutoUpdateConfig) error {
-	if cfg.DisableAutoUpdate {
+func runAutoUpdate(cmd string, currentVersion string, disableAutoUpdate bool) error {
+	if disableAutoUpdate {
 		logger.Info("Auto-update disabled using DISABLE_AUTO_UPDATE=true")
 		return nil
 	}

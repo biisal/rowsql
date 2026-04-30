@@ -246,7 +246,6 @@ func (q *Queries) GetRow(ctx context.Context, tableName, hash string, offest, li
 				return nil, err
 			}
 		}
-		logger.Debug("data: %+v", data)
 		for i, v := range data {
 			if b, ok := v.([]byte); ok {
 				data[i] = string(b)

@@ -17,13 +17,19 @@ export function History() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentPage = parseInt(searchParams.get("page") || "1");
 
-  const { data: history, isLoading: loading, error: queryError } = useQuery(
+  const {
+    data: history,
+    isLoading: loading,
+    error: queryError,
+  } = useQuery(
     listHistoryOptions({
       query: { page: currentPage },
-    })
+    }),
   );
 
-  const error = queryError ? (queryError.detail || "Failed to fetch history") : null
+  const error = queryError
+    ? queryError.detail || "Failed to fetch history"
+    : null;
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1) return;

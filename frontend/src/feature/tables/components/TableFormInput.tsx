@@ -1,16 +1,22 @@
-import { type Control, Controller, type UseFormSetValue, type UseFormGetValues, useWatch } from 'react-hook-form';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Field, FieldError, FieldLabel } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
+import {
+  type Control,
+  Controller,
+  type UseFormSetValue,
+  type UseFormGetValues,
+  useWatch,
+} from "react-hook-form";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import type { FormValues } from '@/pages/TableForm';
-import type { VarianDataType } from '@/client';
+} from "@/components/ui/select";
+import type { FormValues } from "@/pages/TableForm";
+import type { VarianDataType } from "@/client";
 
 interface TableInputProps {
   index: number;
@@ -38,10 +44,7 @@ export function TableFormInput({
   });
 
   function getDataTypeByType(type: string) {
-    return (
-      dataTypes.find(({ type: t }) => t === type) ||
-      dataTypes[0]
-    );
+    return dataTypes.find(({ type: t }) => t === type) || dataTypes[0];
   }
 
   const showAutoIncrement = columnType?.dataType
@@ -71,12 +74,14 @@ export function TableFormInput({
         name={`inputs.${index}.defaultValue`}
         render={({ field, fieldState }) => (
           <Field>
-            <FieldLabel htmlFor={`defaultValue-${index}`}>Default value</FieldLabel>
+            <FieldLabel htmlFor={`defaultValue-${index}`}>
+              Default value
+            </FieldLabel>
             <Input
               {...field}
               id={`defaultValue-${index}`}
               placeholder="Enter default value"
-              value={(field.value as string) || ''}
+              value={(field.value as string) || ""}
             />
             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
           </Field>
@@ -94,14 +99,18 @@ export function TableFormInput({
                 onValueChange={(type) => {
                   const dataType = getDataTypeByType(type);
                   // Update the entire columnType object to ensure all flags are set correctly
-                  setValue(`inputs.${index}.columnType`, {
-                    ...getValues(`inputs.${index}.columnType`),
-                    dataType: dataType.type,
-                    hasSize: dataType.hasSize,
-                    hasAutoIncrement: dataType.hasAutoIncrement,
-                    hasDigit: dataType.hasDigit,
-                    hasValues: dataType.hasValues,
-                  }, { shouldDirty: true });
+                  setValue(
+                    `inputs.${index}.columnType`,
+                    {
+                      ...getValues(`inputs.${index}.columnType`),
+                      dataType: dataType.type,
+                      hasSize: dataType.hasSize,
+                      hasAutoIncrement: dataType.hasAutoIncrement,
+                      hasDigit: dataType.hasDigit,
+                      hasValues: dataType.hasValues,
+                    },
+                    { shouldDirty: true },
+                  );
 
                   field.onChange(dataType.type);
                 }}
@@ -125,15 +134,17 @@ export function TableFormInput({
 
         {columnType?.hasSize && (
           <Field>
-            <FieldLabel htmlFor={`dataSize-${index}`}>
-              Size/Length
-            </FieldLabel>
+            <FieldLabel htmlFor={`dataSize-${index}`}>Size/Length</FieldLabel>
             <Input
               id={`dataSize-${index}`}
               type="number"
-              value={columnSize?.toString() || ''}
+              value={columnSize?.toString() || ""}
               onChange={(e) => {
-                setValue(`inputs.${index}.size`, e.target.value ? Number(e.target.value) : undefined, { shouldDirty: true });
+                setValue(
+                  `inputs.${index}.size`,
+                  e.target.value ? Number(e.target.value) : undefined,
+                  { shouldDirty: true },
+                );
               }}
             />
           </Field>
@@ -149,9 +160,15 @@ export function TableFormInput({
               id={`dataHasAutoIncrement-${index}`}
               checked={columnType.hasAutoIncrement}
               onCheckedChange={(checked) => {
-                setValue(`inputs.${index}.columnType.hasAutoIncrement`, checked === true, { shouldDirty: true });
+                setValue(
+                  `inputs.${index}.columnType.hasAutoIncrement`,
+                  checked === true,
+                  { shouldDirty: true },
+                );
                 if (checked === true) {
-                  setValue(`inputs.${index}.columnType.isNull`, false, { shouldDirty: true });
+                  setValue(`inputs.${index}.columnType.isNull`, false, {
+                    shouldDirty: true,
+                  });
                 }
               }}
             />
@@ -241,5 +258,3 @@ export function TableFormInput({
     </div>
   );
 }
-
-
