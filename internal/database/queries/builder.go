@@ -248,7 +248,7 @@ func (b *builder) UpdateRow(tableName string, form []models.ColValue) (string, [
 	}
 
 	tableName = b.dialect.QuoteName(tableName)
-	query := fmt.Sprintf("UPDATE %s SET %s WHERE %s", tableName, updateQuery, b.dialect.FilterOneRowClause(tableName, whereClause))
+	query := fmt.Sprintf("UPDATE %s SET %s %s", tableName, updateQuery, b.dialect.FilterOneRowClause(tableName, whereClause))
 	fullArgs := append(args, whereClauseArgs...)
 	logger.Info("Query: %q\nArgs: %#v", query, fullArgs)
 	return query, fullArgs, nil

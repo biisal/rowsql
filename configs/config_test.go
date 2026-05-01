@@ -56,7 +56,7 @@ func toJSON(v any) string {
 	return string(data)
 }
 
-func TestListConfig(t *testing.T) {
+func TestParseConfig(t *testing.T) {
 	tests := []struct {
 		name       string
 		input      any
@@ -67,11 +67,19 @@ func TestListConfig(t *testing.T) {
 			name: "Valid config file",
 			input: map[string]any{
 				"connections": []any{
-					map[string]any{"port": 8000, "db_string": "test.db", "env": "production"},
+					map[string]any{
+						"port":      8000,
+						"db_string": "test.db",
+						"env":       "production",
+					},
 				},
 			},
-			wantConfig: []ConnectionConfig{{Port: 8000, DBString: "test.db", Env: "production"}},
-			wantError:  nil,
+			wantConfig: []ConnectionConfig{{
+				Port:     8000,
+				DBString: "test.db",
+				Env:      "production",
+			}},
+			wantError: nil,
 		},
 		{
 			name:       "Invalid config file",
@@ -117,7 +125,11 @@ func TestLoadConfig(t *testing.T) {
 			name: "valid config path",
 			input: map[string]any{
 				"connections": []any{
-					map[string]any{"port": 8000, "db_string": "test.db", "env": "production"},
+					map[string]any{
+						"port":      8000,
+						"db_string": "test.db",
+						"env":       "production",
+					},
 				},
 				"log_file_path": "~/.rowsql/rowsql.log",
 			},
@@ -160,10 +172,7 @@ func TestLoadConfig(t *testing.T) {
 			},
 			wantErr: nil,
 			wantConfig: Config{
-				AppConfig: AppConfig{
-					MaxItemsPerPage: MaxItemsPerPage,
-					MinItemsPerPage: MinItemsPerPage,
-				},
+				AppConfig: DefaultConfig().AppConfig,
 				ConnectionConfig: ConnectionConfig{
 					Port:     8080,
 					DBString: "default.db",
@@ -183,11 +192,7 @@ func TestLoadConfig(t *testing.T) {
 
 			got, err := configService.LoadConfig(configPath)
 			assertError(t, err, test.wantErr)
-
-			if test.wantErr == nil {
-				test.wantConfig.LogFilePath = got.LogFilePath
-				assertConfig(t, got, test.wantConfig)
-			}
+			assertConfig(t, got, test.wantConfig)
 		})
 	}
 }

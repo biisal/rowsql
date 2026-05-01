@@ -72,7 +72,7 @@ func whereClause(d Dialect, cols []models.ColValue, argsIdx int) (string, []any,
 			if err != nil {
 				return "", nil, err
 			}
-			return fmt.Sprintf("%s=%s", colName, ph), []any{col.Value}, nil
+			return fmt.Sprintf("WHERE %s=%s", colName, ph), []any{col.Value}, nil
 		}
 		colVal := col.Value
 
@@ -89,7 +89,13 @@ func whereClause(d Dialect, cols []models.ColValue, argsIdx int) (string, []any,
 		}
 		args = append(args, colVal)
 	}
-	return strings.Join(mixed, " AND "), args, nil
+
+	finalCLause := strings.TrimSpace(strings.Join(mixed, " AND "))
+	if finalCLause != "" {
+		finalCLause = "WHERE " + finalCLause
+	}
+
+	return finalCLause, args, nil
 }
 
 func (d *PostgresDialect) CheckTableExists(tableName string) (string, []any) {
@@ -169,11 +175,11 @@ func (d *PostgresDialect) InsertDefaultValues(tableName string) string {
 
 func (d *PostgresDialect) DeleteRow(tableName string, whereClause string) string {
 	quoted := d.QuoteName(tableName)
-	return fmt.Sprintf("DELETE FROM %s WHERE ctid IN (SELECT ctid FROM %s WHERE %s LIMIT 1)", quoted, quoted, whereClause)
+	return fmt.Sprintf("DELETE FROM %s WHERE ctid IN (SELECT ctid FROM %s %s LIMIT 1)", quoted, quoted, whereClause)
 }
 
 func (d *PostgresDialect) FilterOneRowClause(tableName, whereClause string) string {
-	return fmt.Sprintf("ctid IN (SELECT ctid FROM %s WHERE %s LIMIT 1)", d.QuoteName(tableName), whereClause)
+	return fmt.Sprintf("WHERE ctid IN (SELECT ctid FROM %s %s LIMIT 1)", d.QuoteName(tableName), whereClause)
 }
 
 func (d *PostgresDialect) WhereCluse(cols []models.ColValue, argsIdx int) (string, []any, error) {
@@ -264,7 +270,7 @@ func (d *MySQLDialect) InsertDefaultValues(tableName string) string {
 }
 
 func (d *MySQLDialect) DeleteRow(tableName string, whereClause string) string {
-	return fmt.Sprintf("DELETE FROM %s WHERE %s LIMIT 1", d.QuoteName(tableName), whereClause)
+	return fmt.Sprintf("DELETE FROM %s %s LIMIT 1", d.QuoteName(tableName), whereClause)
 }
 
 func (d *MySQLDialect) FilterOneRowClause(tableName, whereClause string) string {
@@ -347,11 +353,11 @@ func (d *SQLiteDialect) InsertDefaultValues(tableName string) string {
 
 func (d *SQLiteDialect) DeleteRow(tableName string, whereClause string) string {
 	quoted := d.QuoteName(tableName)
-	return fmt.Sprintf("DELETE FROM %s WHERE rowid IN (SELECT rowid FROM %s WHERE %s LIMIT 1)", quoted, quoted, whereClause)
+	return fmt.Sprintf("DELETE FROM %s WHERE rowid IN (SELECT rowid FROM %s %s LIMIT 1)", quoted, quoted, whereClause)
 }
 
 func (d *SQLiteDialect) FilterOneRowClause(tableName, whereClause string) string {
-	return fmt.Sprintf("rowid IN (SELECT rowid FROM %s WHERE %s LIMIT 1)", d.QuoteName(tableName), whereClause)
+	return fmt.Sprintf("WHERE rowid IN (SELECT rowid FROM %s %s LIMIT 1)", d.QuoteName(tableName), whereClause)
 }
 
 func (d *SQLiteDialect) WhereCluse(cols []models.ColValue, argsIdx int) (string, []any, error) {
