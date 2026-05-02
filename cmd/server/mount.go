@@ -36,7 +36,6 @@ func cleanPort(port int) string {
 }
 
 func mount(cfg *configs.Config) error {
-	logger.Debug("Config %+v", *cfg)
 	ctx := context.Background()
 
 	logFilePath, err := utils.ReplaceTildeWithHomeDir(cfg.LogFilePath)
