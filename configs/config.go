@@ -180,5 +180,3 @@ func (c *ConfigServiceImpl) parseConfig(path string) (ConfigFileFields, error) {
 	}
 	return fields, nil
 }
-
-

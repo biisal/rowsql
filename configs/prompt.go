@@ -133,4 +133,3 @@ func (p *PrompterImpl) AskConnection(configs []ConnectionConfig) (*ConnectionCon
 		}
 	}
 }
-

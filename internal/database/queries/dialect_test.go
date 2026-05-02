@@ -31,7 +31,7 @@ func TestWhereClause(t *testing.T) {
 					Value: 1,
 				},
 			},
-			want:    "id=$1",
+			want:    "WHERE id=$1",
 			argsIdx: 1,
 			args:    []any{1},
 		},
@@ -48,7 +48,7 @@ func TestWhereClause(t *testing.T) {
 					Value: 1,
 				},
 			},
-			want:    "id=?",
+			want:    "WHERE id=?",
 			argsIdx: 1,
 			args:    []any{1},
 		},
@@ -65,7 +65,7 @@ func TestWhereClause(t *testing.T) {
 					Value: 1,
 				},
 			},
-			want:    "id=$1",
+			want:    "WHERE id=$1",
 			argsIdx: 1,
 			args:    []any{1},
 		},
@@ -101,7 +101,7 @@ func TestWhereClause(t *testing.T) {
 			},
 
 			argsIdx: 1,
-			want:    "id=$1 AND name=$2 AND email=$3",
+			want:    "WHERE id=$1 AND name=$2 AND email=$3",
 			args:    []any{1, "test", "test"},
 		},
 		{
@@ -123,7 +123,7 @@ func TestWhereClause(t *testing.T) {
 			},
 
 			argsIdx: 1,
-			want:    "id=? AND name=? AND email=?",
+			want:    "WHERE id=? AND name=? AND email=?",
 			args:    []any{1, "test", "test"},
 		},
 		{
@@ -144,7 +144,7 @@ func TestWhereClause(t *testing.T) {
 			},
 			args:    []any{1},
 			argsIdx: 1,
-			want:    "id=$1",
+			want:    "WHERE id=$1",
 		},
 		{
 			name:   "Sqlite multiple unique cols",
@@ -171,7 +171,7 @@ func TestWhereClause(t *testing.T) {
 			},
 			args:    []any{1},
 			argsIdx: 1,
-			want:    "id=$1",
+			want:    "WHERE id=$1",
 		},
 	}
 

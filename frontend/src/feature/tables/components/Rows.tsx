@@ -99,7 +99,9 @@ export const Rows = ({
                       isSelected && "bg-muted",
                     )}
                   >
-                    {cell.value === null ? "NULL" : String(cell.value)}
+                    {cell.value === null || cell.value === undefined
+                      ? "NULL"
+                      : String(cell.value)}
                   </div>
                 ))}
 
