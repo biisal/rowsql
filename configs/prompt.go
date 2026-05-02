@@ -63,7 +63,7 @@ func makeListString(configs []ConnectionConfig, selected int) string {
 	var sb strings.Builder
 	sb.WriteString(AnsiClearScreen)
 	header := color.HiGreenString("Choose a port to run:")
-	helpText := color.HiBlueString("use j/k to up down")
+	helpText := color.HiBlueString("use j/k to up down, enter to select and q to quit")
 	fmt.Fprintf(&sb, "%s\n%s%s\n%s\n%s\n", header, AnsiBackCursorToLineStart, helpText, AnsiBackCursorToLineStart, AnsiBackCursorToLineStart)
 	for i, cfg := range configs {
 		if i == selected {
