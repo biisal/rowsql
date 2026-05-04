@@ -1,221 +1,179 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import { MoreHorizontal } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+import React, { useState } from "react";
 import type { ListRowsResponse } from "@/client";
+import {
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+  type ColumnDef,
+} from "@tanstack/react-table";
+
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { RowDetailsSheet } from "@/feature/tables/components/row-details-sheet";
+import { Input } from "@/components/ui/input";
+import { ChevronRight } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface RowsProps {
+  tableName: string;
+  isLoading: boolean;
   data: ListRowsResponse;
-  selectedRows: Record<number, boolean>;
-  isAllSelected: boolean;
-  isSomeSelected: boolean;
-  toggleAllSelection: () => void;
-  toggleRowSelection: (index: number) => void;
   deleteRow: (hash: string) => void;
 }
 
-export const Rows = ({
-  data,
-  selectedRows,
-  isAllSelected,
-  isSomeSelected,
-  toggleAllSelection,
-  toggleRowSelection,
-  deleteRow,
-}: RowsProps) => {
-  if (!data) return <RowsSkeleton />;
-  return (
-    <div className="rounded-md border overflow-auto  relative">
-      <div
-        className="grid min-w-full"
-        style={{
-          gridTemplateColumns: `40px ${data.cols?.map(() => "minmax(150px, 1fr)").join(" ")} 80px`,
-        }}
-      >
-        {/* Checkbox Header */}
-        <div className="h-10 px-2 flex items-center justify-center border-b bg-muted/50 sticky top-0 z-20">
-          <Checkbox
-            checked={
-              isAllSelected ? true : isSomeSelected ? "indeterminate" : false
-            }
-            onCheckedChange={toggleAllSelection}
-            aria-label="Select all"
-          />
-        </div>
+export type RowData = { hash: string } & Record<string, unknown>;
 
-        {/* Data Columns Headers */}
-        {data.cols?.map((col) => (
-          <div
-            key={col.columnName}
-            className="h-10 px-2 text-left align-middle font-medium text-muted-foreground flex items-center border-b bg-muted/50 sticky top-0 z-20"
-          >
-            {col.columnName}
-          </div>
-        ))}
+export const Rows = ({ tableName, isLoading, data, deleteRow }: RowsProps) => {
+  const isMobile = useIsMobile();
+  const [sheetData, setSheetData] = React.useState<{
+    row: RowData;
+    tableName: string;
+  } | null>(null);
+  const [sheetOpen, setSheetOpen] = React.useState(false);
+  const [globalFilter, setGlobalFilter] = useState("");
 
-        {/* Actions Header */}
-        <div className="h-10 px-2 text-right align-middle font-medium text-muted-foreground flex items-center justify-end border-b bg-muted/50 sticky top-0 right-0 z-30 shadow-[-1px_0_0_0_var(--border)]">
-          Actions
-        </div>
+  const columns: ColumnDef<RowData>[] = React.useMemo(
+    () => [
+      ...(data.cols?.map((col) => ({
+        header: col.columnName,
+        accessorKey: col.columnName,
+        size: 200,
+        maxSize: 200,
+      })) || []),
 
-        {/* Body Rows */}
-        {data?.rows && data?.rows?.length > 0 ? (
-          data.rows?.map((row, rowIndex) => {
-            const hash = row.hash;
-            const isSelected = !!selectedRows[rowIndex];
-
-            return (
-              <React.Fragment key={rowIndex}>
-                {/* Checkbox Cell */}
-                <div
-                  className={cn(
-                    "p-2 flex items-center justify-center border-b bg-card group-hover:bg-muted/50 transition-colors",
-                    isSelected && "bg-muted",
-                  )}
-                >
-                  <Checkbox
-                    checked={isSelected}
-                    onCheckedChange={() => toggleRowSelection(rowIndex)}
-                    aria-label="Select row"
-                  />
-                </div>
-
-                {row.columns?.map((cell, cellIndex) => (
-                  <div
-                    key={cellIndex}
-                    className={cn(
-                      "p-2 align-middle flex items-center border-b bg-card group-hover:bg-muted/50 transition-colors",
-                      isSelected && "bg-muted",
-                    )}
-                  >
-                    {cell.value === null || cell.value === undefined
-                      ? "NULL"
-                      : String(cell.value)}
-                  </div>
-                ))}
-
-                {/* Actions Cell */}
-                <div
-                  className={cn(
-                    "p-2 align-middle flex items-center justify-end border-b bg-card group-hover:bg-muted/50 transition-colors sticky right-0 z-10 shadow-[-1px_0_0_0_var(--border)]",
-                    isSelected && "bg-muted",
-                  )}
-                >
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="px-4 py-2">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem asChild>
-                        <Link
-                          to={`/tables/${data.activeTable}/rows?hash=${hash}&page=${data.page}`}
-                        >
-                          Edit Row
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <Button
-                        variant="destructive"
-                        className="w-full"
-                        onClick={() => deleteRow(hash)}
-                      >
-                        Delete Row
-                      </Button>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </React.Fragment>
-            );
-          })
-        ) : (
-          <div className="col-span-full h-24 flex items-center justify-center">
-            No results.
-          </div>
-        )}
-      </div>
-    </div>
+      {
+        id: "action",
+        size: 0,
+        cell: () => (
+          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+        ),
+      },
+    ],
+    [data.cols],
   );
-};
 
-interface RowsSkeletonProps {
-  columns?: number;
-  rows?: number;
-}
+  const flattenedRows = React.useMemo<RowData[]>(
+    () =>
+      data.rows?.map((row) => ({
+        hash: row.hash,
+        ...Object.fromEntries(
+          (row.columns || []).map((col) => [col.columnName, col.value]),
+        ),
+      })) || [],
+    [data.rows],
+  );
 
-export const RowsSkeleton = ({ columns = 5, rows = 10 }: RowsSkeletonProps) => {
+  const handleRowClick = (row: RowData) => {
+    setSheetData({ row: row, tableName });
+    setSheetOpen(true);
+  };
+  console.log({ data });
+  const table = useReactTable({
+    data: flattenedRows,
+    columns: columns,
+    state: {
+      globalFilter,
+      columnPinning: {
+        right: ["action"],
+      },
+    },
+    enableColumnPinning: true,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+  });
+
   return (
-    <div className="rounded-md border overflow-auto relative">
-      <div
-        className="grid min-w-full"
-        style={{
-          gridTemplateColumns: `40px ${Array(columns).fill("minmax(150px, 1fr)").join(" ")} 80px`,
-        }}
-      >
-        {/* Checkbox Header Skeleton */}
-        <div className="h-10 px-2 flex items-center justify-center border-b bg-muted/50 sticky top-0 z-20">
-          <Skeleton className="h-4 w-4 rounded" />
-        </div>
+    <div className="rounded-md overflow-auto relative">
+      <Input
+        placeholder="Filter results…"
+        value={globalFilter}
+        onChange={(e) => setGlobalFilter(e.target.value)}
+        className="max-w-sm"
+      />
 
-        {/* Column Headers Skeleton */}
-        {Array.from({ length: columns }).map((_, index) => (
-          <div
-            key={index}
-            className="h-10 px-2 flex items-center border-b bg-muted/50 sticky top-0 z-20"
-          >
-            <Skeleton className="h-4 w-24" />
-          </div>
-        ))}
-
-        {/* Actions Header Skeleton */}
-        <div className="h-10 px-2 flex items-center justify-end border-b bg-muted/50 sticky top-0 right-0 z-30 shadow-[-1px_0_0_0_var(--border)]">
-          <Skeleton className="h-4 w-12" />
-        </div>
-
-        {/* Body Rows Skeleton */}
-        {Array.from({ length: rows }).map((_, rowIndex) => (
-          <React.Fragment key={rowIndex}>
-            {/* Checkbox Cell Skeleton */}
-            <div className="p-2 flex items-center justify-center border-b bg-card">
-              <Skeleton className="h-4 w-4 rounded" />
-            </div>
-
-            {/* Data Cells Skeleton */}
-            {Array.from({ length: columns }).map((_, cellIndex) => (
-              <div
-                key={cellIndex}
-                className="p-2 flex items-center border-b bg-card"
+      <RowDetailsSheet
+        deleteRow={deleteRow}
+        data={sheetData}
+        open={sheetOpen}
+        setOpenChange={setSheetOpen}
+      />
+      <Table>
+        <TableCaption>click the row to view complete data</TableCaption>
+        <TableHeader>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <TableHead key={header.id}>
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
+                </TableHead>
+              ))}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {isLoading ? (
+            <TableRow>
+              <TableCell
+                colSpan={columns.length}
+                className="text-center border border-border"
               >
-                <Skeleton
-                  className="h-4"
-                  style={{
-                    width: `${Math.floor(Math.random() * 40) + 50}%`,
-                  }}
-                />
-              </div>
-            ))}
+                Loading...
+              </TableCell>
+            </TableRow>
+          ) : (
+            table.getRowModel().rows.map((row) => (
+              <TableRow
+                onClick={() => handleRowClick(row.original)}
+                key={row.id}
+                className="group cursor-pointer border-l-3 border-b-0 hover:border-primary"
+              >
+                {row.getVisibleCells().map((cell) => {
+                  const isPinned = cell.column.getIsPinned();
+                  return (
+                    <TableCell
+                      key={cell.id}
+                      className="text-foreground/80"
+                      style={{
+                        position: isPinned ? "sticky" : undefined,
+                        right: isPinned === "right" ? 0 : undefined,
+                        zIndex: isPinned ? 1 : 0,
+                        background: isMobile ? "var(--background)" : undefined,
 
-            {/* Actions Cell Skeleton */}
-            <div className="p-2 flex items-center justify-end border-b bg-card sticky right-0 z-10 shadow-[-1px_0_0_0_var(--border)]">
-              <Skeleton className="h-8 w-8 rounded" />
-            </div>
-          </React.Fragment>
-        ))}
-      </div>
+                        maxWidth: `${cell.column.getSize()}px`,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 };

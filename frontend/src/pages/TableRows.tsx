@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -17,11 +16,9 @@ export function TablePage() {
   const { tableName } = useParams<{ tableName: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const [selectedRows, setSelectedRows] = useState<Record<number, boolean>>({});
   const page = parseInt(searchParams.get("page") || "1");
   const col = searchParams.get("col");
   const order = searchParams.get("order")?.toUpperCase() as "ASC" | "DESC";
-
   const { data, isLoading, error } = useQuery(
     listRowsOptions({
       path: { tableName: tableName! },
@@ -54,38 +51,6 @@ export function TablePage() {
     });
   };
 
-  // Reset search params when table name changes
-  // useEffect(() => {
-  // 	setSearchParams({}, { replace: true });
-  // 	setSelectedRows({});
-  // }, [tableName, setSearchParams]);
-
-  const toggleRowSelection = (index: number) => {
-    setSelectedRows((prev) => ({
-      ...prev,
-      [index]: !prev[index],
-    }));
-  };
-
-  const toggleAllSelection = () => {
-    if (!data?.rows) return;
-    const allSelected =
-      data.rows.length > 0 && data.rows.every((_, idx) => selectedRows[idx]);
-    if (allSelected) {
-      setSelectedRows({});
-    } else {
-      const newSelection: Record<number, boolean> = {};
-      data.rows.forEach((_, idx) => {
-        newSelection[idx] = true;
-      });
-      setSelectedRows(newSelection);
-    }
-  };
-
-  if (isLoading) {
-    return <div className="p-8">Loading...</div>;
-  }
-
   if (error) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -99,11 +64,6 @@ export function TablePage() {
   if (!data || !data.rows) {
     return <div className="p-8">No data found.</div>;
   }
-
-  const isAllSelected =
-    data.rows.length > 0 && data.rows.every((_, idx) => selectedRows[idx]);
-  const isSomeSelected =
-    data.rows.some((_, idx) => selectedRows[idx]) && !isAllSelected;
 
   return (
     <div className="flex-1 p-4 md:p-8 overflow-y-auto w-full max-w-full">
@@ -133,19 +93,12 @@ export function TablePage() {
           </CardHeader>
           <CardContent className="p-4">
             <Rows
+              tableName={tableName || ""}
+              isLoading={isLoading}
               data={data}
-              selectedRows={selectedRows}
-              isAllSelected={isAllSelected}
-              isSomeSelected={isSomeSelected}
-              toggleAllSelection={toggleAllSelection}
-              toggleRowSelection={toggleRowSelection}
               deleteRow={deleteRow}
             />
             <div className="flex items-center flex-col sm:flex-row justify-center md:justify-between  py-4">
-              <div className="text-muted-foreground flex-1  text-sm">
-                {Object.values(selectedRows).filter(Boolean).length} of{" "}
-                {data.rows?.length || 0} row(s) selected.
-              </div>
               <AppPagination
                 currentPage={page}
                 totalPages={data.totalPages || 0}
