@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import type { ListRowsResponse } from "@/client";
 import {
   flexRender,
   getCoreRowModel,
@@ -23,28 +22,22 @@ import { RowDetailsSheet } from "@/feature/tables/components/row-details-sheet";
 import { Input } from "@/components/ui/input";
 import { ChevronRight } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useRowContext } from "@/hooks/useRows";
 
 interface RowsProps {
   tableName: string;
-  isLoading: boolean;
-  data: ListRowsResponse;
-  deleteRow: (hash: string) => void;
 }
 
 export type RowData = { hash: string } & Record<string, unknown>;
 
-export const Rows = ({ tableName, isLoading, data, deleteRow }: RowsProps) => {
+export const Rows = ({ tableName }: RowsProps) => {
   const isMobile = useIsMobile();
-  const [sheetData, setSheetData] = React.useState<{
-    row: RowData;
-    tableName: string;
-  } | null>(null);
-  const [sheetOpen, setSheetOpen] = React.useState(false);
+  const { setSheetOpen, setSheetData, isLoading, data } = useRowContext();
   const [globalFilter, setGlobalFilter] = useState("");
 
   const columns: ColumnDef<RowData>[] = React.useMemo(
     () => [
-      ...(data.cols?.map((col) => ({
+      ...(data?.cols?.map((col) => ({
         header: col.columnName,
         accessorKey: col.columnName,
         size: 200,
@@ -59,25 +52,24 @@ export const Rows = ({ tableName, isLoading, data, deleteRow }: RowsProps) => {
         ),
       },
     ],
-    [data.cols],
+    [data?.cols],
   );
 
   const flattenedRows = React.useMemo<RowData[]>(
     () =>
-      data.rows?.map((row) => ({
+      data?.rows?.map((row) => ({
         hash: row.hash,
         ...Object.fromEntries(
           (row.columns || []).map((col) => [col.columnName, col.value]),
         ),
       })) || [],
-    [data.rows],
+    [data?.rows],
   );
 
   const handleRowClick = (row: RowData) => {
     setSheetData({ row: row, tableName });
     setSheetOpen(true);
   };
-  console.log({ data });
   const table = useReactTable({
     data: flattenedRows,
     columns: columns,
@@ -103,12 +95,7 @@ export const Rows = ({ tableName, isLoading, data, deleteRow }: RowsProps) => {
         className="max-w-sm"
       />
 
-      <RowDetailsSheet
-        deleteRow={deleteRow}
-        data={sheetData}
-        open={sheetOpen}
-        setOpenChange={setSheetOpen}
-      />
+      <RowDetailsSheet />
       <Table>
         <TableCaption>click the row to view complete data</TableCaption>
         <TableHeader>

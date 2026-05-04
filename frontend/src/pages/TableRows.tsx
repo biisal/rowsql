@@ -1,61 +1,21 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { Plus } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  listRowsOptions,
-  deleteRowMutation,
-  listRowsQueryKey,
-} from "@/client/@tanstack/react-query.gen";
 import { Button } from "@/components/ui/button";
 import { AppPagination } from "@/components/shared/AppPagination";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
 import { DeleteAlert, RowOrderForm, Rows } from "@/feature/tables";
+import { RowProvider, useRowContext } from "@/hooks/useRows";
 
-export function TablePage() {
+function TablePageContent() {
   const { tableName } = useParams<{ tableName: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const queryClient = useQueryClient();
-  const page = parseInt(searchParams.get("page") || "1");
-  const col = searchParams.get("col");
-  const order = searchParams.get("order")?.toUpperCase() as "ASC" | "DESC";
-  const { data, isLoading, error } = useQuery(
-    listRowsOptions({
-      path: { tableName: tableName! },
-      query: {
-        page,
-        column: col || undefined,
-        order: order || undefined,
-      },
-    }),
-  );
+  const { page, rowFetchError, data } = useRowContext();
 
-  const deleteMutation = useMutation({
-    ...deleteRowMutation(),
-    onSuccess: () => {
-      toast.success("Row deleted successfully");
-      queryClient.invalidateQueries({
-        queryKey: listRowsQueryKey({ path: { tableName: tableName! } }),
-      });
-    },
-    onError: (err) => {
-      const errorMessage = err?.detail || "Failed to delete row";
-      toast.error(errorMessage);
-    },
-  });
-
-  const deleteRow = async (hash: string) => {
-    await deleteMutation.mutateAsync({
-      path: { tableName: tableName!, hash },
-      query: { page },
-    });
-  };
-
-  if (error) {
+  if (rowFetchError) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-destructive font-medium">
-          Error: {error?.detail || "An unknown error occurred"}
+          Error: {rowFetchError?.detail || "An unknown error occurred"}
         </div>
       </div>
     );
@@ -87,17 +47,17 @@ export function TablePage() {
             <CardTitle className="text-lg font-medium">Table Data</CardTitle>
             <RowOrderForm
               cols={data.cols || []}
-              initialValue={{ col, order }}
+              initialValue={{
+                col: searchParams.get("col"),
+                order: searchParams.get("order")?.toUpperCase() as
+                  | "ASC"
+                  | "DESC",
+              }}
               setUrlParams={setSearchParams}
             />
           </CardHeader>
           <CardContent className="p-4">
-            <Rows
-              tableName={tableName || ""}
-              isLoading={isLoading}
-              data={data}
-              deleteRow={deleteRow}
-            />
+            <Rows tableName={tableName || ""} />
             <div className="flex items-center flex-col sm:flex-row justify-center md:justify-between  py-4">
               <AppPagination
                 currentPage={page}
@@ -117,5 +77,15 @@ export function TablePage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export function TablePage() {
+  const { tableName } = useParams<{ tableName: string }>();
+
+  return (
+    <RowProvider tableName={tableName!}>
+      <TablePageContent />
+    </RowProvider>
   );
 }

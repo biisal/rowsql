@@ -9,16 +9,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import type { RowData } from "@/feature/tables/components/Rows";
+import { useRowContext } from "@/hooks/useRows";
 import { Link } from "react-router-dom";
 
-interface RowDataSheetProps {
-  data: { row: RowData; tableName: string } | null;
-  setOpenChange: React.Dispatch<React.SetStateAction<boolean>>;
-  open: boolean;
-  deleteRow: (hash: string) => void;
-}
 const formatValue = (value: unknown) => {
+  console.log({ value });
   if (typeof value === "string") {
     try {
       return JSON.stringify(JSON.parse(value), null, 2);
@@ -28,35 +23,36 @@ const formatValue = (value: unknown) => {
   }
   return value?.toString();
 };
-export const RowDetailsSheet = ({
-  data,
-  setOpenChange,
-  open,
-  deleteRow,
-}: RowDataSheetProps) => {
+export const RowDetailsSheet = () => {
+  const { sheetData, setSheetOpen, sheetOpen, deleteRow } = useRowContext();
+  console.log({ sheetData });
+
   return (
-    <Sheet open={open} onOpenChange={setOpenChange}>
+    <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
       <SheetContent className="flex min-w-[90%] flex-col md:min-w-150">
         <SheetHeader className="bg-muted-foreground/10">
-          <SheetTitle>{data?.tableName}</SheetTitle>
-          <SheetDescription>
-            Viewing{" "}
-            <span className="bg-muted-foreground/15 rounded-md p-0.5 px-2">
-              {data?.tableName}
-            </span>{" "}
-            details.
-          </SheetDescription>
+          <SheetTitle>{sheetData?.tableName}</SheetTitle>
+          <SheetDescription>Viewing record details.</SheetDescription>
         </SheetHeader>
 
         <ScrollArea type="always" className="min-h-0 flex-1">
           <div className="flex flex-col divide-y p-4">
-            {Object.entries(data?.row || {}).map(([key, value]) => (
+            {Object.entries(sheetData?.row || {}).map(([key, value]) => (
               <div key={key} className="flex flex-col gap-1 py-3">
                 <label className="text-xs font-medium text-muted-foreground capitalize">
                   {key}
                 </label>
                 <p className="font-mono text-sm break-all whitespace-pre-wrap">
-                  {formatValue(value)}
+                  {(() => {
+                    switch (typeof value) {
+                      case "undefined":
+                        return <p className="text-muted-foreground">-</p>;
+                      case null:
+                        return <p className="text-muted-foreground">null</p>;
+                      default:
+                        return formatValue(value);
+                    }
+                  })()}
                 </p>
               </div>
             ))}
@@ -65,11 +61,11 @@ export const RowDetailsSheet = ({
 
         <SheetFooter>
           <div className="grid grid-cols-2 gap-4">
-            {data?.row.hash && (
+            {sheetData?.row.hash && (
               <>
                 <Button className="" asChild>
                   <Link
-                    to={`/tables/${data?.tableName}/rows?hash=${data.row.hash}`}
+                    to={`/tables/${sheetData?.tableName}/rows?hash=${sheetData.row.hash}`}
                   >
                     Edit
                   </Link>
@@ -77,7 +73,7 @@ export const RowDetailsSheet = ({
 
                 <Button
                   variant={"danger"}
-                  onClick={() => deleteRow(data.row.hash)}
+                  onClick={() => deleteRow(sheetData.row.hash)}
                 >
                   Delete
                 </Button>

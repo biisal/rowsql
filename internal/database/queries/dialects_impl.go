@@ -60,6 +60,7 @@ func quoteName(name string, format ...string) string {
 func whereClause(d Dialect, cols []models.ColValue, argsIdx int) (string, []any, error) {
 	var mixed []string
 	var args []any
+	logger.Debug("whereClause: %+v", cols)
 	for i, col := range cols {
 		ph, err := d.PlaceHolder(argsIdx + i)
 		if err != nil {
@@ -95,6 +96,7 @@ func whereClause(d Dialect, cols []models.ColValue, argsIdx int) (string, []any,
 		finalCLause = "WHERE " + finalCLause
 	}
 
+	logger.Debug("WHERE CLAUSE %q", finalCLause)
 	return finalCLause, args, nil
 }
 
