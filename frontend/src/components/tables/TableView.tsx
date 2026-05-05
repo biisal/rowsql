@@ -18,19 +18,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { RowDetailsSheet } from "@/feature/tables/components/row-details-sheet";
+import { RowDetailsSheet } from "./RowDetailsSheet";
 import { Input } from "@/components/ui/input";
 import { ChevronRight } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useRowContext } from "@/hooks/useRows";
 
-interface RowsProps {
+interface TableViewProps {
   tableName: string;
 }
 
 export type RowData = { hash: string } & Record<string, unknown>;
 
-export const Rows = ({ tableName }: RowsProps) => {
+export const TableView = ({ tableName }: TableViewProps) => {
   const isMobile = useIsMobile();
   const { setSheetOpen, setSheetData, isLoading, data } = useRowContext();
   const [globalFilter, setGlobalFilter] = useState("");

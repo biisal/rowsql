@@ -66,15 +66,12 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Plus, Save } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-interface RowInsertOrUpdateFormProps {
+interface RowUpsertFormProps {
   children?: React.ReactNode;
   hash?: string;
 }
 
-export const RowInsertOrUpdateForm = ({
-  hash,
-  children,
-}: RowInsertOrUpdateFormProps) => {
+export const RowUpsertForm = ({ hash, children }: RowUpsertFormProps) => {
   const { tableName } = useParams<{ tableName: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();

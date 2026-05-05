@@ -1,9 +1,9 @@
 import { useParams, useSearchParams } from "react-router-dom";
 import { AppPagination } from "@/components/shared/AppPagination";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DeleteAlert, RowOrderForm, Rows } from "@/feature/tables";
+import { DeleteAlert, RowOrderForm, TableView } from "@/components/tables";
 import { RowProvider, useRowContext } from "@/hooks/useRows";
-import { RowInsertOrUpdateForm } from "@/feature/rows/components/row-insert-or-update-form";
+import { RowUpsertForm } from "@/components/rows/RowUpsertForm";
 
 function TablePageContent() {
   const { tableName } = useParams<{ tableName: string }>();
@@ -33,7 +33,7 @@ function TablePageContent() {
           </h1>
           <div className="flex items-center justify-center gap-1">
             <DeleteAlert tableName={data.activeTable} />
-            <RowInsertOrUpdateForm />
+            <RowUpsertForm />
           </div>
         </div>
 
@@ -52,7 +52,7 @@ function TablePageContent() {
             />
           </CardHeader>
           <CardContent className="p-4">
-            <Rows tableName={tableName || ""} />
+            <TableView tableName={tableName || ""} />
             <div className="flex items-center flex-col sm:flex-row justify-center md:justify-between  py-4">
               <AppPagination
                 currentPage={page}

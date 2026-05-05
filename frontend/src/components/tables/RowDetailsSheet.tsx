@@ -9,7 +9,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { RowInsertOrUpdateForm } from "@/feature/rows/components/row-insert-or-update-form";
+import { RowUpsertForm } from "@/components/rows/RowUpsertForm";
 import { useRowContext } from "@/hooks/useRows";
 
 const formatValue = (value: unknown) => {
@@ -63,9 +63,9 @@ export const RowDetailsSheet = () => {
           <div className="grid grid-cols-2 gap-4">
             {sheetData?.row.hash && (
               <>
-                <RowInsertOrUpdateForm hash={sheetData.row.hash}>
+                <RowUpsertForm hash={sheetData.row.hash}>
                   <Button className="">Edit</Button>
-                </RowInsertOrUpdateForm>
+                </RowUpsertForm>
 
                 <Button
                   variant={"danger"}
