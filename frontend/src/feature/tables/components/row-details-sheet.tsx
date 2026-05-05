@@ -9,8 +9,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { RowInsertOrUpdateForm } from "@/feature/rows/components/row-insert-or-update-form";
 import { useRowContext } from "@/hooks/useRows";
-import { Link } from "react-router-dom";
 
 const formatValue = (value: unknown) => {
   console.log({ value });
@@ -29,7 +29,7 @@ export const RowDetailsSheet = () => {
 
   return (
     <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-      <SheetContent className="flex min-w-[90%] flex-col md:min-w-150">
+      <SheetContent className="flex min-w-[90%] flex-col md:min-w-xl">
         <SheetHeader className="bg-muted-foreground/10">
           <SheetTitle>{sheetData?.tableName}</SheetTitle>
           <SheetDescription>Viewing record details.</SheetDescription>
@@ -63,13 +63,9 @@ export const RowDetailsSheet = () => {
           <div className="grid grid-cols-2 gap-4">
             {sheetData?.row.hash && (
               <>
-                <Button className="" asChild>
-                  <Link
-                    to={`/tables/${sheetData?.tableName}/rows?hash=${sheetData.row.hash}`}
-                  >
-                    Edit
-                  </Link>
-                </Button>
+                <RowInsertOrUpdateForm hash={sheetData.row.hash}>
+                  <Button className="">Edit</Button>
+                </RowInsertOrUpdateForm>
 
                 <Button
                   variant={"danger"}

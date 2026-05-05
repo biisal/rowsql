@@ -1,10 +1,9 @@
-import { useParams, Link, useSearchParams } from "react-router-dom";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useParams, useSearchParams } from "react-router-dom";
 import { AppPagination } from "@/components/shared/AppPagination";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeleteAlert, RowOrderForm, Rows } from "@/feature/tables";
 import { RowProvider, useRowContext } from "@/hooks/useRows";
+import { RowInsertOrUpdateForm } from "@/feature/rows/components/row-insert-or-update-form";
 
 function TablePageContent() {
   const { tableName } = useParams<{ tableName: string }>();
@@ -34,11 +33,7 @@ function TablePageContent() {
           </h1>
           <div className="flex items-center justify-center gap-1">
             <DeleteAlert tableName={data.activeTable} />
-            <Link to={`/tables/${data.activeTable}/rows/`}>
-              <Button className="shadow-lg shadow-primary/20">
-                <Plus className="mr-2 h-4 w-4" /> Insert Record
-              </Button>
-            </Link>
+            <RowInsertOrUpdateForm />
           </div>
         </div>
 
