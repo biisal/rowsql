@@ -32,7 +32,8 @@ export type RowData = { hash: string } & Record<string, unknown>;
 
 export const TableView = ({ tableName }: TableViewProps) => {
   const isMobile = useIsMobile();
-  const { setSheetOpen, setSheetData, isLoading, data } = useRowContext();
+  const { setRowDetailsSheetOpen, setRowDetailsSheetData, isLoading, data } =
+    useRowContext();
   const [globalFilter, setGlobalFilter] = useState("");
 
   const columns: ColumnDef<RowData>[] = React.useMemo(
@@ -67,8 +68,8 @@ export const TableView = ({ tableName }: TableViewProps) => {
   );
 
   const handleRowClick = (row: RowData) => {
-    setSheetData({ row: row, tableName });
-    setSheetOpen(true);
+    setRowDetailsSheetData({ row: row, tableName });
+    setRowDetailsSheetOpen(true);
   };
   const table = useReactTable({
     data: flattenedRows,

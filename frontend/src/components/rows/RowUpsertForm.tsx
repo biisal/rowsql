@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Controller, useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -65,6 +65,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, Save } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useRowContext } from "@/hooks/useRows";
 
 interface RowUpsertFormProps {
   children?: React.ReactNode;
@@ -72,16 +73,14 @@ interface RowUpsertFormProps {
 }
 
 export const RowUpsertForm = ({ hash, children }: RowUpsertFormProps) => {
-  const { tableName } = useParams<{ tableName: string }>();
-  const [searchParams] = useSearchParams();
+  const { page, tableName } = useRowContext();
   const navigate = useNavigate();
 
-  const page = Math.max(1, Number(searchParams.get("page")) || 1);
   const isEdit = !!hash;
 
   const { data, isPending } = useQuery(
     rowInsertOrUpdateFormOptions({
-      path: { tableName: tableName || "" },
+      path: { tableName },
       query: { hash: hash || undefined, page },
     }),
   );
@@ -319,7 +318,7 @@ export const RowUpsertForm = ({ hash, children }: RowUpsertFormProps) => {
                   )}
                 </div>
               </ScrollArea>
-              <SheetFooter className="p-6 border-t bg-muted/30">
+              <SheetFooter>
                 {import.meta.env.DEV && (
                   <Button
                     type="button"
@@ -339,22 +338,24 @@ export const RowUpsertForm = ({ hash, children }: RowUpsertFormProps) => {
                     Debug
                   </Button>
                 )}
-                <Button type="submit" disabled={form.formState.isSubmitting}>
-                  {form.formState.isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Save
-                    </>
-                  )}
-                </Button>
-                <SheetClose asChild>
-                  <Button variant="outline">Cancel</Button>
-                </SheetClose>
+                <div className="grid md:grid-cols-2 gap-2">
+                  <Button type="submit" disabled={form.formState.isSubmitting}>
+                    {form.formState.isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save
+                      </>
+                    )}
+                  </Button>
+                  <SheetClose asChild>
+                    <Button variant="outline">Cancel</Button>
+                  </SheetClose>
+                </div>
               </SheetFooter>
             </FieldGroup>
           </form>

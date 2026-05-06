@@ -21,10 +21,10 @@ export type RowData = { hash: string } & Record<string, unknown>;
 type SheetData = { row: RowData; tableName: string };
 
 export interface RowContextType {
-  sheetData: SheetData | null;
-  setSheetData: Dispatch<SetStateAction<SheetData | null>>;
-  sheetOpen: boolean;
-  setSheetOpen: Dispatch<SetStateAction<boolean>>;
+  rowDetailsSheetData: SheetData | null;
+  setRowDetailsSheetData: Dispatch<SetStateAction<SheetData | null>>;
+  rowDetailsSheetOpen: boolean;
+  setRowDetailsSheetOpen: Dispatch<SetStateAction<boolean>>;
   globalFilter: string;
   setGlobalFilter: Dispatch<SetStateAction<string>>;
   tableName: string;
@@ -42,8 +42,9 @@ interface RowProviderProps {
   tableName: string;
 }
 export const RowProvider = ({ children, tableName }: RowProviderProps) => {
-  const [sheetData, setSheetData] = useState<SheetData | null>(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [rowDetailsSheetData, setRowDetailsSheetData] =
+    useState<SheetData | null>(null);
+  const [rowDetailsSheetOpen, setRowDetailsSheetOpen] = useState(false);
   const [globalFilter, setGlobalFilter] = useState("");
 
   const [searchParams] = useSearchParams();
@@ -60,8 +61,8 @@ export const RowProvider = ({ children, tableName }: RowProviderProps) => {
       queryClient.invalidateQueries({
         queryKey: listRowsQueryKey({ path: { tableName: tableName! } }),
       });
-      setSheetOpen(false);
-      setSheetData(null);
+      setRowDetailsSheetOpen(false);
+      setRowDetailsSheetData(null);
     },
   });
 
@@ -89,12 +90,12 @@ export const RowProvider = ({ children, tableName }: RowProviderProps) => {
   return (
     <RowContext.Provider
       value={{
-        sheetData,
-        setSheetData,
-        sheetOpen,
+        rowDetailsSheetData,
+        setRowDetailsSheetData,
+        rowDetailsSheetOpen,
         globalFilter,
         setGlobalFilter,
-        setSheetOpen,
+        setRowDetailsSheetOpen,
         tableName,
         isLoading,
         deleteRow,

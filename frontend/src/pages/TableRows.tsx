@@ -10,6 +10,16 @@ function TablePageContent() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { page, rowFetchError, data } = useRowContext();
 
+  if (!tableName) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-destructive font-medium">
+          Something went wrong! hint : Table name not found: `{tableName}`
+        </div>
+      </div>
+    );
+  }
+
   if (rowFetchError) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -20,19 +30,13 @@ function TablePageContent() {
     );
   }
 
-  if (!data || !data.rows) {
-    return <div className="p-8">No data found.</div>;
-  }
-
   return (
     <div className="flex-1 p-4 md:p-8 overflow-y-auto w-full max-w-full">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">
-            {data.activeTable}
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight">{tableName}</h1>
           <div className="flex items-center justify-center gap-1">
-            <DeleteAlert tableName={data.activeTable} />
+            <DeleteAlert tableName={tableName} />
             <RowUpsertForm />
           </div>
         </div>
@@ -41,7 +45,7 @@ function TablePageContent() {
           <CardHeader className="px-6 py-4 flex justify-between items-center flex-wrap border-b border-border/50">
             <CardTitle className="text-lg font-medium">Table Data</CardTitle>
             <RowOrderForm
-              cols={data.cols || []}
+              cols={data?.cols || []}
               initialValue={{
                 col: searchParams.get("col"),
                 order: searchParams.get("order")?.toUpperCase() as
@@ -56,7 +60,7 @@ function TablePageContent() {
             <div className="flex items-center flex-col sm:flex-row justify-center md:justify-between  py-4">
               <AppPagination
                 currentPage={page}
-                totalPages={data.totalPages || 0}
+                totalPages={data?.totalPages || 0}
                 onPageChange={(newPage) =>
                   setSearchParams((prev) => {
                     const newParams = new URLSearchParams(prev);
@@ -64,7 +68,7 @@ function TablePageContent() {
                     return newParams;
                   })
                 }
-                hasNextPage={data.hasNextPage}
+                hasNextPage={data?.hasNextPage || false}
                 hasPreviousPage={page > 1}
               />
             </div>

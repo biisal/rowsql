@@ -13,7 +13,6 @@ import { RowUpsertForm } from "@/components/rows/RowUpsertForm";
 import { useRowContext } from "@/hooks/useRows";
 
 const formatValue = (value: unknown) => {
-  console.log({ value });
   if (typeof value === "string") {
     try {
       return JSON.stringify(JSON.parse(value), null, 2);
@@ -24,20 +23,27 @@ const formatValue = (value: unknown) => {
   return value?.toString();
 };
 export const RowDetailsSheet = () => {
-  const { sheetData, setSheetOpen, sheetOpen, deleteRow } = useRowContext();
-  console.log({ sheetData });
-
+  const {
+    rowDetailsSheetData: rowDetailssheetData,
+    setRowDetailsSheetOpen,
+    rowDetailsSheetOpen,
+    deleteRow,
+  } = useRowContext();
+  if (!rowDetailssheetData) return null;
+  // todo : row itself can have a hash so we have to do something better
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { hash, ...row } = rowDetailssheetData.row;
   return (
-    <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+    <Sheet open={rowDetailsSheetOpen} onOpenChange={setRowDetailsSheetOpen}>
       <SheetContent className="flex min-w-[90%] flex-col md:min-w-xl">
         <SheetHeader className="bg-muted-foreground/10">
-          <SheetTitle>{sheetData?.tableName}</SheetTitle>
+          <SheetTitle>{rowDetailssheetData?.tableName}</SheetTitle>
           <SheetDescription>Viewing record details.</SheetDescription>
         </SheetHeader>
 
         <ScrollArea type="always" className="min-h-0 flex-1">
           <div className="flex flex-col divide-y p-4">
-            {Object.entries(sheetData?.row || {}).map(([key, value]) => (
+            {Object.entries(row || {}).map(([key, value]) => (
               <div key={key} className="flex flex-col gap-1 py-3">
                 <label className="text-xs font-medium text-muted-foreground capitalize">
                   {key}
@@ -61,15 +67,15 @@ export const RowDetailsSheet = () => {
 
         <SheetFooter>
           <div className="grid grid-cols-2 gap-4">
-            {sheetData?.row.hash && (
+            {rowDetailssheetData?.row.hash && (
               <>
-                <RowUpsertForm hash={sheetData.row.hash}>
+                <RowUpsertForm hash={rowDetailssheetData.row.hash}>
                   <Button className="">Edit</Button>
                 </RowUpsertForm>
 
                 <Button
                   variant={"danger"}
-                  onClick={() => deleteRow(sheetData.row.hash)}
+                  onClick={() => deleteRow(rowDetailssheetData.row.hash)}
                 >
                   Delete
                 </Button>
