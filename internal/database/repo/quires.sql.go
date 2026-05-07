@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/biisal/rowsql/configs"
-	"github.com/biisal/rowsql/internal/apperr"
 	"github.com/biisal/rowsql/internal/database/models"
 	"github.com/biisal/rowsql/internal/logger"
 	"github.com/biisal/rowsql/internal/utils"
@@ -221,11 +220,9 @@ func (q *Queries) InsertRow(ctx context.Context, tableName string, form []models
 
 func (q *Queries) GetRow(ctx context.Context, tableName, hash string, offest, limit int) ([]models.ColValue, error) {
 	if row := q.cache.Get(hash); row != nil {
-		logger.Info("found data in cache: %v", row)
 		if cv, ok := row.([]models.ColValue); ok {
 			return cv, nil
 		}
-		return nil, apperr.ErrorNotSameRowColsSize
 	}
 	colValues, err := q.ListColsMetaData(ctx, tableName)
 	if err != nil {
@@ -268,19 +265,18 @@ func (q *Queries) GetRow(ctx context.Context, tableName, hash string, offest, li
 }
 
 func (q *Queries) DeleteRow(ctx context.Context, props UpdateOrDeleteRowProps) error {
-	// var rowValues []any
-	// if cached := q.cache.Get(props.Hash); cached != nil {
-	// 	rowValues = cached
-	// } else {
-	// 	row, err := q.GetRow(ctx, props.TableName, props.Hash, props.Offset, props.Limit)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	rowValues = row.Values
+	var rowValues []models.ColValue
+	if cached := q.cache.Get(props.Hash); cached != nil {
+		rowValues = cached.([]models.ColValue)
+	} else {
+		row, err := q.GetRow(ctx, props.TableName, props.Hash, props.Offset, props.Limit)
+		if err != nil {
+			return err
+		}
+		rowValues = row
+	}
 
-	// 	return err
-	// }
-	query, args, err := q.queryBuilder.DeleteRow(props.TableName, props.Values, 1)
+	query, args, err := q.queryBuilder.DeleteRow(props.TableName, rowValues, 1)
 	if err != nil {
 		return err
 	}
@@ -306,17 +302,6 @@ type UpdateOrDeleteRowProps struct {
 }
 
 func (q *Queries) UpdateRow(ctx context.Context, props UpdateOrDeleteRowProps) error {
-	// var rowValues []any
-	// if cached := q.cache.Get(props.Hash); cached != nil {
-	// 	rowValues = cached
-	// } else {
-	// 	row, err := q.GetRow(ctx, props.TableName, props.Hash, props.Offset, props.Limit)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	rowValues = row.Values
-	// }
-
 	query, args, err := q.queryBuilder.UpdateRow(props.TableName, props.Values)
 	logger.Info("Query to Update : %s", query)
 	if err != nil {

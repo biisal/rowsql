@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build && tsc -b",
     "lint": "eslint .",
     "preview": "vite preview",
-    "generate:client": "openapi-ts --input http://localhost:8000/openapi.json --output src/client",
+    "generate:client": "openapi-ts --input ./openapi.json --output src/client",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
@@ -43,6 +43,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.17",
+    "vaul": "^1.1.2",
     "zod": "^4.2.0",
     "zustand": "^5.0.9"
   },
@@ -57,6 +58,7 @@
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "globals": "^16.5.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",

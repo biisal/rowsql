@@ -2,7 +2,6 @@ package router
 
 import (
 	"context"
-	"log/slog"
 	"strings"
 
 	"github.com/biisal/rowsql/internal/apperr"
@@ -161,7 +160,6 @@ func (h DBHandler) RowInsertOrUpdateForm(ctx context.Context, input *RowInsertOr
 		if err != nil {
 			return nil, err
 		}
-		slog.Info("Initial row", "data", initialRow)
 		return &RowInsertOrUpdateFormOutput{
 			Body: struct {
 				Cols []models.ColValue `json:"cols"`

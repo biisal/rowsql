@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   lint:
@@ -28,7 +28,13 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: 'pnpm'
+          cache: "pnpm"
+
+      - name: Prepare embed directory
+        run: mkdir -p frontend/dist && touch frontend/dist/.keep
+
+      - name: generate openapi schema
+        run: go run ./cmd/schema/main.go
 
       - name: Run go generate
         run: go generate ./...
@@ -85,7 +91,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Run go generate
         run: go generate ./...

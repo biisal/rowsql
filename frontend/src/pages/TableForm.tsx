@@ -1,4 +1,4 @@
-import { TableFormInput } from "@/feature/tables";
+import { TableFormInput } from "@/components/tables";
 import { Button } from "@/components/ui/button";
 import {
   Card,
