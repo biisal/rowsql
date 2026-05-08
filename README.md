@@ -51,6 +51,8 @@ Follow these steps to get started:
       "log_file_path": "/home/user/.rowsql/rowsql.log"
     }
     ```
+    > **Note:** If you make changes to your configuration file, you must restart RowSQL for the new settings to take effect.
+
 5.  **Open in browser**: Visit `http://localhost:8000` to start managing your data.
 
 ### Configuration Details
