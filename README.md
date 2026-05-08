@@ -1,155 +1,81 @@
 <h1 align="center">RowSQL</h1>
-<p align="center" style="display: flex; justify-content: center; align-items: center; gap: 10px">
+
+<p align="center">
   <a href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" /></a>
-  <a href="https://golang.org/"><img alt="Go Version" src="https://img.shields.io/badge/Go-1.25.3-00ADD8?style=flat-square&logo=go" /></a>
-  <a href="https://reactjs.org/"><img alt="Made with React" src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react" /></a>
 </p>
 
-> A lightweight, cross-platform database management tool for PostgreSQL, MySQL, and SQLite with a modern web-based interface.
-
-RowSQL provides an intuitive web UI to manage your databases without the complexity of heavy desktop applications. Perfect for developers who need quick access to their data with powerful filtering, editing, and query tracking capabilities.
+RowSQL is a simple tool to view and manage your databases. It provides a clean web interface to look at your information, edit records, and track your activity without needing complex desktop software.
 
 ![Demo](./resources/demo.gif)
 
 ## Features
 
-- [x] Represent your sql data in a user-friendly UI.
-- [x] Perform various SQL operations – Easily insert, update, or delete records using intuitive web forms.
-- [x] Track query history – Maintain a "Recent Activity" log to see every change made to your database using RowSQL.
-- [x] Inspect Table Structures
-- [x] Shows rows the way you want them - you choose the order, filter
+- **Easy Viewing**: See your data in a clear, organized table.
+- **Direct Editing**: Add, update, or delete records using simple forms.
+- **Activity Log**: See a history of the changes you've made.
+- **Filtering**: Find exactly what you need with easy search and sort options.
+- **Multiple Databases**: Works with SQLite, MySQL, and PostgreSQL.
 
-## Installation
+## Quick Install
+
+Run this command in your terminal to install RowSQL:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/biisal/rowsql/refs/heads/main/install | bash
 ```
 
-## How to Use?
+## How to use
 
-1. Create a .env file in your home directory's rowsql folder:
-   - Unix: ~/.rowsql/.env
-   - Windows: %USERPROFILE%\\.rowsql\\.env
+Follow these steps to get started:
 
-2. .env file should contain the following
+1.  **Start RowSQL**: Type `rowsql` in your terminal. 
+2.  **Setup Configuration**: If it's your first run, RowSQL will ask to create a default configuration file. Type `y` and press Enter.
+3.  **Find your config**: The settings are stored in a file named `config.json` in your home directory:
+    - **Unix/Mac**: `~/.rowsql/config.json`
+    - **Windows**: `%USERPROFILE%\.rowsql\config.json`
+4.  **Connect your database**: Open `config.json` and add your database details. Here is a full example with multiple databases:
+    ```json
+    {
+      "connections": [
+        {
+          "port": 8000,
+          "db_string": "my_local_data.db"
+        },
+        {
+          "port": 8081,
+          "db_string": "postgres://admin:password@localhost:5432/customers"
+        }
+      ],
+      "disable_auto_update": false,
+      "max_items_per_page": 50,
+      "log_file_path": "/home/user/.rowsql/rowsql.log"
+    }
+    ```
+5.  **Open in browser**: Visit `http://localhost:8000` to start managing your data.
 
-```
-DBSTRING=my.db
-PORT=8000
-LOG_FILE_PATH="~/.rowsql/rowsql.log"
-```
+### Configuration Details
 
-3. run `rowsql`
-4. open http://127.0.0.1:8000 in your browser
+Here is what each setting in your `config.json` does:
 
-### .env Variables Explanation
+- **`connections`**: A list of your database settings. You can add more than one database here.
+  - **`port`**: The number you type into your browser to see your data (for example, `8000`).
+  - **`db_string`**: The location of your database (either a file path or a web address).
+- **`disable_auto_update`**: If set to `true`, RowSQL will stop checking for new versions automatically.
+- **`max_items_per_page`**: The maximum number of rows to show on one page (default is 100).
+- **`log_file_path`**: The file where RowSQL saves error messages if something goes wrong.
 
-**DBSTRING** is the connection string to your database.
+### Connection Examples
 
-- For **SQLite**, this is the path to your `.db` file.
-- For **PostgreSQL**/**MySQL**, this is the PostgreSQL/MySQL connection string.
-  - `DBSTRING=postgres://admin:admin@127.0.0.1:5432/admin_db`
-- RowSQL automatically detects the database type from the connection string.
+RowSQL uses a "connection string" (`db_string`) to find your database. Here are common formats:
 
-**PORT**
-
-- The port number that RowSQL listens on. Using that port number, you can access RowSQL's web interface.
-
-**LOG_FILE_PATH**
-
-- The file path where RowSQL writes its Error logs.
-
-## Development
-
-### Prerequisites
-
-- **Go** 1.25.3 or higher
-- **Node.js** and **pnpm** (for building the frontend)
-- **Air** (optional, for hot-reloading during development)
-
-### Building from Source
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/biisal/rowsql.git
-   cd rowsql
-   ```
-
-2. Install frontend dependencies:
-   ```bash
-   cd frontend && pnpm install && cd ..
-   ```
-
-3. Build the project:
-   ```bash
-   make build
-   ```
-   This will build the frontend and compile the Go binary to `bin/rowsql`.
-
-4. Run the binary:
-   ```bash
-   ./bin/rowsql
-   ```
-
-### Development Mode
-
-For development with hot-reloading:
-
-```bash
-make dev
-```
-
-This runs both the frontend dev server and backend with Air for automatic reloading.
-
-Alternatively, run them separately:
-- Frontend only: `make frontend-dev`
-- Backend only: `make backend-dev`
-
-### Project Structure
-
-```
-rowsql/
-├── cmd/server/          # Application entry point
-├── internal/            # Internal packages
-│   ├── database/        # Database connection & type handling
-│   ├── router/          # HTTP routes & handlers
-│   ├── service/         # Business logic
-│   └── logger/          # Logging utilities
-├── frontend/            # React + Vite frontend
-├── configs/             # Configuration management
-└── resources/           # Static resources
-```
-
-## Performance Considerations
-
-### Database Size Recommendations
-
-- **SQLite**: Works well with databases up to several GB. Performance may degrade with very large tables (100M+ rows).
-- **PostgreSQL/MySQL**: Suitable for databases of any size, but consider the following:
-  - Large result sets (>10,000 rows) are paginated automatically
-  - Complex queries on large tables may take time; use filters to narrow results
-
-### Best Practices
-
-1. **Index your tables**: Ensure frequently queried columns have appropriate indexes for faster data retrieval.
-
-2. **Limit result sets**: When working with large tables, use the built-in filtering and sorting features to limit the data loaded.
-
-3. **Connection pooling**: RowSQL uses efficient connection pooling, but avoid running multiple instances against the same database unnecessarily.
-
-4. **Memory usage**: RowSQL loads data on-demand. For very large result sets, pagination prevents excessive memory consumption.
-
-5. **Network latency**: For remote databases (PostgreSQL/MySQL), ensure good network connectivity for optimal performance.
+- **SQLite**: Use the path to your database file (for example, `my_data.db`).
+- **PostgreSQL or MySQL**: Use a standard connection address (for example, `postgres://user:password@localhost:5432/my_db`).
 
 ## Contributing
 
-Contributions are welcome! Here's how you can help:
+We welcome your help! If you find a bug or have a suggestion, please open an issue or submit a pull request.
 
-1. **Report bugs**: Open an issue describing the bug and steps to reproduce it.
-2. **Suggest features**: Share your ideas for new features or improvements.
-3. **Submit pull requests**: Fork the repo, make your changes, and submit a PR.
-
-Please ensure your code follows the existing style and includes appropriate tests where applicable.
+For technical details and how to build from source, see [DEVELOPMENT.md](./DEVELOPMENT.md).
 
 ## License
 

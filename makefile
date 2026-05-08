@@ -1,27 +1,55 @@
-ensure-psql:
-	@systemctl is-active --quiet postgresql || sudo systemctl start postgresql
+GREETING := Hello from RowSQL!
 
-run:
-	./bin/rowsql
+.PHONY: default backend-build frontend-build backend-dev frontend-dev dev build run doc test release lint clean install format
 
-frontend-dev:
-	cd ./frontend/ && pnpm run dev
+default:
+	@echo "$(GREETING)"
+
+backend-build:
+	go run ./cmd/schema/main.go
+	go build -o bin/rowsql ./cmd/server
+
+frontend-build:
+	cd ./frontend && pnpm run build
 
 backend-dev:
 	air -c air.toml
 
-dev:
-	make -j2 frontend-dev backend-dev
+frontend-dev:
+	cd ./frontend/ && pnpm run dev
 
-build:
-	cd ./frontend && pnpm run build
-	go build -o bin/rowsql ./cmd/server
-	
-build-linux:
-	cd ./frontend && pnpm run build
-	GOOS=linux GOARCH=amd64 go build -o bin/rowsql-linux ./cmd/server
+dev: backend-dev frontend-dev
+
+build: doc frontend-build backend-build
+	echo "build was successful"
+
+run: build
+	./bin/rowsql
+
+doc:
+	go run ./cmd/schema/...
 
 test:
-	go test ./...
+	go test ./... -failfast
 
-.PHONY: frontend-dev backend-dev dev run ensure-psql
+release:
+	goreleaser release --clean --snapshot
+
+lint:
+	golangci-lint run
+	cd ./frontend && pnpm lint
+
+clean:
+	rm -rf dist/
+	rm -rf bin/
+	rm -rf tmp/
+	rm -rf frontend/dist/
+	rm -rf frontend/node_modules/
+
+install:
+	go mod download
+	cd ./frontend && pnpm install
+
+format:
+	gofmt -w .
+	cd ./frontend && pnpm run format
