@@ -1,0 +1,17 @@
+name: Prepare Go workspace
+description: Creates embed dir, generates OpenAPI schema, and runs go generate
+
+runs:
+  using: composite
+  steps:
+    - name: Prepare embed directory
+      run: mkdir -p frontend/dist && touch frontend/dist/.keep
+      shell: bash
+
+    - name: generate openapi schema
+      run: go run ./cmd/schema/main.go
+      shell: bash
+
+    - name: Run go generate
+      run: go generate ./...
+      shell: bash

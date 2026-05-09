@@ -30,14 +30,8 @@ jobs:
           node-version: 24
           cache: "pnpm"
 
-      - name: Prepare embed directory
-        run: mkdir -p frontend/dist && touch frontend/dist/.keep
-
-      - name: generate openapi schema
-        run: go run ./cmd/schema/main.go
-
-      - name: Run go generate
-        run: go generate ./...
+      - name: Prepare workspace
+        uses: ./.github/actions/prepare
 
       - name: Golangci Lint
         uses: golangci/golangci-lint-action@v9
@@ -93,11 +87,8 @@ jobs:
           node-version: 24
           cache: "pnpm"
 
-      - name: generate openapi schema
-        run: go run ./cmd/schema/main.go
-
-      - name: Run go generate
-        run: go generate ./...
+      - name: Prepare workspace
+        uses: ./.github/actions/prepare
 
       - name: Run go test
         run: go test ./...
