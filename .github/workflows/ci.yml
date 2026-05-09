@@ -93,6 +93,9 @@ jobs:
           node-version: 24
           cache: "pnpm"
 
+      - name: generate openapi schema
+        run: go run ./cmd/schema/main.go
+
       - name: Run go generate
         run: go generate ./...
 
