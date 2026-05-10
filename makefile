@@ -5,20 +5,25 @@ GREETING := Hello from RowSQL!
 default:
 	@echo "$(GREETING)"
 
+generate-schema:
+	go run ./cmd/schema/main.go
+
 backend-build:
 	go run ./cmd/schema/main.go
 	go build -o bin/rowsql ./cmd/server
 
 frontend-build:
+
 	cd ./frontend && pnpm run build
 
 backend-dev:
 	air -c air.toml
 
-frontend-dev:
+frontend-dev: generate-schema
 	cd ./frontend/ && pnpm run dev
 
-dev: backend-dev frontend-dev
+dev: 
+	$(MAKE) -j2 frontend-dev backend-dev
 
 build: doc frontend-build backend-build
 	echo "build was successful"
@@ -39,6 +44,9 @@ lint:
 	golangci-lint run
 	cd ./frontend && pnpm lint
 
+lint-staged:
+	cd frontend && pnpx lint-staged
+
 clean:
 	rm -rf dist/
 	rm -rf bin/
@@ -53,3 +61,7 @@ install:
 format:
 	gofmt -w .
 	cd ./frontend && pnpm run format
+
+format-check:
+	gofmt -l .
+	cd ./frontend && pnpm run format:check
