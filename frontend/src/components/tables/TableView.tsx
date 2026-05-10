@@ -21,8 +21,9 @@ import {
 import { RowDetailsSheet } from "./RowDetailsSheet";
 import { Input } from "@/components/ui/input";
 import { ChevronRight } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useRowContext } from "@/hooks/useRows";
+import { toast } from "sonner";
+import type { RowSet } from "@/client";
 
 interface TableViewProps {
   tableName: string;
@@ -31,7 +32,6 @@ interface TableViewProps {
 export type RowData = { hash: string } & Record<string, unknown>;
 
 export const TableView = ({ tableName }: TableViewProps) => {
-  const isMobile = useIsMobile();
   const { setRowDetailsSheetOpen, setRowDetailsSheetData, isLoading, data } =
     useRowContext();
   const [globalFilter, setGlobalFilter] = useState("");
@@ -60,6 +60,7 @@ export const TableView = ({ tableName }: TableViewProps) => {
     () =>
       data?.rows?.map((row) => ({
         hash: row.hash,
+        __rowSet: row,
         ...Object.fromEntries(
           (row.columns || []).map((col) => [col.columnName, col.value]),
         ),
@@ -68,9 +69,15 @@ export const TableView = ({ tableName }: TableViewProps) => {
   );
 
   const handleRowClick = (row: RowData) => {
-    setRowDetailsSheetData({ row: row, tableName });
+    const rowSet = row.__rowSet as RowSet;
+    if (!row) {
+      toast.error("Row not found");
+      return;
+    }
+    setRowDetailsSheetData({ row: rowSet, tableName });
     setRowDetailsSheetOpen(true);
   };
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: flattenedRows,
     columns: columns,
@@ -142,7 +149,7 @@ export const TableView = ({ tableName }: TableViewProps) => {
                         position: isPinned ? "sticky" : undefined,
                         right: isPinned === "right" ? 0 : undefined,
                         zIndex: isPinned ? 1 : 0,
-                        background: isMobile ? "var(--background)" : undefined,
+                        background: "var(--background)",
 
                         maxWidth: `${cell.column.getSize()}px`,
                         overflow: "hidden",

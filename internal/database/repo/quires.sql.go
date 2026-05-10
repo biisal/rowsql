@@ -229,7 +229,12 @@ func (q *Queries) GetRow(ctx context.Context, tableName, hash string, offest, li
 		return nil, err
 	}
 	logger.Info("not found in cache! Fetching from db limit=%d offset=%d", limit, offest)
-	for offest <= limit {
+	totalCount, err := q.GetRowCount(ctx, tableName)
+	if err != nil {
+		return nil, err
+	}
+
+	for (offest <= limit) && (offest < totalCount) {
 		colValue := make([]models.ColValue, len(colValues))
 		copy(colValue, colValues)
 		query, args, err := q.queryBuilder.GetRows(tableName, offest+1, offest)
@@ -238,7 +243,7 @@ func (q *Queries) GetRow(ctx context.Context, tableName, hash string, offest, li
 		}
 		data, err := q.db.QueryRowxContext(ctx, query, args...).SliceScan()
 		if err != nil {
-			logger.Error("failed to query: %v", err)
+			logger.Error("offset=%d, limit=%d, totalCount=%d failed to query: %v", offest, limit, totalCount, err)
 			if !errors.Is(err, sql.ErrNoRows) {
 				return nil, err
 			}

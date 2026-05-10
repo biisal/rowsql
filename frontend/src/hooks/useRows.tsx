@@ -6,7 +6,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import type { ErrorModel, ListRowsResponse } from "@/client";
+import type { ErrorModel, ListRowsResponse, RowSet } from "@/client";
 import {
   deleteRowMutation,
   listRowsOptions,
@@ -18,7 +18,7 @@ import { useSearchParams } from "react-router-dom";
 
 export type RowData = { hash: string } & Record<string, unknown>;
 
-type SheetData = { row: RowData; tableName: string };
+type SheetData = { row: RowSet; tableName: string };
 
 export interface RowContextType {
   rowDetailsSheetData: SheetData | null;

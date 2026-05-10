@@ -30,9 +30,7 @@ export const RowDetailsSheet = () => {
     deleteRow,
   } = useRowContext();
   if (!rowDetailssheetData) return null;
-  // todo : row itself can have a hash so we have to do something better
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { hash, ...row } = rowDetailssheetData.row;
+  const row = rowDetailssheetData.row.columns;
   return (
     <Sheet open={rowDetailsSheetOpen} onOpenChange={setRowDetailsSheetOpen}>
       <SheetContent className="flex min-w-[90%] flex-col md:min-w-xl">
@@ -43,23 +41,21 @@ export const RowDetailsSheet = () => {
 
         <ScrollArea type="always" className="min-h-0 flex-1">
           <div className="flex flex-col divide-y p-4">
-            {Object.entries(row || {}).map(([key, value]) => (
-              <div key={key} className="flex flex-col gap-1 py-3">
+            {(row || []).map((col) => (
+              <div key={col.columnName} className="flex flex-col gap-1 py-3">
                 <label className="text-xs font-medium text-muted-foreground capitalize">
-                  {key}
+                  {col.columnName}
                 </label>
-                <p className="font-mono text-sm break-all whitespace-pre-wrap">
+                <div className="font-mono text-sm break-all whitespace-pre-wrap">
                   {(() => {
-                    switch (typeof value) {
-                      case "undefined":
-                        return <p className="text-muted-foreground">-</p>;
-                      case null:
-                        return <p className="text-muted-foreground">null</p>;
-                      default:
-                        return formatValue(value);
-                    }
+                    const value = col.value;
+                    if (value === undefined)
+                      return <p className="text-muted-foreground">-</p>;
+                    if (value === null)
+                      return <p className="text-muted-foreground">null</p>;
+                    return formatValue(value);
                   })()}
-                </p>
+                </div>
               </div>
             ))}
           </div>
