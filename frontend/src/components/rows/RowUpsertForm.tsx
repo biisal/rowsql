@@ -60,11 +60,10 @@ import { SheetFooter } from "@/components/ui/sheet";
 
 interface RowUpsertFormProps {
   hash?: string;
-  goBack: () => void;
 }
 
-export const RowUpsertForm = ({ hash, goBack }: RowUpsertFormProps) => {
-  const { page, tableName } = useRowContext();
+export const RowUpsertForm = ({ hash }: RowUpsertFormProps) => {
+  const { page, tableName, closeRowDetails, setViewState } = useRowContext();
   const navigate = useNavigate();
 
   const { data, isPending } = useQuery(
@@ -318,7 +317,12 @@ export const RowUpsertForm = ({ hash, goBack }: RowUpsertFormProps) => {
                     </>
                   )}
                 </Button>
-                <Button onClick={goBack} variant="outline">
+                <Button
+                  onClick={() =>
+                    hash ? setViewState("view") : closeRowDetails()
+                  }
+                  variant="outline"
+                >
                   Cancel
                 </Button>
               </div>

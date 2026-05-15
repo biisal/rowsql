@@ -24,7 +24,6 @@ export interface RowContextType {
   viewState: ViewState;
   setViewState: Dispatch<SetStateAction<ViewState>>;
   rowDetailsSheetData: SheetData | null;
-  setRowDetailsSheetData: Dispatch<SetStateAction<SheetData | null>>;
   rowDetailsSheetOpen: boolean;
   setRowDetailsSheetOpen: Dispatch<SetStateAction<boolean>>;
   globalFilter: string;
@@ -35,6 +34,8 @@ export interface RowContextType {
   data?: ListRowsResponse;
   page: number;
   rowFetchError: ErrorModel | null;
+  openRowDetails: (row?: RowSet, mode?: ViewState) => void;
+  closeRowDetails: () => void;
 }
 
 type ViewState = "view" | "edit";
@@ -59,6 +60,19 @@ export const RowProvider = ({ children, tableName }: RowProviderProps) => {
 
   const queryClient = useQueryClient();
 
+  const openRowDetails = (row?: RowSet, mode: ViewState = "view") => {
+    setViewState(mode);
+    setRowDetailsSheetData(row ? { row, tableName } : null);
+    setRowDetailsSheetOpen(true);
+  };
+
+  const closeRowDetails = () => {
+    setRowDetailsSheetOpen(false);
+    // Reset after animation if needed, but for now simple reset
+    setViewState("view");
+    setRowDetailsSheetData(null);
+  };
+
   const deleteMutation = useMutation({
     ...deleteRowMutation(),
     onSuccess: () => {
@@ -66,8 +80,7 @@ export const RowProvider = ({ children, tableName }: RowProviderProps) => {
       queryClient.invalidateQueries({
         queryKey: listRowsQueryKey({ path: { tableName: tableName! } }),
       });
-      setRowDetailsSheetOpen(false);
-      setRowDetailsSheetData(null);
+      closeRowDetails();
     },
   });
 
@@ -98,7 +111,6 @@ export const RowProvider = ({ children, tableName }: RowProviderProps) => {
         viewState,
         setViewState,
         rowDetailsSheetData,
-        setRowDetailsSheetData,
         rowDetailsSheetOpen,
         globalFilter,
         setGlobalFilter,
@@ -109,6 +121,8 @@ export const RowProvider = ({ children, tableName }: RowProviderProps) => {
         data,
         rowFetchError,
         page,
+        openRowDetails,
+        closeRowDetails,
       }}
     >
       {children}

@@ -17,14 +17,12 @@ export const DataView = () => {
   const {
     rowDetailsSheetData: rowDetailssheetData,
     deleteRow,
-    setRowDetailsSheetData,
     setViewState,
   } = useRowContext();
   if (!rowDetailssheetData) return null;
   const row = rowDetailssheetData.row.columns;
 
   const handleEdit = () => {
-    setRowDetailsSheetData(rowDetailssheetData);
     setViewState("edit");
   };
   return (
