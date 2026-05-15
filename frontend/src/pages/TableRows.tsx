@@ -3,12 +3,13 @@ import { AppPagination } from "@/components/shared/AppPagination";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeleteAlert, RowOrderForm, TableView } from "@/components/tables";
 import { RowProvider, useRowContext } from "@/hooks/useRows";
-import { RowUpsertForm } from "@/components/rows/RowUpsertForm";
+import { Button } from "@/components/ui/button";
+import { RowDetailsSheet } from "@/components/tables/RowDetailsSheet";
 
 function TablePageContent() {
   const { tableName } = useParams<{ tableName: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { page, rowFetchError, data } = useRowContext();
+  const { page, rowFetchError, data, openRowDetails } = useRowContext();
 
   if (!tableName) {
     return (
@@ -32,12 +33,15 @@ function TablePageContent() {
 
   return (
     <div className="flex-1 p-4 md:p-8 overflow-y-auto w-full max-w-full">
+      <RowDetailsSheet />
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">{tableName}</h1>
           <div className="flex items-center justify-center gap-1">
             <DeleteAlert tableName={tableName} />
-            <RowUpsertForm />
+            <Button onClick={() => openRowDetails(undefined, "edit")}>
+              Insert
+            </Button>
           </div>
         </div>
 
@@ -56,7 +60,7 @@ function TablePageContent() {
             />
           </CardHeader>
           <CardContent className="p-4">
-            <TableView tableName={tableName || ""} />
+            <TableView />
             <div className="flex items-center flex-col sm:flex-row justify-center md:justify-between  py-4">
               <AppPagination
                 currentPage={page}

@@ -18,22 +18,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { RowDetailsSheet } from "./RowDetailsSheet";
 import { Input } from "@/components/ui/input";
 import { ChevronRight } from "lucide-react";
 import { useRowContext } from "@/hooks/useRows";
 import { toast } from "sonner";
 import type { RowSet } from "@/client";
 
-interface TableViewProps {
-  tableName: string;
-}
-
 export type RowData = { hash: string } & Record<string, unknown>;
 
-export const TableView = ({ tableName }: TableViewProps) => {
-  const { setRowDetailsSheetOpen, setRowDetailsSheetData, isLoading, data } =
-    useRowContext();
+export const TableView = () => {
+  const { openRowDetails, isLoading, data } = useRowContext();
   const [globalFilter, setGlobalFilter] = useState("");
 
   const columns: ColumnDef<RowData>[] = React.useMemo(
@@ -74,8 +68,8 @@ export const TableView = ({ tableName }: TableViewProps) => {
       toast.error("Row not found");
       return;
     }
-    setRowDetailsSheetData({ row: rowSet, tableName });
-    setRowDetailsSheetOpen(true);
+
+    openRowDetails(rowSet, "view");
   };
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
@@ -103,7 +97,6 @@ export const TableView = ({ tableName }: TableViewProps) => {
         className="max-w-sm"
       />
 
-      <RowDetailsSheet />
       <Table>
         <TableCaption>click the row to view complete data</TableCaption>
         <TableHeader>

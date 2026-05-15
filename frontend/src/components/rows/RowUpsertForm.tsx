@@ -51,32 +51,20 @@ function buildDefaultCols(cols: ColValue[]): ColField[] {
     useAutoIncrement: false,
   }));
 }
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Save } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRowContext } from "@/hooks/useRows";
+import { SheetFooter } from "@/components/ui/sheet";
 
 interface RowUpsertFormProps {
-  children?: React.ReactNode;
   hash?: string;
 }
 
-export const RowUpsertForm = ({ hash, children }: RowUpsertFormProps) => {
-  const { page, tableName } = useRowContext();
+export const RowUpsertForm = ({ hash }: RowUpsertFormProps) => {
+  const { page, tableName, closeRowDetails, setViewState } = useRowContext();
   const navigate = useNavigate();
-
-  const isEdit = !!hash;
 
   const { data, isPending } = useQuery(
     rowInsertOrUpdateFormOptions({
@@ -136,231 +124,212 @@ export const RowUpsertForm = ({ hash, children }: RowUpsertFormProps) => {
     );
   };
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        {children || (
-          <Button className="shadow-lg shadow-primary/20">
-            <Plus className="mr-2 h-4 w-4" /> {isEdit ? "Update" : "Record"}
-          </Button>
-        )}
-      </SheetTrigger>
-      <SheetContent
-        onPointerDownOutside={(e) => e.preventDefault()}
-        className="min-w-[90%] md:min-w-xl flex flex-col p-0"
-      >
-        {isPending ? (
-          <div className="flex items-center justify-center flex-1">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
-        ) : (
-          <form
-            key={hash || "new"}
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="flex-1 flex flex-col min-h-0"
-          >
-            <FieldGroup className="flex-1 flex flex-col min-h-0 gap-0">
-              <SheetHeader className="p-6 bg-muted/30 border-b">
-                <SheetTitle>{isEdit ? "Update" : "Insert"} Row</SheetTitle>
-                <SheetDescription>
-                  {isEdit
-                    ? "Update the details of the existing record."
-                    : "Fill in the fields below to add a new record to the table."}
-                </SheetDescription>
-              </SheetHeader>
+    <>
+      {isPending ? (
+        <div className="flex items-center justify-center flex-1">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <form
+          key={hash || "new"}
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="flex-1 flex flex-col min-h-0"
+        >
+          <FieldGroup className="flex-1 flex flex-col min-h-0 gap-0">
+            {form.formState.errors.cols?.message && (
+              <div className="mx-6 mt-4 p-3 bg-destructive/10 text-destructive text-sm rounded-md border border-destructive/20">
+                {form.formState.errors.cols.message}
+              </div>
+            )}
 
-              {form.formState.errors.cols?.message && (
-                <div className="mx-6 mt-4 p-3 bg-destructive/10 text-destructive text-sm rounded-md border border-destructive/20">
-                  {form.formState.errors.cols.message}
-                </div>
-              )}
+            <ScrollArea type="always" className="min-h-0 flex-1">
+              <div className="p-6 flex flex-col gap-6">
+                {fields.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    No columns found for this table.
+                  </div>
+                ) : (
+                  fields.map((field, index) => {
+                    const { columnName, columnType } = field;
 
-              <ScrollArea type="always" className="min-h-0 flex-1">
-                <div className="p-6 flex flex-col gap-6">
-                  {fields.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-8">
-                      No columns found for this table.
-                    </div>
-                  ) : (
-                    fields.map((field, index) => {
-                      const { columnName, columnType } = field;
+                    return (
+                      <Controller
+                        key={field.id}
+                        control={form.control}
+                        name={`cols.${index}.value`}
+                        render={({ field: inputField, fieldState }) => {
+                          // eslint-disable-next-line react-hooks/incompatible-library
+                          const useDefault = form.watch(
+                            `cols.${index}.useDefault`,
+                          );
+                          const useAutoIncrement = form.watch(
+                            `cols.${index}.useAutoIncrement`,
+                          );
+                          const isDisabled = useDefault || useAutoIncrement;
 
-                      return (
-                        <Controller
-                          key={field.id}
-                          control={form.control}
-                          name={`cols.${index}.value`}
-                          render={({ field: inputField, fieldState }) => {
-                            const useDefault = form.watch(
-                              `cols.${index}.useDefault`,
-                            );
-                            const useAutoIncrement = form.watch(
-                              `cols.${index}.useAutoIncrement`,
-                            );
-                            const isDisabled = useDefault || useAutoIncrement;
-
-                            return (
-                              <Field>
-                                <FieldLabel
-                                  htmlFor={`field-${columnName}`}
-                                  className="capitalize"
-                                >
-                                  {columnName.replace(/_/g, " ")}
-                                  <span className="text-muted-foreground ml-2 text-xs font-normal">
-                                    ({columnType.dataType})
+                          return (
+                            <Field>
+                              <FieldLabel
+                                htmlFor={`field-${columnName}`}
+                                className="capitalize"
+                              >
+                                {columnName.replace(/_/g, " ")}
+                                <span className="text-muted-foreground ml-2 text-xs font-normal">
+                                  ({columnType.dataType})
+                                </span>
+                                {columnType.isUnique && (
+                                  <span className="ml-2 text-xs font-normal text-primary">
+                                    • Unique
                                   </span>
-                                  {columnType.isUnique && (
-                                    <span className="ml-2 text-xs font-normal text-primary">
-                                      • Unique
-                                    </span>
+                                )}
+                              </FieldLabel>
+
+                              {columnType.hasDefault && (
+                                <Controller
+                                  control={form.control}
+                                  name={`cols.${index}.useDefault`}
+                                  render={({ field: f }) => (
+                                    <label className="flex items-center mb-2 text-sm font-medium cursor-pointer">
+                                      <Checkbox
+                                        className="mr-2"
+                                        checked={f.value}
+                                        onCheckedChange={(checked) => {
+                                          f.onChange(checked === true);
+                                          if (checked) inputField.onChange("");
+                                        }}
+                                      />
+                                      Use Default Value
+                                    </label>
                                   )}
-                                </FieldLabel>
+                                />
+                              )}
 
-                                {columnType.hasDefault && (
-                                  <Controller
-                                    control={form.control}
-                                    name={`cols.${index}.useDefault`}
-                                    render={({ field: f }) => (
-                                      <label className="flex items-center mb-2 text-sm font-medium cursor-pointer">
-                                        <Checkbox
-                                          className="mr-2"
-                                          checked={f.value}
-                                          onCheckedChange={(checked) => {
-                                            f.onChange(checked === true);
-                                            if (checked)
-                                              inputField.onChange("");
-                                          }}
-                                        />
-                                        Use Default Value
-                                      </label>
-                                    )}
-                                  />
-                                )}
+                              {columnType.hasAutoIncrement && (
+                                <Controller
+                                  control={form.control}
+                                  name={`cols.${index}.useAutoIncrement`}
+                                  render={({ field: f }) => (
+                                    <label className="flex items-center mb-2 text-sm font-medium cursor-pointer">
+                                      <Checkbox
+                                        className="mr-2"
+                                        checked={f.value}
+                                        onCheckedChange={(checked) => {
+                                          f.onChange(checked === true);
+                                          if (checked)
+                                            inputField.onChange(undefined);
+                                        }}
+                                      />
+                                      Auto Increment
+                                    </label>
+                                  )}
+                                />
+                              )}
 
-                                {columnType.hasAutoIncrement && (
-                                  <Controller
-                                    control={form.control}
-                                    name={`cols.${index}.useAutoIncrement`}
-                                    render={({ field: f }) => (
-                                      <label className="flex items-center mb-2 text-sm font-medium cursor-pointer">
-                                        <Checkbox
-                                          className="mr-2"
-                                          checked={f.value}
-                                          onCheckedChange={(checked) => {
-                                            f.onChange(checked === true);
-                                            if (checked)
-                                              inputField.onChange(undefined);
-                                          }}
-                                        />
-                                        Auto Increment
-                                      </label>
-                                    )}
-                                  />
-                                )}
-
-                                {columnType.inputType === "checkbox" ? (
-                                  <div className="flex items-center space-x-2 bg-foreground/5 p-3 rounded">
-                                    <Checkbox
-                                      id={`field-${columnName}`}
-                                      disabled={isDisabled}
-                                      checked={!!inputField.value}
-                                      onCheckedChange={(c) =>
-                                        inputField.onChange(c === true)
-                                      }
-                                    />
-                                    <FieldLabel
-                                      htmlFor={`field-${columnName}`}
-                                      className="cursor-pointer mt-0! font-normal"
-                                    >
-                                      Enable {columnName.replace(/_/g, " ")}
-                                    </FieldLabel>
-                                  </div>
-                                ) : columnType.inputType === "textarea" ||
-                                  columnType.inputType === "json" ? (
-                                  <Textarea
-                                    {...inputField}
+                              {columnType.inputType === "checkbox" ? (
+                                <div className="flex items-center space-x-2 bg-foreground/5 p-3 rounded">
+                                  <Checkbox
                                     id={`field-${columnName}`}
                                     disabled={isDisabled}
-                                    placeholder={`Enter ${columnName.replace(/_/g, " ")}`}
-                                    rows={5}
-                                    value={(inputField.value as string) || ""}
+                                    checked={!!inputField.value}
+                                    onCheckedChange={(c) =>
+                                      inputField.onChange(c === true)
+                                    }
                                   />
-                                ) : (
-                                  <Input
-                                    {...inputField}
-                                    id={`field-${columnName}`}
-                                    disabled={isDisabled}
-                                    type={
+                                  <FieldLabel
+                                    htmlFor={`field-${columnName}`}
+                                    className="cursor-pointer mt-0! font-normal"
+                                  >
+                                    Enable {columnName.replace(/_/g, " ")}
+                                  </FieldLabel>
+                                </div>
+                              ) : columnType.inputType === "textarea" ||
+                                columnType.inputType === "json" ? (
+                                <Textarea
+                                  {...inputField}
+                                  id={`field-${columnName}`}
+                                  disabled={isDisabled}
+                                  placeholder={`Enter ${columnName.replace(/_/g, " ")}`}
+                                  rows={5}
+                                  value={(inputField.value as string) || ""}
+                                />
+                              ) : (
+                                <Input
+                                  {...inputField}
+                                  id={`field-${columnName}`}
+                                  disabled={isDisabled}
+                                  type={
+                                    columnType.inputType === "number"
+                                      ? "number"
+                                      : "text"
+                                  }
+                                  placeholder={`Enter ${columnName.replace(/_/g, " ")}`}
+                                  value={(inputField.value as string) || ""}
+                                  onChange={(e) =>
+                                    inputField.onChange(
                                       columnType.inputType === "number"
-                                        ? "number"
-                                        : "text"
-                                    }
-                                    placeholder={`Enter ${columnName.replace(/_/g, " ")}`}
-                                    value={(inputField.value as string) || ""}
-                                    onChange={(e) =>
-                                      inputField.onChange(
-                                        columnType.inputType === "number"
-                                          ? e.target.valueAsNumber
-                                          : e.target.value,
-                                      )
-                                    }
-                                  />
-                                )}
+                                        ? e.target.valueAsNumber
+                                        : e.target.value,
+                                    )
+                                  }
+                                />
+                              )}
 
-                                {fieldState.invalid && (
-                                  <FieldError errors={[fieldState.error]} />
-                                )}
-                              </Field>
-                            );
-                          }}
-                        />
-                      );
-                    })
-                  )}
-                </div>
-              </ScrollArea>
-              <SheetFooter>
-                {import.meta.env.DEV && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      console.log("=== DEBUG INFO ===");
-                      console.log("Form values:", form.getValues());
-                      console.log("Form errors:", form.formState.errors);
-                      console.log("Is valid:", form.formState.isValid);
-                      console.log(
-                        "Is submitting:",
-                        form.formState.isSubmitting,
-                      );
-                      console.log("Fields:", fields);
-                    }}
-                  >
-                    Debug
-                  </Button>
+                              {fieldState.invalid && (
+                                <FieldError errors={[fieldState.error]} />
+                              )}
+                            </Field>
+                          );
+                        }}
+                      />
+                    );
+                  })
                 )}
-                <div className="grid md:grid-cols-2 gap-2">
-                  <Button type="submit" disabled={form.formState.isSubmitting}>
-                    {form.formState.isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Save
-                      </>
-                    )}
-                  </Button>
-                  <SheetClose asChild>
-                    <Button variant="outline">Cancel</Button>
-                  </SheetClose>
-                </div>
-              </SheetFooter>
-            </FieldGroup>
-          </form>
-        )}
-      </SheetContent>
-    </Sheet>
+              </div>
+            </ScrollArea>
+            <SheetFooter>
+              {import.meta.env.DEV && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    console.log("=== DEBUG INFO ===");
+                    console.log("Form values:", form.getValues());
+                    console.log("Form errors:", form.formState.errors);
+                    console.log("Is valid:", form.formState.isValid);
+                    console.log("Is submitting:", form.formState.isSubmitting);
+                    console.log("Fields:", fields);
+                  }}
+                >
+                  Debug
+                </Button>
+              )}
+              <div className="grid md:grid-cols-2 gap-2">
+                <Button type="submit" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Save
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={() =>
+                    hash ? setViewState("view") : closeRowDetails()
+                  }
+                  variant="outline"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </SheetFooter>
+          </FieldGroup>
+        </form>
+      )}
+    </>
   );
 };
