@@ -21,6 +21,8 @@ export type RowData = { hash: string } & Record<string, unknown>;
 type SheetData = { row: RowSet; tableName: string };
 
 export interface RowContextType {
+  viewState: ViewState;
+  setViewState: Dispatch<SetStateAction<ViewState>>;
   rowDetailsSheetData: SheetData | null;
   setRowDetailsSheetData: Dispatch<SetStateAction<SheetData | null>>;
   rowDetailsSheetOpen: boolean;
@@ -35,6 +37,8 @@ export interface RowContextType {
   rowFetchError: ErrorModel | null;
 }
 
+type ViewState = "view" | "edit";
+
 const RowContext = createContext<RowContextType | null>(null);
 interface RowProviderProps {
   children: ReactNode;
@@ -45,6 +49,7 @@ export const RowProvider = ({ children, tableName }: RowProviderProps) => {
   const [rowDetailsSheetData, setRowDetailsSheetData] =
     useState<SheetData | null>(null);
   const [rowDetailsSheetOpen, setRowDetailsSheetOpen] = useState(false);
+  const [viewState, setViewState] = useState<ViewState>("view");
   const [globalFilter, setGlobalFilter] = useState("");
 
   const [searchParams] = useSearchParams();
@@ -90,6 +95,8 @@ export const RowProvider = ({ children, tableName }: RowProviderProps) => {
   return (
     <RowContext.Provider
       value={{
+        viewState,
+        setViewState,
         rowDetailsSheetData,
         setRowDetailsSheetData,
         rowDetailsSheetOpen,

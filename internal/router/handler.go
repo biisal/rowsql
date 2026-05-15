@@ -192,8 +192,6 @@ func (h DBHandler) InsertOrUpdateRow(ctx context.Context, input *InsertOrUpdateR
 	}
 	form := input.Body
 
-	logger.Info("Request data: %+v", form)
-
 	pageInt := input.Page
 	hash := strings.TrimSpace(input.Hash)
 
@@ -253,7 +251,6 @@ type CreeteNewTableInput struct {
 
 func (h DBHandler) CreeteNewTable(ctx context.Context, input *CreeteNewTableInput) (*struct{}, error) {
 	req := input.Body
-	logger.Info("Request data: %+v", req)
 	if err := h.service.CreateTable(ctx, req.TableName, req.Inputs); err != nil {
 		logger.Error("%s", err)
 		logger.Error("Failed to create table '%s'", req.TableName)

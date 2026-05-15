@@ -1,6 +1,8 @@
 GREETING := Hello from RowSQL!
+SHELL := /bin/bash
 
 .PHONY: default backend-build frontend-build backend-dev frontend-dev dev build run doc test release lint clean install format
+.ONESHELL:
 
 default:
 	@echo "$(GREETING)"
@@ -39,6 +41,10 @@ test:
 
 release:
 	goreleaser release --clean --snapshot
+
+
+release-full:
+	goreleaser release
 
 lint:
 	golangci-lint run

@@ -12,7 +12,7 @@ import (
 
 func runAutoUpdate(cmd string, currentVersion string, disableAutoUpdate bool) error {
 	if disableAutoUpdate {
-		logger.Info("Auto-update disabled using DISABLE_AUTO_UPDATE=true")
+		logger.Info("Auto-update disabled using disable_auto_update: true in config file")
 		return nil
 	}
 
@@ -21,7 +21,7 @@ func runAutoUpdate(cmd string, currentVersion string, disableAutoUpdate bool) er
 		return nil
 	}
 
-	logger.Info("Checking for updates...You can disable auto-update by setting DISABLE_AUTO_UPDATE=true")
+	logger.Info("Checking for updates...You can disable auto-update by setting disable_auto_update: true in config file")
 
 	repo := selfupdate.ParseSlug("biisal/rowsql")
 
