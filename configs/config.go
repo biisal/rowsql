@@ -18,8 +18,8 @@ const (
 	DriverSQLite    Driver = "sqlite"
 	EnvDevelopment  string = "development"
 	EnvProduction   string = "production"
-	MinItemsPerPage int    = 10
-	MaxItemsPerPage int    = 100
+	MinItemsPerPage int    = 5
+	MaxItemsPerPage int    = 10
 )
 
 var Drivers = map[Driver]Driver{
@@ -61,8 +61,8 @@ func DefaultConfig() Config {
 			Env:      EnvProduction,
 		},
 		AppConfig: AppConfig{
-			MaxItemsPerPage:   10,
-			MinItemsPerPage:   5,
+			MaxItemsPerPage:   MaxItemsPerPage,
+			MinItemsPerPage:   MinItemsPerPage,
 			LogFilePath:       filepath.Join(userHome, ".rowsql", "rowsql.log"),
 			DisableAutoUpdate: true,
 		},
