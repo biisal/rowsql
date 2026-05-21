@@ -61,8 +61,8 @@ func DefaultConfig() Config {
 			Env:      EnvProduction,
 		},
 		AppConfig: AppConfig{
-			MaxItemsPerPage:   MaxItemsPerPage,
-			MinItemsPerPage:   MinItemsPerPage,
+			MaxItemsPerPage:   10,
+			MinItemsPerPage:   5,
 			LogFilePath:       filepath.Join(userHome, ".rowsql", "rowsql.log"),
 			DisableAutoUpdate: true,
 		},
