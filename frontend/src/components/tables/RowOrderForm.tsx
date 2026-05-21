@@ -46,6 +46,7 @@ export const RowOrderForm = ({
       }
       return newParams;
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleColChange = (value: string) => {

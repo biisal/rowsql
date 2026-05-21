@@ -50,6 +50,7 @@ export function QueryTable({ data, error }: QueryTableProps) {
     [data?.columns],
   );
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: (data?.rows as SqlRow[]) ?? [],
     columns,

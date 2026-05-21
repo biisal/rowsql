@@ -103,6 +103,7 @@ export function RowForm() {
     if (cols.length) {
       replace(buildDefaultCols(cols));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
   const onSubmit = async (formValues: FormSchema) => {

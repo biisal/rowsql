@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Controller, useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,10 +12,11 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   insertOrUpdateRowMutation,
   rowInsertOrUpdateFormOptions,
+  listRowsQueryKey,
 } from "@/client/@tanstack/react-query.gen";
 import type { ColValue, ErrorModel } from "@/client";
 import { zColValue } from "@/client/zod.gen";
@@ -64,7 +64,7 @@ interface RowUpsertFormProps {
 
 export const RowUpsertForm = ({ hash }: RowUpsertFormProps) => {
   const { page, tableName, closeRowDetails, setViewState } = useRowContext();
-  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data, isPending } = useQuery(
     rowInsertOrUpdateFormOptions({
@@ -116,9 +116,16 @@ export const RowUpsertForm = ({ hash }: RowUpsertFormProps) => {
             error.errors?.[0]?.message || error.detail,
           );
         },
-        onSuccess: () => {
-          toast.success("Row inserted/updated successfully");
-          navigate(`/tables/${tableName}?page=${page}`);
+        onSuccess: async () => {
+          const message = hash
+            ? "Row updated successfully"
+            : "Row inserted successfully";
+          toast.success(message);
+
+          await queryClient.invalidateQueries({
+            queryKey: listRowsQueryKey({ path: { tableName: tableName } }),
+          });
+          // navigate(`/tables/${tableName}?page=${page}`);
         },
       },
     );
