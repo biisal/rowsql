@@ -7,12 +7,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-// import type { Column } from '@/lib/types';
 import { useEffect } from "react";
 
 const TableEditForm = () => {
-  // const [columns, setColumns] = useState<Column[]>([]);
-
   useEffect(() => {}, []);
 
   const onSelect = (value: string) => {

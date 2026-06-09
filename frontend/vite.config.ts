@@ -4,7 +4,6 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, type PluginOption } from "vite";
 import { heyApiPlugin } from "@hey-api/vite-plugin";
 
-// import { visualizer } from 'rollup-plugin-visualizer';
 // https://vite.dev/config/
 export default defineConfig({
   // base: '/admin',
@@ -13,7 +12,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           "vendor-react": ["react", "react-dom"],
-          "vendor-utils": ["axios", "zod", "@tanstack/react-query"],
+          "vendor-utils": ["@tanstack/react-query", "zod"],
         },
       },
     },
@@ -28,7 +27,6 @@ export default defineConfig({
         plugins: ["@hey-api/sdk", "@tanstack/react-query", "zod"],
       },
     }) as PluginOption,
-    // visualizer({ open: true, filename: 'bundle-stats.html', gzipSize: true }),
   ],
   server: {
     port: 3000,

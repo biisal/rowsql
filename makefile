@@ -12,7 +12,7 @@ generate-schema:
 
 backend-build:
 	go run ./cmd/schema/main.go
-	go build -o bin/rowsql ./cmd/server
+	go build -ldflags="-s -w" -trimpath -o bin/rowsql ./cmd/server
 
 frontend-build:
 

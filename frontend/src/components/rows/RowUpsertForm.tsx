@@ -125,7 +125,8 @@ export const RowUpsertForm = ({ hash }: RowUpsertFormProps) => {
           await queryClient.invalidateQueries({
             queryKey: listRowsQueryKey({ path: { tableName: tableName } }),
           });
-          // navigate(`/tables/${tableName}?page=${page}`);
+          closeRowDetails();
+          setViewState("view");
         },
       },
     );

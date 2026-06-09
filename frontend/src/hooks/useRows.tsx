@@ -16,11 +16,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
 
-export type RowData = { hash: string } & Record<string, unknown>;
-
 type SheetData = { row: RowSet; tableName: string };
 
-export interface RowContextType {
+interface RowContextType {
   viewState: ViewState;
   setViewState: Dispatch<SetStateAction<ViewState>>;
   rowDetailsSheetData: SheetData | null;
