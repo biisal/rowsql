@@ -6,7 +6,7 @@
 
 RowSQL is a simple tool to view and manage your databases. It provides a clean web interface to look at your information, edit records, and track your activity without needing complex desktop software.
 
-![Demo](./resources/demo.gif)
+<img width="3356" height="2080" alt="rowsql landing" src="https://github.com/user-attachments/assets/402e7a9f-8765-478d-9ceb-be7d137be4e7" />
 
 ## Features
 
