@@ -28,6 +28,7 @@ import {
   Search,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { QueryRowSheet } from "@/components/editor/QueryRowSheet";
 
 type SqlRow = NonNullable<NonNullable<RunSqlQueryOutputBody["rows"]>[number]>;
 
@@ -39,6 +40,10 @@ interface QueryTableProps {
 export function QueryTable({ data, error }: QueryTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [selectedRow, setSelectedRow] = useState<{
+    values: SqlRow;
+    number: number;
+  } | null>(null);
 
   const columns = useMemo<ColumnDef<SqlRow>[]>(
     () =>
@@ -129,7 +134,13 @@ export function QueryTable({ data, error }: QueryTableProps) {
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  className="border-border/50 hover:bg-muted/30"
+                  onClick={() =>
+                    setSelectedRow({
+                      values: row.original,
+                      number: row.index + 1,
+                    })
+                  }
+                  className="cursor-pointer border-border/50 hover:bg-muted/30"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
@@ -157,6 +168,13 @@ export function QueryTable({ data, error }: QueryTableProps) {
           </TableBody>
         </Table>
       </ScrollArea>
+
+      <QueryRowSheet
+        columns={data.columns}
+        row={selectedRow?.values ?? null}
+        rowNumber={selectedRow?.number ?? 0}
+        onClose={() => setSelectedRow(null)}
+      />
 
       {table.getPageCount() > 1 && (
         <div className="flex shrink-0 items-center justify-between border-t border-border px-3 py-2">
