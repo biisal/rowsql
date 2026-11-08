@@ -7,6 +7,10 @@ func (s *svc) getOffset(page int) (offset int) {
 	return
 }
 
+func (s *svc) TotalPages(totalRows int) int {
+	return (totalRows + s.limit - 1) / s.limit
+}
+
 func (s *svc) HasNextPage(ctx context.Context, total, page int) bool {
-	return total > (page+1)*s.limit
+	return total > page*s.limit
 }

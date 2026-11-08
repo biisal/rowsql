@@ -23,7 +23,7 @@ import { useRowContext } from "@/hooks/useRows";
 import { toast } from "sonner";
 import type { RowSet } from "@/client";
 
-export type RowData = { hash: string } & Record<string, unknown>;
+export type RowData = { key: string } & Record<string, unknown>;
 
 export const TableView = () => {
   const { openRowDetails, isLoading, data } = useRowContext();
@@ -52,7 +52,7 @@ export const TableView = () => {
   const flattenedRows = React.useMemo<RowData[]>(
     () =>
       data?.rows?.map((row) => ({
-        hash: row.hash,
+        key: row.key,
         __rowSet: row,
         ...Object.fromEntries(
           (row.columns || []).map((col) => [col.columnName, col.value]),
@@ -87,7 +87,7 @@ export const TableView = () => {
   });
 
   return (
-    <div className="rounded-md overflow-auto relative">
+    <div className="rounded-md relative">
       <Input
         placeholder="Filter results…"
         value={globalFilter}

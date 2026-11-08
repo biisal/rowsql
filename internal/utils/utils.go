@@ -2,30 +2,18 @@
 package utils
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 
 	"github.com/biisal/rowsql/configs"
 	"github.com/biisal/rowsql/internal/logger"
+	"github.com/go-sql-driver/mysql"
 )
 
-func IsSafeIdentifier(s string) bool {
-	if s == "" {
-		return false
-	}
-	for _, c := range s {
-		if c != '_' && (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') {
-			return false
-		}
-	}
-	return true
-}
-
 func ReplaceTildeWithHomeDir(text string) (string, error) {
-	if strings.HasPrefix(text, "~") {
+	if text == "~" || strings.HasPrefix(text, "~/") {
 		homeDir, homeErr := os.UserHomeDir()
 		if homeErr != nil {
 			logger.Error("failed to get user home directory: %s", homeErr)
@@ -58,33 +46,81 @@ func isMySQLConnString(connString string) bool {
 }
 
 func DetectDriver(connectionString *string) (configs.Driver, error) {
-	tempConn := *connectionString
-	if tempConn == "" {
+	original := *connectionString
+	if original == "" {
 		return "", fmt.Errorf("connection string is empty")
 	}
 
-	lower := strings.ToLower(tempConn)
+	lower := strings.ToLower(original)
 
 	switch {
 	case isPostgresConnString(lower):
 		return configs.DriverPostgres, nil
 
 	case isMySQLConnString(lower):
-		return configs.DriverMySQL, nil
-
-	case isSQLiteConnString(lower):
-		refinedDriver, err := ReplaceTildeWithHomeDir(tempConn)
+		dsn, err := normalizeMySQLDSN(original)
 		if err != nil {
 			return "", err
 		}
-		*connectionString = refinedDriver
+		*connectionString = dsn
+		return configs.DriverMySQL, nil
+
+	case isSQLiteConnString(lower):
+		path, err := ReplaceTildeWithHomeDir(strings.TrimPrefix(original, sqliteURLPrefix))
+		if err != nil {
+			return "", err
+		}
+		*connectionString = path
 		return configs.DriverSQLite, nil
 
 	default:
-		err := fmt.Errorf("unable to detect driver from connection string! Make sure your connection string is coorect")
+		err := fmt.Errorf("unable to detect driver from connection string! Make sure your connection string is correct")
 		logger.Errorln(err)
 		return "", err
 	}
+}
+
+const (
+	sqliteURLPrefix = "sqlite://"
+	mysqlURLPrefix  = "mysql://"
+)
+
+func normalizeMySQLDSN(connectionString string) (string, error) {
+	if !strings.HasPrefix(strings.ToLower(connectionString), mysqlURLPrefix) {
+		return withParseTime(connectionString)
+	}
+
+	parsedURL, err := url.Parse(connectionString)
+	if err != nil {
+		return "", fmt.Errorf("invalid mysql connection url: %w", err)
+	}
+
+	config := mysql.NewConfig()
+	config.Net = "tcp"
+	config.Addr = parsedURL.Host
+	if !strings.Contains(config.Addr, ":") {
+		config.Addr += ":3306"
+	}
+	config.DBName = strings.TrimPrefix(parsedURL.Path, "/")
+	if parsedURL.User != nil {
+		config.User = parsedURL.User.Username()
+		config.Passwd, _ = parsedURL.User.Password()
+	}
+	config.Params = map[string]string{}
+	for key, values := range parsedURL.Query() {
+		config.Params[key] = values[0]
+	}
+	config.ParseTime = true
+	return config.FormatDSN(), nil
+}
+
+func withParseTime(dsn string) (string, error) {
+	config, err := mysql.ParseDSN(dsn)
+	if err != nil {
+		return "", fmt.Errorf("invalid mysql connection string: %w", err)
+	}
+	config.ParseTime = true
+	return config.FormatDSN(), nil
 }
 
 const (
@@ -199,17 +235,4 @@ func GetInputType(dbType string) string {
 	}
 	logger.Warning("unknown data type: %s", dbType)
 	return textInput
-}
-
-func MakeRowHash(data any) (string, error) {
-	h := sha256.New()
-	if _, err := fmt.Fprint(h, data); err != nil {
-		logger.Error("failed to hash data: %v", err)
-		return "", err
-	}
-	hashBytes := h.Sum(nil)
-	fullHash := hex.EncodeToString(hashBytes)
-
-	shortHash := fullHash[:8]
-	return shortHash, nil
 }

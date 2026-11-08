@@ -4,7 +4,6 @@ import (
 	"context"
 	"strings"
 
-	"github.com/biisal/rowsql/internal/apperr"
 	"github.com/biisal/rowsql/internal/database/models"
 	"github.com/biisal/rowsql/internal/logger"
 	"github.com/biisal/rowsql/internal/service"
@@ -33,7 +32,7 @@ func NewHandler(service service.DBService, itemsLimit int) DBHandler {
 }
 
 func (h *DBHandler) checkTableExists(ctx context.Context, tableName string) error {
-	if err := h.service.CheckTableExits(ctx, tableName); err != nil {
+	if err := h.service.CheckTableExists(ctx, tableName); err != nil {
 		logger.Error("%s", err)
 		return huma.Error404NotFound("table not found", err)
 	}
@@ -55,7 +54,10 @@ type ListColumnsInput struct {
 	TableName string `path:"tableName"`
 }
 
-func (h DBHandler) ListColumns(ctx context.Context, input *ListColumnsInput) (*struct{ Body []models.ColValue }, error) {
+func (h DBHandler) ListColumns(
+	ctx context.Context,
+	input *ListColumnsInput,
+) (*struct{ Body []models.ColValue }, error) {
 	if err := h.checkTableExists(ctx, input.TableName); err != nil {
 		return nil, err
 	}
@@ -83,32 +85,11 @@ func (h DBHandler) ListRows(ctx context.Context, input *ListRowsInput) (*ListRow
 		return nil, err
 	}
 
-	colParam := strings.TrimSpace(input.Column)
-	order := input.Order
+	columnName := strings.TrimSpace(input.Column)
 
-	var err error
-
-	colFound := false
-	if colParam != "" {
-		var cols []models.ColValue
-		cols, err = h.service.ListCols(ctx, tableName)
-		if err != nil {
-			return nil, err
-		}
-		for _, col := range cols {
-			if col.ColumnName == colParam {
-				colFound = true
-				break
-			}
-		}
-		if !colFound {
-			return nil, apperr.ErrorInvalidColumn
-		}
-	}
-
-	rows, err := h.service.ListRows(ctx, tableName, input.Page, colParam, order)
+	rows, err := h.service.ListRows(ctx, tableName, input.Page, columnName, input.Order)
 	if err != nil {
-		return nil, err
+		return nil, toHTTPError(err)
 	}
 
 	cols, err := h.service.ListCols(ctx, tableName)
@@ -129,15 +110,14 @@ func (h DBHandler) ListRows(ctx context.Context, input *ListRowsInput) (*ListRow
 			RowCount:    count,
 			ActiveTable: tableName,
 			HasNextPage: h.service.HasNextPage(ctx, count, input.Page),
-			TotalPages:  count / h.itemsLimit,
+			TotalPages:  h.service.TotalPages(count),
 		},
 	}, nil
 }
 
 type RowInsertOrUpdateFormInput struct {
 	TableName string `path:"tableName"`
-	Page      int    `query:"page" default:"1" minimum:"1"`
-	Hash      string `query:"hash"`
+	Key       string `query:"key"`
 }
 
 type RowInsertOrUpdateFormOutput struct {
@@ -146,7 +126,10 @@ type RowInsertOrUpdateFormOutput struct {
 	}
 }
 
-func (h DBHandler) RowInsertOrUpdateForm(ctx context.Context, input *RowInsertOrUpdateFormInput) (*RowInsertOrUpdateFormOutput, error) {
+func (h DBHandler) RowInsertOrUpdateForm(
+	ctx context.Context,
+	input *RowInsertOrUpdateFormInput,
+) (*RowInsertOrUpdateFormOutput, error) {
 	if err := h.checkTableExists(ctx, input.TableName); err != nil {
 		return nil, err
 	}
@@ -155,10 +138,10 @@ func (h DBHandler) RowInsertOrUpdateForm(ctx context.Context, input *RowInsertOr
 		logger.Error("%s", err)
 		return nil, err
 	}
-	if input.Hash != "" {
-		initialRow, err := h.service.GetRow(ctx, input.TableName, input.Hash, input.Page)
+	if input.Key != "" {
+		initialRow, err := h.service.GetRow(ctx, input.TableName, input.Key)
 		if err != nil {
-			return nil, err
+			return nil, toHTTPError(err)
 		}
 		return &RowInsertOrUpdateFormOutput{
 			Body: struct {
@@ -180,8 +163,7 @@ func (h DBHandler) RowInsertOrUpdateForm(ctx context.Context, input *RowInsertOr
 
 type InsertOrUpdateRowInput struct {
 	TableName string            `path:"tableName"`
-	Hash      string            `query:"hash"`
-	Page      int               `query:"page" default:"1"`
+	Key       string            `query:"key"`
 	Body      []models.ColValue `json:"body"`
 }
 
@@ -191,24 +173,20 @@ func (h DBHandler) InsertOrUpdateRow(ctx context.Context, input *InsertOrUpdateR
 		return nil, err
 	}
 	form := input.Body
+	key := strings.TrimSpace(input.Key)
 
-	pageInt := input.Page
-	hash := strings.TrimSpace(input.Hash)
-
-	if hash != "" {
-		if err := h.service.UpdateRow(ctx, form, tableName, hash, pageInt); err != nil {
-			logger.Error("%s", err)
-			logger.Error("Failed to update row in table '%s'", tableName)
-			return nil, err
+	if key != "" {
+		if err := h.service.UpdateRow(ctx, tableName, key, form); err != nil {
+			logger.Error("Failed to update row in table '%s': %s", tableName, err)
+			return nil, toHTTPError(err)
 		}
 		logger.Success("Row updated successfully in table '%s'", tableName)
 		return nil, nil
 	}
 
 	if err := h.service.InsertRow(ctx, tableName, form); err != nil {
-		logger.Errorln(err.Error())
-		logger.Error("Failed to insert row in table '%s'", tableName)
-		return nil, err
+		logger.Error("Failed to insert row in table '%s': %s", tableName, err)
+		return nil, toHTTPError(err)
 	}
 	logger.Success("Row inserted successfully in table '%s'", tableName)
 	return nil, nil
@@ -216,24 +194,25 @@ func (h DBHandler) InsertOrUpdateRow(ctx context.Context, input *InsertOrUpdateR
 
 type DeleteRowInput struct {
 	TableName string `path:"tableName"`
-	Hash      string `path:"hash"`
-	Page      int    `query:"page" default:"1"`
+	Key       string `path:"key"`
 }
 
 func (h DBHandler) DeleteRow(ctx context.Context, input *DeleteRowInput) (*struct{}, error) {
 	if err := h.checkTableExists(ctx, input.TableName); err != nil {
 		return nil, err
 	}
-	if err := h.service.DeleteRow(ctx, input.TableName, input.Hash, input.Page); err != nil {
-		logger.Error("%s", err)
-		logger.Error("Failed to delete row from table '%s'", input.TableName)
-		return nil, err
+	if err := h.service.DeleteRow(ctx, input.TableName, input.Key); err != nil {
+		logger.Error("Failed to delete row from table '%s': %s", input.TableName, err)
+		return nil, toHTTPError(err)
 	}
 	logger.Success("Row deleted successfully from table '%s'", input.TableName)
 	return nil, nil
 }
 
-func (h DBHandler) NewTableFormFileds(ctx context.Context, input *struct{}) (*struct{ Body *service.FormDatatype }, error) {
+func (h DBHandler) NewTableFormFields(
+	ctx context.Context,
+	input *struct{},
+) (*struct{ Body *service.FormDatatype }, error) {
 	fields := h.service.GetTableFormDataTypes()
 	if fields == nil {
 		return nil, huma.Error500InternalServerError("no data found")
@@ -242,19 +221,18 @@ func (h DBHandler) NewTableFormFileds(ctx context.Context, input *struct{}) (*st
 	return &struct{ Body *service.FormDatatype }{Body: fields}, nil
 }
 
-type CreeteNewTableInput struct {
+type CreateNewTableInput struct {
 	Body struct {
 		TableName string            `json:"tableName"`
 		Inputs    []models.ColValue `json:"inputs"`
 	}
 }
 
-func (h DBHandler) CreeteNewTable(ctx context.Context, input *CreeteNewTableInput) (*struct{}, error) {
+func (h DBHandler) CreateNewTable(ctx context.Context, input *CreateNewTableInput) (*struct{}, error) {
 	req := input.Body
 	if err := h.service.CreateTable(ctx, req.TableName, req.Inputs); err != nil {
-		logger.Error("%s", err)
-		logger.Error("Failed to create table '%s'", req.TableName)
-		return nil, err
+		logger.Error("Failed to create table '%s': %s", req.TableName, err)
+		return nil, toHTTPError(err)
 	}
 	logger.Success("Table '%s' created successfully with %d columns", req.TableName, len(req.Inputs))
 	return nil, nil
@@ -262,16 +240,17 @@ func (h DBHandler) CreeteNewTable(ctx context.Context, input *CreeteNewTableInpu
 
 type DeleteTableRequest struct {
 	TableName         string `json:"tableName"`
-	VerificationQuiry string `json:"verificationQuery"`
+	VerificationQuery string `json:"verificationQuery"`
 }
 
 func (h *DBHandler) DeleteTable(ctx context.Context, input *struct{ Body DeleteTableRequest }) (*struct{}, error) {
 	req := input.Body
-	err := h.service.DeleteTable(ctx, req.TableName, req.VerificationQuiry)
-	if err != nil {
-		logger.Error("%s", err)
-		logger.Error("Failed to delete table '%s'", req.TableName)
+	if err := h.checkTableExists(ctx, req.TableName); err != nil {
 		return nil, err
+	}
+	if err := h.service.DeleteTable(ctx, req.TableName, req.VerificationQuery); err != nil {
+		logger.Error("Failed to delete table '%s': %s", req.TableName, err)
+		return nil, toHTTPError(err)
 	}
 	logger.Success("Table '%s' deleted successfully", req.TableName)
 	return nil, nil
@@ -281,7 +260,10 @@ type ListHistoryInput struct {
 	Page int `query:"page" default:"1"`
 }
 
-func (h *DBHandler) ListHistory(ctx context.Context, input *ListHistoryInput) (*struct{ Body []models.History }, error) {
+func (h *DBHandler) ListHistory(
+	ctx context.Context,
+	input *ListHistoryInput,
+) (*struct{ Body []models.History }, error) {
 	pageInt := max(input.Page, 1)
 
 	history, err := h.service.ListHistory(ctx, pageInt)

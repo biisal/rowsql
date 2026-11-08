@@ -1,36 +1,45 @@
-// Package queries provides a set of SQL queries based on the driver
+// Package queries builds the SQL used to browse and edit tables for each supported database.
 package queries
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
-	"io"
-	"regexp"
 	"strings"
 
 	"github.com/biisal/rowsql/configs"
 	"github.com/biisal/rowsql/internal/apperr"
 	"github.com/biisal/rowsql/internal/database/models"
-	"github.com/biisal/rowsql/internal/logger"
+	"github.com/biisal/rowsql/internal/database/rowkey"
+	"github.com/biisal/rowsql/internal/database/sqlb"
 )
 
+const PhysicalRowIDAlias = "_rowsql_row_id"
+
+type ListRowsOptions struct {
+	OrderColumn          string
+	Descending           bool
+	Limit                int
+	Offset               int
+	DefaultOrderColumns  []string
+	IncludePhysicalRowID bool
+}
+
 type Builder interface {
-	CheckTableExitsQuery(tableName string) (string, []any)
-	ColumnsList(tableName string) (string, []any)
+	CheckTableExists(tableName string) (string, []any)
+	ListColumns(tableName string) (string, []any)
 	ListTables() string
-	ListRows(tableName, orderCol, orderBy string, limit, offset int) (string, []any, error)
+	ListRows(tableName string, options ListRowsOptions) (string, []any, error)
+	CountRows(tableName string) (string, error)
+	SelectRow(tableName string, key rowkey.Key) (string, []any, error)
+	InsertRow(tableName string, values []models.ColValue) (string, []any, error)
+	UpdateRow(tableName string, changes []models.ColValue, key rowkey.Key) (string, []any, error)
+	DeleteRow(tableName string, key rowkey.Key) (string, []any, error)
+	CreateTable(tableName string, columns []models.ColValue) (string, error)
 	DeleteTable(tableName string) string
-	GetRows(tableName string, limit, offset int) (string, []any, error)
-	DeleteRow(string, []models.ColValue, int) (string, []any, error)
-	UpdateRow(tableName string, form []models.ColValue) (string, []any, error)
-	InsertRow(tableName string, form []models.ColValue) (string, []any, error)
-	CreateTable(tableName string, inputs []models.ColValue) (string, error)
 	QuoteName(name string) string
+	PhysicalRowID() (PhysicalRowID, bool)
 }
 
 type builder struct {
-	driver   configs.Driver
 	maxLimit int
 	dialect  Dialect
 }
@@ -40,18 +49,14 @@ func NewBuilder(driver configs.Driver, maxLimit int) (Builder, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &builder{
-		driver:   driver,
-		maxLimit: maxLimit,
-		dialect:  dialect,
-	}, nil
+	return &builder{maxLimit: maxLimit, dialect: dialect}, nil
 }
 
-func (b *builder) CheckTableExitsQuery(tableName string) (string, []any) {
+func (b *builder) CheckTableExists(tableName string) (string, []any) {
 	return b.dialect.CheckTableExists(tableName)
 }
 
-func (b *builder) ColumnsList(tableName string) (string, []any) {
+func (b *builder) ListColumns(tableName string) (string, []any) {
 	return b.dialect.ListColumns(tableName)
 }
 
@@ -59,231 +64,249 @@ func (b *builder) ListTables() string {
 	return b.dialect.ListTables()
 }
 
-func (b *builder) ListRows(tableName, orderCol, orderBy string, limit, offset int) (string, []any, error) {
-	if tableName == "" {
-		return "", nil, apperr.ErrorEmptyTableName
+func (b *builder) QuoteName(name string) string {
+	return b.dialect.QuoteIdentifier(name)
+}
+
+func (b *builder) PhysicalRowID() (PhysicalRowID, bool) {
+	return b.dialect.PhysicalRowID()
+}
+
+func (b *builder) statement() *sqlb.Statement {
+	return sqlb.New(b.dialect)
+}
+
+func validateName(name string, emptyError error) error {
+	if strings.TrimSpace(name) == "" {
+		return emptyError
 	}
-	if limit < 0 || offset < 0 {
+	if strings.ContainsRune(name, 0) {
+		return apperr.ErrorInvalidTableName
+	}
+	return nil
+}
+
+func (b *builder) ListRows(tableName string, options ListRowsOptions) (string, []any, error) {
+	if err := validateName(tableName, apperr.ErrorEmptyTableName); err != nil {
+		return "", nil, err
+	}
+	if options.Limit < 0 || options.Offset < 0 {
 		return "", nil, apperr.ErrorInvalidPagination
 	}
-	if limit > b.maxLimit {
+	if options.Limit > b.maxLimit {
 		return "", nil, apperr.ErrorLimitTooLarge(b.maxLimit)
 	}
-	tableName = b.dialect.QuoteName(tableName)
-	if tableName == "" {
-		return "", nil, apperr.ErrorInvalidTableName
-	}
 
-	parts := []string{fmt.Sprintf("SELECT * FROM %s", tableName)}
-	if orderCol != "" {
-		order := "ASC"
-		if strings.ToLower(orderBy) == "desc" {
-			order = "DESC"
+	statement := b.statement().Raw("SELECT ")
+	if options.IncludePhysicalRowID {
+		physicalRowID, supported := b.dialect.PhysicalRowID()
+		if !supported {
+			return "", nil, apperr.ErrorPhysicalRowIDUnsupported
 		}
-		parts = append(parts, fmt.Sprintf("ORDER BY %s %s", b.dialect.QuoteName(orderCol), order))
+		statement.Raw(physicalRowID.SelectExpr + " AS ").Identifier(PhysicalRowIDAlias).Raw(", ")
 	}
+	statement.Raw("* FROM ").Identifier(tableName)
+	b.writeOrderBy(statement, options)
+	statement.LimitOffset(options.Limit, options.Offset)
 
-	args := []any{}
-	if limit > 0 {
-		ph, err := b.dialect.PlaceHolder(1)
-		if err != nil {
-			return "", nil, err
-		}
-		parts = append(parts, fmt.Sprintf("LIMIT %s", ph))
-		args = append(args, limit)
-	}
-	if offset > 0 {
-		placeholder, err := b.dialect.PlaceHolder(1)
-		if err != nil {
-			return "", nil, err
-		}
-		if limit > 0 {
-			placeholder, err = b.dialect.PlaceHolder(2)
-			if err != nil {
-				return "", nil, err
-			}
-		}
-		parts = append(parts, fmt.Sprintf("OFFSET %s", placeholder))
-		args = append(args, offset)
-	}
-
-	return strings.Join(parts, " "), args, nil
+	query, arguments := statement.Build()
+	return query, arguments, nil
 }
 
-func (b *builder) InsertRow(tableName string, form []models.ColValue) (string, []any, error) {
-	if tableName == "" {
-		return "", nil, apperr.ErrorEmptyTableName
+func (b *builder) writeOrderBy(statement *sqlb.Statement, options ListRowsOptions) {
+	orderColumns := make([]string, 0, len(options.DefaultOrderColumns)+1)
+	if options.OrderColumn != "" {
+		orderColumns = append(orderColumns, options.OrderColumn)
 	}
-	columns := make([]string, 0, len(form))
-	placeholders := make([]string, 0, len(form))
-	args := make([]any, 0, len(form))
-
-	paramIndex := 1
-
-	seen := make(map[string]bool)
-
-	for _, field := range form {
-		if _, ok := seen[field.ColumnName]; ok {
-			return "", nil, apperr.ErrorDuplicateColumn
+	for _, column := range options.DefaultOrderColumns {
+		if column != options.OrderColumn {
+			orderColumns = append(orderColumns, column)
 		}
-		seen[field.ColumnName] = true
-		columns = append(columns, b.dialect.QuoteName(field.ColumnName))
+	}
+	if len(orderColumns) == 0 {
+		return
+	}
 
-		ph, err := b.dialect.PlaceHolder(paramIndex)
-		if err != nil {
-			return "", nil, err
+	statement.Raw(" ORDER BY ")
+	for index, column := range orderColumns {
+		if index > 0 {
+			statement.Raw(", ")
 		}
-		placeholders = append(placeholders, ph)
-
-		if field.ColumnType.DataType == "json" {
-			var jsonVal any
-			str, ok := field.Value.(string)
-			if !ok {
-				return "", nil, apperr.ErrorInvalidJSON
-			}
-			if err := json.Unmarshal([]byte(str), &jsonVal); err != nil {
-				logger.Errorln(err)
-				var syntaxErr *json.SyntaxError
-				if errors.As(err, &syntaxErr) || errors.Is(err, io.ErrUnexpectedEOF) {
-					return "", nil, apperr.ErrorInvalidJSON
-				}
-				return "", nil, err
-
-			}
-			logger.Info("jsonVal: %v", jsonVal)
-			args = append(args, jsonVal)
-		} else {
-			args = append(args, field.Value)
+		statement.Identifier(column)
+		if index == 0 && options.OrderColumn != "" && options.Descending {
+			statement.Raw(" DESC")
 		}
-
-		paramIndex++
 	}
-
-	qColumns := ""
-	qPlaceholders := ""
-
-	if len(columns) > 0 {
-		qColumns = strings.Join(columns, ", ")
-		qPlaceholders = strings.Join(placeholders, ", ")
-	}
-
-	var query string
-	tableName = b.dialect.QuoteName(tableName)
-
-	if qColumns == "" {
-		query = b.dialect.InsertDefaultValues(tableName)
-	} else {
-		query = fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", tableName, qColumns, qPlaceholders)
-	}
-	logger.Info("Query: %s", query)
-	return query, args, nil
 }
 
-func (b *builder) GetRows(tableName string, limit, offset int) (string, []any, error) {
-	if limit <= 0 || offset < 0 {
-		return "", nil, apperr.ErrorInvalidPagination
+func (b *builder) CountRows(tableName string) (string, error) {
+	if err := validateName(tableName, apperr.ErrorEmptyTableName); err != nil {
+		return "", err
 	}
-
-	tableName = strings.TrimSpace(tableName)
-	if tableName == "" {
-		return "", nil, apperr.ErrorInvalidTableName
-	}
-	tableName = b.dialect.QuoteName(tableName)
-
-	args := []any{limit}
-	ph, err := b.dialect.PlaceHolder(1)
-	if err != nil {
-		return "", nil, err
-	}
-	parts := []string{fmt.Sprintf("SELECT * FROM %s LIMIT %s", tableName, ph)}
-	if offset > 0 {
-		ph, err = b.dialect.PlaceHolder(2)
-		if err != nil {
-			return "", nil, err
-		}
-		parts = append(parts, fmt.Sprintf("OFFSET %s", ph))
-		args = append(args, offset)
-	}
-
-	return strings.Join(parts, " "), args, nil
-}
-
-func (b *builder) DeleteRow(tableName string, columns []models.ColValue, argIdx int) (string, []any, error) {
-	tableName = strings.TrimSpace(tableName)
-	if tableName == "" {
-		return "", nil, apperr.ErrorEmptyTableName
-	}
-	clause, args, err := b.dialect.WhereCluse(columns, argIdx)
-	logger.Info("Clause: %s", clause)
-	if err != nil {
-		logger.Error("Error in clause: %s", err)
-		return "", nil, err
-	}
-	query := b.dialect.DeleteRow(tableName, clause)
-	return query, args, nil
-}
-
-func (b *builder) UpdateRow(tableName string, form []models.ColValue) (string, []any, error) {
-	tableName = strings.TrimSpace(tableName)
-	if tableName == "" {
-		return "", nil, apperr.ErrorInvalidTableName
-	}
-	parts := make([]string, 0, len(form))
-	index := 1
-	args := []any{}
-	for _, v := range form {
-		ph, err := b.dialect.PlaceHolder(index)
-		if err != nil {
-			return "", nil, err
-		}
-		logger.Info("%s", b.dialect.QuoteName(v.ColumnName))
-		parts = append(parts, fmt.Sprintf("%s=%s", b.dialect.QuoteName(v.ColumnName), ph))
-		args = append(args, v.Value)
-		index++
-	}
-	updateQuery := strings.Join(parts, ",")
-	whereClause, whereClauseArgs, err := b.dialect.WhereCluse(form, len(args)+1)
-	if err != nil {
-		return "", nil, err
-	}
-
-	tableName = b.dialect.QuoteName(tableName)
-	query := fmt.Sprintf("UPDATE %s SET %s %s", tableName, updateQuery, b.dialect.FilterOneRowClause(tableName, whereClause))
-	fullArgs := append(args, whereClauseArgs...)
-	logger.Info("Query: %q\nArgs: %#v", query, fullArgs)
-	return query, fullArgs, nil
-}
-
-func (b *builder) CreateTable(tableName string, inputs []models.ColValue) (string, error) {
-	logger.Info("Building create table query")
-	columnDefs := make([]string, 0, len(inputs))
-	for _, input := range inputs {
-		if input.ColumnName == "" {
-			continue
-		}
-		formattedColDef, err := b.formatColumnDefinition(input)
-		if err != nil {
-			return "", err
-		}
-		columnDefs = append(columnDefs, formattedColDef)
-	}
-	logger.Info("Query: %s", strings.Join(columnDefs, ", "))
-
-	validName := regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
-	if !validName.MatchString(tableName) {
-		logger.Error("invalid table name! Only alphanumeric and _ are allowed table_name=%s", tableName)
-		return "", errors.New("invalid table name! Only alphanumeric and _ are allowed")
-	}
-	parts := strings.Join(columnDefs, ", ")
-
-	query := fmt.Sprintf("CREATE TABLE %s (%s) ;", b.dialect.QuoteName(tableName), parts)
+	query, _ := b.statement().Raw("SELECT COUNT(*) FROM ").Identifier(tableName).Build()
 	return query, nil
 }
 
-func (b *builder) DeleteTable(tableName string) string {
-	return fmt.Sprintf("DROP TABLE %s", b.dialect.QuoteName(tableName))
+func (b *builder) SelectRow(tableName string, key rowkey.Key) (string, []any, error) {
+	if err := validateName(tableName, apperr.ErrorEmptyTableName); err != nil {
+		return "", nil, err
+	}
+	statement := b.statement().Raw("SELECT * FROM ").Identifier(tableName)
+	if err := b.writeKeyCondition(statement, key); err != nil {
+		return "", nil, err
+	}
+	statement.LimitOffset(1, 0)
+	query, arguments := statement.Build()
+	return query, arguments, nil
 }
 
-func (b *builder) QuoteName(name string) string {
-	return b.dialect.QuoteName(name)
+func (b *builder) writeKeyCondition(statement *sqlb.Statement, key rowkey.Key) error {
+	if len(key.Columns) == 0 || len(key.Columns) != len(key.Values) {
+		return rowkey.ErrInvalidKey
+	}
+
+	if key.Kind == rowkey.KindPhysical {
+		physicalRowID, supported := b.dialect.PhysicalRowID()
+		if !supported || key.Values[0] == nil {
+			return rowkey.ErrInvalidKey
+		}
+		statement.Raw(" WHERE ").
+			Identifier(physicalRowID.Column).
+			Raw(" = ").
+			Argument(key.Values[0]).
+			Raw(physicalRowID.BindSuffix)
+		return nil
+	}
+
+	statement.WhereAllEqual(key.Columns, key.Values)
+	return nil
+}
+
+func (b *builder) limitWriteToOneRow(statement *sqlb.Statement, key rowkey.Key) {
+	if b.dialect.LimitsWritesToOneRow() && key.Kind == rowkey.KindAllColumns {
+		statement.Raw(" LIMIT 1")
+	}
+}
+
+func (b *builder) InsertRow(tableName string, values []models.ColValue) (string, []any, error) {
+	if err := validateName(tableName, apperr.ErrorEmptyTableName); err != nil {
+		return "", nil, err
+	}
+	statement := b.statement().Raw("INSERT INTO ").Identifier(tableName)
+	if len(values) == 0 {
+		statement.Raw(" " + b.dialect.InsertDefaultValuesClause())
+		query, arguments := statement.Build()
+		return query, arguments, nil
+	}
+
+	if err := rejectDuplicateColumns(values); err != nil {
+		return "", nil, err
+	}
+
+	statement.Raw(" (")
+	for index, value := range values {
+		if index > 0 {
+			statement.Raw(", ")
+		}
+		statement.Identifier(value.ColumnName)
+	}
+	statement.Raw(") VALUES (")
+	for index, value := range values {
+		if index > 0 {
+			statement.Raw(", ")
+		}
+		bindable, err := bindableValue(value)
+		if err != nil {
+			return "", nil, err
+		}
+		statement.Argument(bindable)
+	}
+	statement.Raw(")")
+
+	query, arguments := statement.Build()
+	return query, arguments, nil
+}
+
+func (b *builder) UpdateRow(tableName string, changes []models.ColValue, key rowkey.Key) (string, []any, error) {
+	if err := validateName(tableName, apperr.ErrorInvalidTableName); err != nil {
+		return "", nil, err
+	}
+	if len(changes) == 0 {
+		return "", nil, apperr.ErrorNoValuesProvided
+	}
+	if err := rejectDuplicateColumns(changes); err != nil {
+		return "", nil, err
+	}
+
+	statement := b.statement().Raw("UPDATE ").Identifier(tableName).Raw(" SET ")
+	for index, change := range changes {
+		if index > 0 {
+			statement.Raw(", ")
+		}
+		bindable, err := bindableValue(change)
+		if err != nil {
+			return "", nil, err
+		}
+		statement.Identifier(change.ColumnName).Raw(" = ").Argument(bindable)
+	}
+	if err := b.writeKeyCondition(statement, key); err != nil {
+		return "", nil, err
+	}
+	b.limitWriteToOneRow(statement, key)
+
+	query, arguments := statement.Build()
+	return query, arguments, nil
+}
+
+func (b *builder) DeleteRow(tableName string, key rowkey.Key) (string, []any, error) {
+	if err := validateName(tableName, apperr.ErrorEmptyTableName); err != nil {
+		return "", nil, err
+	}
+	statement := b.statement().Raw("DELETE FROM ").Identifier(tableName)
+	if err := b.writeKeyCondition(statement, key); err != nil {
+		return "", nil, err
+	}
+	b.limitWriteToOneRow(statement, key)
+
+	query, arguments := statement.Build()
+	return query, arguments, nil
+}
+
+func (b *builder) DeleteTable(tableName string) string {
+	query, _ := b.statement().Raw("DROP TABLE ").Identifier(tableName).Build()
+	return query
+}
+
+func rejectDuplicateColumns(values []models.ColValue) error {
+	seen := make(map[string]bool, len(values))
+	for _, value := range values {
+		if value.ColumnName == "" {
+			return apperr.ErrorInvalidColumn
+		}
+		if seen[value.ColumnName] {
+			return apperr.ErrorDuplicateColumn
+		}
+		seen[value.ColumnName] = true
+	}
+	return nil
+}
+
+func isJSONColumn(dataType string) bool {
+	switch strings.ToLower(dataType) {
+	case "json", "jsonb":
+		return true
+	default:
+		return false
+	}
+}
+
+func bindableValue(column models.ColValue) (any, error) {
+	if !isJSONColumn(column.ColumnType.DataType) || column.Value == nil {
+		return column.Value, nil
+	}
+	text, isText := column.Value.(string)
+	if !isText || !json.Valid([]byte(text)) {
+		return nil, apperr.ErrorInvalidJSON
+	}
+	return text, nil
 }

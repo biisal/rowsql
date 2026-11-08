@@ -1,0 +1,28 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: standard
+  enable:
+    - lll
+  settings:
+    lll:
+      line-length: 120
+      tab-width: 4
+  exclusions:
+    generated: lax
+    paths:
+      - frontend
+      - tmp
+
+formatters:
+  enable:
+    - gofmt
+    - golines
+  settings:
+    golines:
+      max-len: 120
+      tab-len: 4
+      reformat-tags: false

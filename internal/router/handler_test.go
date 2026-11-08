@@ -11,6 +11,7 @@ import (
 	"github.com/biisal/rowsql/internal/database/repo"
 	"github.com/biisal/rowsql/internal/service"
 	"github.com/jmoiron/sqlx"
+	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -33,6 +34,10 @@ import (
 
 func setUpDB(ctx context.Context, t *testing.T, driver string) (*sqlx.DB, error) {
 	t.Helper()
+	if testing.Short() {
+		t.Skip("skipping container test in short mode")
+	}
+	testcontainers.SkipIfProviderIsNotHealthy(t)
 	pg, err := postgres.Run(
 		ctx, "postgres:16-alpine", postgres.WithDatabase("test"),
 		postgres.WithUsername("user"),
@@ -72,7 +77,7 @@ func getDBHander(t *testing.T, db sqlx.ExtContext) DBHandler {
 		t.Fatal(err)
 	}
 	dbRepo := repo.New(db, "pgx", queryBuilder, 10)
-	dbService := service.NewService(dbRepo, queryBuilder, 10)
+	dbService := service.NewService(dbRepo, 10)
 	return NewHandler(dbService, 10)
 }
 
@@ -139,8 +144,12 @@ CREATE TABLE IF NOT EXISTS table2 (id SERIAL PRIMARY KEY, name VARCHAR(255));
 			},
 		},
 		{
-			name:                    "Only rowsql_history table is filtered",
-			queryToExcuteBeforeTest: "CREATE TABLE IF NOT EXISTS rowsql_history (id SERIAL PRIMARY KEY, message TEXT, time TIMESTAMP)",
+			name: "Only rowsql_history table is filtered",
+			queryToExcuteBeforeTest: `CREATE TABLE IF NOT EXISTS rowsql_history (
+				id SERIAL PRIMARY KEY,
+				message TEXT,
+				time TIMESTAMP
+			)`,
 			expected: listTablesExpectation{
 				tableNames: []string{},
 				schemas:    []string{},

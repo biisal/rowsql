@@ -22,12 +22,6 @@ const (
 	MaxItemsPerPage int    = 10
 )
 
-var Drivers = map[Driver]Driver{
-	"pgx":    DriverPostgres,
-	"mysql":  DriverMySQL,
-	"sqlite": DriverSQLite,
-}
-
 type ConnectionConfig struct {
 	Host     string `json:"host"`
 	Port     int    `json:"port"`
@@ -72,6 +66,7 @@ func DefaultConfig() Config {
 
 type ConfigService interface {
 	LoadConfig(path ...string) (Config, error)
+	LoadDevConfig(path ...string) (Config, error)
 	GetConfigPath() (string, error)
 }
 
@@ -86,6 +81,14 @@ func NewConfigService(prompter Prompter) ConfigService {
 }
 
 func (c *ConfigServiceImpl) LoadConfig(configPath ...string) (Config, error) {
+	return c.load(false, configPath)
+}
+
+func (c *ConfigServiceImpl) LoadDevConfig(configPath ...string) (Config, error) {
+	return c.load(true, configPath)
+}
+
+func (c *ConfigServiceImpl) load(devMode bool, configPath []string) (Config, error) {
 	var path string
 	if len(configPath) > 0 && configPath[0] != "" {
 		path = configPath[0]
@@ -105,7 +108,7 @@ func (c *ConfigServiceImpl) LoadConfig(configPath ...string) (Config, error) {
 	var conn *ConnectionConfig
 	if len(fields.Connections) == 0 {
 		return Config{}, apperr.ErrorNoConfigsFound
-	} else if len(fields.Connections) == 1 {
+	} else if len(fields.Connections) == 1 || devMode {
 		conn = &fields.Connections[0]
 	} else {
 		conn, err = c.prompter.AskConnection(fields.Connections)
@@ -119,6 +122,9 @@ func (c *ConfigServiceImpl) LoadConfig(configPath ...string) (Config, error) {
 		AppConfig:        fields.AppConfig,
 	}
 
+	if devMode {
+		cfg.Env = EnvDevelopment
+	}
 	c.applyDefaults(&cfg)
 	return cfg, nil
 }
@@ -179,7 +185,7 @@ func (c *ConfigServiceImpl) parseConfig(path string) (ConfigFileFields, error) {
 	}
 
 	for _, conn := range fields.Connections {
-		if conn.Port == 0 || conn.DBString == "" {
+		if conn.DBString == "" {
 			return ConfigFileFields{}, apperr.ErrorInvalidJSONFile
 		}
 	}

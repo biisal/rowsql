@@ -21,6 +21,9 @@ import TableEditForm from "@/pages/TableEditForm.tsx";
 import { TableForm } from "@/pages/TableForm.tsx";
 import { TablePage } from "@/pages/TableRows.tsx";
 import { Editor } from "@/pages/Editor";
+import { installSessionToken } from "@/lib/session-token";
+
+installSessionToken();
 
 const queryClient = new QueryClient({
   mutationCache: new MutationCache({

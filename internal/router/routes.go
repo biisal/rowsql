@@ -68,7 +68,7 @@ func RegisterRoutes(api huma.API, h DBHandler) {
 	huma.Register(api, huma.Operation{
 		OperationID: "deleteRow",
 		Method:      http.MethodDelete,
-		Path:        "/api/v1/tables/{tableName}/row/{hash}",
+		Path:        "/api/v1/tables/{tableName}/row/{key}",
 		Summary:     "Delete a row",
 		Tags:        []string{"rows"},
 	}, h.DeleteRow)
@@ -79,7 +79,7 @@ func RegisterRoutes(api huma.API, h DBHandler) {
 		Path:        "/api/v1/tables/form/new",
 		Summary:     "Get data types for new table form",
 		Tags:        []string{"tables"},
-	}, h.NewTableFormFileds)
+	}, h.NewTableFormFields)
 
 	huma.Register(api, huma.Operation{
 		OperationID: "createNewTable",
@@ -87,7 +87,7 @@ func RegisterRoutes(api huma.API, h DBHandler) {
 		Path:        "/api/v1/tables/form/new",
 		Summary:     "Create a new table",
 		Tags:        []string{"tables"},
-	}, h.CreeteNewTable)
+	}, h.CreateNewTable)
 
 	huma.Register(api, huma.Operation{
 		OperationID: "deleteTable",

@@ -51,11 +51,11 @@ export const DataView = () => {
 
       <SheetFooter>
         <div className="grid grid-cols-2 gap-4">
-          {rowDetailssheetData?.row.hash && (
+          {rowDetailssheetData?.row.key && (
             <>
               <Button
                 variant={"danger"}
-                onClick={() => deleteRow(rowDetailssheetData.row.hash)}
+                onClick={() => deleteRow(rowDetailssheetData.row.key)}
               >
                 Delete
               </Button>

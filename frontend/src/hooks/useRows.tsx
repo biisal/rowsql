@@ -28,7 +28,7 @@ interface RowContextType {
   setGlobalFilter: Dispatch<SetStateAction<string>>;
   tableName: string;
   isLoading: boolean;
-  deleteRow: (hash: string) => void;
+  deleteRow: (key: string) => void;
   data?: ListRowsResponse;
   page: number;
   rowFetchError: ErrorModel | null;
@@ -82,10 +82,9 @@ export const RowProvider = ({ children, tableName }: RowProviderProps) => {
     },
   });
 
-  const deleteRow = async (hash: string) => {
+  const deleteRow = async (key: string) => {
     await deleteMutation.mutateAsync({
-      path: { tableName: tableName!, hash },
-      query: { page },
+      path: { tableName: tableName!, key },
     });
   };
 

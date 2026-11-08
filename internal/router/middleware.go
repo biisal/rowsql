@@ -1,27 +1,62 @@
 package router
 
 import (
+	"crypto/rand"
+	"crypto/subtle"
+	"encoding/hex"
+	"net"
 	"net/http"
-
-	"github.com/biisal/rowsql/internal/logger"
+	"strings"
 )
 
-func CORS() func(next http.Handler) http.Handler {
+const (
+	apiPathPrefix    = "/api/"
+	sessionTokenSize = 32
+	bearerPrefix     = "Bearer "
+)
+
+func NewSessionToken() (string, error) {
+	tokenBytes := make([]byte, sessionTokenSize)
+	if _, err := rand.Read(tokenBytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(tokenBytes), nil
+}
+
+func RequireLocalAccess(sessionToken string, extraAllowedHosts ...string) func(http.Handler) http.Handler {
+	allowedHosts := map[string]bool{"localhost": true, "127.0.0.1": true, "::1": true}
+	for _, host := range extraAllowedHosts {
+		allowedHosts[host] = true
+	}
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			origin := r.Header.Get("Origin")
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-			w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-			if r.Method == "OPTIONS" {
-				if origin != "" {
-					logger.Debug("CORS preflight request from origin: %s", origin)
-				}
-				w.WriteHeader(http.StatusOK)
+			if !allowedHosts[hostnameOf(r.Host)] {
+				http.Error(w, "misdirected request", http.StatusMisdirectedRequest)
+				return
+			}
+			if sessionToken != "" && strings.HasPrefix(r.URL.Path, apiPathPrefix) && !hasValidToken(r, sessionToken) {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
 			}
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func hostnameOf(hostWithPort string) string {
+	hostname, _, err := net.SplitHostPort(hostWithPort)
+	if err != nil {
+		return strings.Trim(hostWithPort, "[]")
+	}
+	return hostname
+}
+
+func hasValidToken(r *http.Request, sessionToken string) bool {
+	header := r.Header.Get("Authorization")
+	if !strings.HasPrefix(header, bearerPrefix) {
+		return false
+	}
+	givenToken := strings.TrimPrefix(header, bearerPrefix)
+	return subtle.ConstantTimeCompare([]byte(givenToken), []byte(sessionToken)) == 1
 }

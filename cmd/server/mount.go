@@ -2,9 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/biisal/rowsql/configs"
 	"github.com/biisal/rowsql/internal/database/queries"
@@ -32,11 +36,25 @@ func printLogo(version string) {
 	fmt.Println(logo)
 }
 
-func cleanPort(port int) string {
-	return fmt.Sprintf(":%d", port)
+const (
+	databaseConnectTimeout = 15 * time.Second
+	readHeaderTimeout      = 10 * time.Second
+	idleTimeout            = 2 * time.Minute
+	shutdownTimeout        = 5 * time.Second
+)
+
+func shutdownOnSignal(ctx context.Context, server *http.Server) {
+	<-ctx.Done()
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		logger.Errorln("Failed to shut down server:", err)
+	}
 }
 
 func mount(cfg *configs.Config) error {
+	signalCtx, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopSignals()
 	ctx := context.Background()
 
 	logFilePath, err := utils.ReplaceTildeWithHomeDir(cfg.LogFilePath)
@@ -62,7 +80,9 @@ func mount(cfg *configs.Config) error {
 	logger.Info("Database driver detected: %s", driver)
 	cfg.Driver = driver
 	logger.Info("Connecting to %s database...", driver)
-	dbConn, err := sqlx.ConnectContext(ctx, string(driver), cfg.DBString)
+	connectCtx, cancelConnect := context.WithTimeout(ctx, databaseConnectTimeout)
+	defer cancelConnect()
+	dbConn, err := sqlx.ConnectContext(connectCtx, string(driver), cfg.DBString)
 	if err != nil {
 		logger.Errorln("Failed to connect to database:", err)
 		return err
@@ -88,35 +108,45 @@ func mount(cfg *configs.Config) error {
 		return err
 	}
 
-	dbService := service.NewService(dbRepo, queryBuilder, cfg.MaxItemsPerPage)
+	dbService := service.NewService(dbRepo, cfg.MaxItemsPerPage)
 	dbHandler := router.NewHandler(dbService, cfg.MaxItemsPerPage)
 
 	mux, err := router.MountRouter(dbHandler, cfg)
-	corsMux := router.CORS()(mux)
 	if err != nil {
 		logger.Errorln("Failed to mount router:", err)
 		return err
 	}
 
+	sessionToken := ""
+	if cfg.Env != configs.EnvDevelopment {
+		sessionToken, err = router.NewSessionToken()
+		if err != nil {
+			return err
+		}
+	}
+	guardedMux := router.RequireLocalAccess(sessionToken, cfg.Host)(mux)
+
 	server := http.Server{
-		Addr:    cleanPort(cfg.Port),
-		Handler: corsMux,
+		Handler:           guardedMux,
+		ReadHeaderTimeout: readHeaderTimeout,
+		IdleTimeout:       idleTimeout,
 	}
 	ln, addr, err := listen(cfg.Host, cfg.Port)
 	if err != nil {
 		logger.Errorln("Failed to listen on port:", err)
 		return err
 	}
-	defer func() {
-		if err := ln.Close(); err != nil {
-			slog.Error("failed to ln.Close() =", "error", err)
-		}
-	}()
 	logger.Success("Listening on %s", addr)
-	go openBrowser(fmt.Sprintf("http://%s", addr))
-	if err := server.Serve(ln); err != nil {
+	if cfg.Env != configs.EnvDevelopment {
+		appURL := fmt.Sprintf("http://%s/?token=%s", addr, sessionToken)
+		fmt.Printf("Open %s if your browser does not start automatically\n", appURL)
+		go openBrowser(appURL)
+	}
+	go shutdownOnSignal(signalCtx, &server)
+	if err := server.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Errorln("Failed to start server:", err)
 		return err
 	}
+	logger.Info("Server stopped")
 	return nil
 }

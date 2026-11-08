@@ -20,6 +20,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SidebarTableSearch } from "@/components/layout/SidebarTableSearch";
+import { useTableSearch } from "@/hooks/useTableSearch";
 
 interface SidebarProps extends React.ComponentProps<typeof ShadcnSidebar> {
   tables: ListTablesRow[];
@@ -34,6 +36,14 @@ export function AppSidebar({
   ...props
 }: SidebarProps) {
   const location = useLocation();
+  const tableList = Array.isArray(tables) ? tables : [];
+  const {
+    searchText,
+    setSearchText,
+    clearSearch,
+    filteredTables,
+    isSearching,
+  } = useTableSearch(tableList);
 
   const isActiveTable = (tableName: string) => {
     return location.pathname === `/tables/${tableName}`;
@@ -57,6 +67,11 @@ export function AppSidebar({
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <SidebarTableSearch
+          searchText={searchText}
+          onSearchTextChange={setSearchText}
+          onClear={clearSearch}
+        />
       </SidebarHeader>
 
       <SidebarMenu className="p-2">
@@ -75,15 +90,22 @@ export function AppSidebar({
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Tables</SidebarGroupLabel>
+          <SidebarGroupLabel>
+            {isSearching
+              ? `Tables (${filteredTables.length} of ${tableList.length})`
+              : "Tables"}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {isAppending && <SkeletonTables count={1} />}
               {loading ? (
                 <SkeletonTables count={3} />
+              ) : filteredTables.length === 0 && isSearching ? (
+                <li className="px-2 py-4 text-center text-sm text-muted-foreground">
+                  No tables match "{searchText.trim()}"
+                </li>
               ) : (
-                Array.isArray(tables) &&
-                tables.map((table) => (
+                filteredTables.map((table) => (
                   <SidebarMenuItem key={table.tableName}>
                     <SidebarMenuButton
                       asChild

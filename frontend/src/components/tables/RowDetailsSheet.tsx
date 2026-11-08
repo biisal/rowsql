@@ -37,7 +37,7 @@ export const RowDetailsSheet = () => {
 
         {viewState === "view" && <DataView />}
         {viewState === "edit" && (
-          <RowUpsertForm hash={rowDetailssheetData?.row?.hash} />
+          <RowUpsertForm key={rowDetailssheetData?.row?.key} />
         )}
       </SheetContent>
     </Sheet>

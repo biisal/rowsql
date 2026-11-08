@@ -12,7 +12,7 @@ type Queries struct {
 	db              sqlx.ExtContext
 	driver          configs.Driver
 	queryBuilder    queries.Builder
-	cache           *RowCache
+	columnCache     *columnMetadataCache
 	maxItemsPerPage int
 }
 
@@ -21,14 +21,8 @@ func New(db sqlx.ExtContext, driver configs.Driver, queryBuilder queries.Builder
 		db:              db,
 		driver:          driver,
 		queryBuilder:    queryBuilder,
-		cache:           NewRowCache(100),
+		columnCache:     newColumnMetadataCache(),
 		maxItemsPerPage: maxItemsPerPage,
-	}
-}
-
-func (q *Queries) WithTx(tx *sqlx.Tx) *Queries {
-	return &Queries{
-		db: tx,
 	}
 }
 

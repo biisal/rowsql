@@ -71,14 +71,14 @@ export function RowForm() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const hash = searchParams.get("hash");
+  const key = searchParams.get("key");
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
-  const isEdit = !!hash;
+  const isEdit = !!key;
 
   const { data, isPending } = useQuery(
     rowInsertOrUpdateFormOptions({
       path: { tableName: tableName || "" },
-      query: { hash: hash || undefined, page },
+      query: { key: key || undefined },
     }),
   );
 
@@ -115,8 +115,7 @@ export function RowForm() {
         },
         body: formValues.cols,
         query: {
-          hash: hash || undefined,
-          page: page,
+          key: key || undefined,
         },
       },
       {

@@ -4,6 +4,7 @@ temp_dir = "./tmp"
 [build]
   cmd = "go run ./cmd/schema/main.go && go build -o ./tmp/main ./cmd/server"
   bin = "./tmp/main"
+  args_bin = ["-dev"]
   include_ext = ["go", "tpl", "tmpl", "html"]
 exclude_dir = [
     "tmp",

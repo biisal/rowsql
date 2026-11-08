@@ -100,7 +100,9 @@ func UserFriendlyError(err error) (int, error) {
 	}
 
 	if errors.Is(err, sql.ErrTxDone) {
-		return http.StatusInternalServerError, errors.New("database transaction has already been committed or rolled back")
+		return http.StatusInternalServerError, errors.New(
+			"database transaction has already been committed or rolled back",
+		)
 	}
 
 	// Check error message for common patterns
@@ -130,7 +132,9 @@ func UserFriendlyError(err error) (int, error) {
 	// Foreign key violations
 	if strings.Contains(errMsgLower, "foreign key constraint") ||
 		strings.Contains(errMsgLower, "violates foreign key") {
-		return http.StatusBadRequest, errors.New("cannot complete operation - referenced record does not exist or is in use")
+		return http.StatusBadRequest, errors.New(
+			"cannot complete operation - referenced record does not exist or is in use",
+		)
 	}
 
 	// Syntax errors
@@ -291,14 +295,18 @@ func HandleError(err error) (int, error) {
 		strings.Contains(errMsgLower, "connection failed") ||
 		strings.Contains(errMsgLower, "cannot connect") ||
 		strings.Contains(errMsgLower, "dial tcp") {
-		return http.StatusServiceUnavailable, errors.New("cannot connect to database. please check your connection settings")
+		return http.StatusServiceUnavailable, errors.New(
+			"cannot connect to database. please check your connection settings",
+		)
 	}
 
 	// Timeout errors
 	if strings.Contains(errMsgLower, "timeout") ||
 		strings.Contains(errMsgLower, "deadline exceeded") ||
 		strings.Contains(errMsgLower, "context deadline") {
-		return http.StatusGatewayTimeout, errors.New("query timed out. try simplifying your query or increasing timeout")
+		return http.StatusGatewayTimeout, errors.New(
+			"query timed out. try simplifying your query or increasing timeout",
+		)
 	}
 
 	// Unique constraint violations
@@ -313,7 +321,9 @@ func HandleError(err error) (int, error) {
 	if strings.Contains(errMsgLower, "foreign key constraint") ||
 		strings.Contains(errMsgLower, "violates foreign key") ||
 		strings.Contains(errMsgLower, "foreign key violation") {
-		return http.StatusBadRequest, errors.New("foreign key constraint failed. referenced record doesn't exist or record is in use")
+		return http.StatusBadRequest, errors.New(
+			"foreign key constraint failed. referenced record doesn't exist or record is in use",
+		)
 	}
 
 	// Syntax errors
@@ -346,7 +356,9 @@ func HandleError(err error) (int, error) {
 		strings.Contains(errMsgLower, "doesn't exist") ||
 		strings.Contains(errMsgLower, "unknown column") ||
 		strings.Contains(errMsgLower, "relation") && strings.Contains(errMsgLower, "does not exist") {
-		return http.StatusNotFound, errors.New("that table or column doesn't exist. please check the name and try again")
+		return http.StatusNotFound, errors.New(
+			"that table or column doesn't exist. please check the name and try again",
+		)
 	}
 
 	// If it doesn't look like a DB error, return as-is with 500

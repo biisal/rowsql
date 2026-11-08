@@ -5,13 +5,7 @@ import "time"
 
 type RowSet struct {
 	Columns []ColValue `json:"columns"`
-	Hash    string     `json:"hash"`
-}
-
-type QueryParts struct {
-	Columns      string
-	Placeholders string
-	Args         []any
+	Key     string     `json:"key"`
 }
 
 type ListTablesRow struct {
@@ -35,6 +29,7 @@ type ColType struct {
 	IsUnique         bool   `json:"isUnique"`
 	IsPk             bool   `json:"isPk"`
 	IsNull           bool   `json:"isNull"`
+	PkPosition       int    `json:"-"`
 	InputType        string `json:"inputType" enum:"text,number,checkbox,textarea,json,select"`
 }
 type ColValue struct {
@@ -46,6 +41,7 @@ type ColValue struct {
 }
 
 type RunSQLQueryOutput struct {
-	Columns []string `json:"columns"`
-	Rows    [][]any  `json:"rows"`
+	Columns   []string `json:"columns"`
+	Rows      [][]any  `json:"rows"`
+	Truncated bool     `json:"truncated"`
 }

@@ -51,7 +51,7 @@ func promptForDefaultEnv(dir, fileName string) error {
 		return fmt.Errorf("marshaling default config: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0o644); err != nil {
+	if err := os.WriteFile(path, data, 0o600); err != nil {
 		return fmt.Errorf("writing config file: %w", err)
 	}
 
@@ -64,7 +64,15 @@ func makeListString(configs []ConnectionConfig, selected int) string {
 	sb.WriteString(AnsiClearScreen)
 	header := color.HiGreenString("Choose a port to run:")
 	helpText := color.HiBlueString("use j/k to up down, enter to select and q to quit")
-	fmt.Fprintf(&sb, "%s\n%s%s\n%s\n%s\n", header, AnsiBackCursorToLineStart, helpText, AnsiBackCursorToLineStart, AnsiBackCursorToLineStart)
+	fmt.Fprintf(
+		&sb,
+		"%s\n%s%s\n%s\n%s\n",
+		header,
+		AnsiBackCursorToLineStart,
+		helpText,
+		AnsiBackCursorToLineStart,
+		AnsiBackCursorToLineStart,
+	)
 	for i, cfg := range configs {
 		if i == selected {
 			fmt.Fprintf(&sb, "  %s Port: %s  DB: %s\n%s",

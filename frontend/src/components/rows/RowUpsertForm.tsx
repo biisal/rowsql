@@ -59,17 +59,17 @@ import { useRowContext } from "@/hooks/useRows";
 import { SheetFooter } from "@/components/ui/sheet";
 
 interface RowUpsertFormProps {
-  hash?: string;
+  key?: string;
 }
 
-export const RowUpsertForm = ({ hash }: RowUpsertFormProps) => {
-  const { page, tableName, closeRowDetails, setViewState } = useRowContext();
+export const RowUpsertForm = ({ key }: RowUpsertFormProps) => {
+  const { tableName, closeRowDetails, setViewState } = useRowContext();
   const queryClient = useQueryClient();
 
   const { data, isPending } = useQuery(
     rowInsertOrUpdateFormOptions({
       path: { tableName },
-      query: { hash: hash || undefined, page },
+      query: { key: key || undefined },
     }),
   );
 
@@ -105,8 +105,7 @@ export const RowUpsertForm = ({ hash }: RowUpsertFormProps) => {
         },
         body: formValues.cols,
         query: {
-          hash: hash || undefined,
-          page: page,
+          key: key || undefined,
         },
       },
       {
@@ -117,7 +116,7 @@ export const RowUpsertForm = ({ hash }: RowUpsertFormProps) => {
           );
         },
         onSuccess: async () => {
-          const message = hash
+          const message = key
             ? "Row updated successfully"
             : "Row inserted successfully";
           toast.success(message);
@@ -139,7 +138,7 @@ export const RowUpsertForm = ({ hash }: RowUpsertFormProps) => {
         </div>
       ) : (
         <form
-          key={hash || "new"}
+          key={key || "new"}
           onSubmit={form.handleSubmit(onSubmit)}
           className="flex-1 flex flex-col min-h-0"
         >
@@ -327,7 +326,7 @@ export const RowUpsertForm = ({ hash }: RowUpsertFormProps) => {
                 </Button>
                 <Button
                   onClick={() =>
-                    hash ? setViewState("view") : closeRowDetails()
+                    key ? setViewState("view") : closeRowDetails()
                   }
                   variant="outline"
                 >

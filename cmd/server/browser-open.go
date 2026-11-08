@@ -13,7 +13,9 @@ func isWSL() bool {
 		return true
 	}
 	data, err := os.ReadFile("/proc/version")
-	if err == nil && (strings.Contains(strings.ToLower(string(data)), "microsoft") || strings.Contains(strings.ToLower(string(data)), "wsl")) {
+	if err == nil &&
+		(strings.Contains(strings.ToLower(string(data)), "microsoft") ||
+			strings.Contains(strings.ToLower(string(data)), "wsl")) {
 		return true
 	}
 	return false
@@ -42,7 +44,14 @@ func openBrowser(url string) {
 			cmds = append(
 				cmds,
 				exec.Command("wslview", url),
-				exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", "Start-Process", fmt.Sprintf(`"%s"`, url)),
+				exec.Command(
+					"powershell.exe",
+					"-NoProfile",
+					"-NonInteractive",
+					"-Command",
+					"Start-Process",
+					fmt.Sprintf(`"%s"`, url),
+				),
 				exec.Command("cmd.exe", "/c", "start", "", url),
 			)
 		}

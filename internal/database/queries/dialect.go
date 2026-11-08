@@ -3,32 +3,36 @@ package queries
 import (
 	"github.com/biisal/rowsql/configs"
 	"github.com/biisal/rowsql/internal/apperr"
-	"github.com/biisal/rowsql/internal/database/models"
+	"github.com/biisal/rowsql/internal/database/sqlb"
 )
 
 func GetDialect(name configs.Driver) (Dialect, error) {
 	switch name {
 	case configs.DriverPostgres:
-		return &PostgresDialect{}, nil
+		return postgresDialect{}, nil
 	case configs.DriverMySQL:
-		return &MySQLDialect{}, nil
+		return mysqlDialect{}, nil
 	case configs.DriverSQLite:
-		return &SQLiteDialect{}, nil
+		return sqliteDialect{}, nil
 	default:
 		return nil, apperr.ErrorInvalidDriver
 	}
 }
 
 type Dialect interface {
+	sqlb.Dialect
 	Name() configs.Driver
 	CheckTableExists(tableName string) (string, []any)
 	ListTables() string
 	ListColumns(tableName string) (string, []any)
-	PlaceHolder(n int) (string, error)
-	QuoteName(tableName string) string
-	AutoIncrementKeyword() string
-	InsertDefaultValues(tableName string) string
-	DeleteRow(tableName string, whereClause string) string
-	FilterOneRowClause(tableName, whereClause string) string
-	WhereCluse(cols []models.ColValue, argsIdx int) (string, []any, error)
+	ApplyAutoIncrement(typeName string) (resultType string, suffix string, err error)
+	InsertDefaultValuesClause() string
+	LimitsWritesToOneRow() bool
+	PhysicalRowID() (physicalRowID PhysicalRowID, supported bool)
+}
+
+type PhysicalRowID struct {
+	Column     string
+	SelectExpr string
+	BindSuffix string
 }

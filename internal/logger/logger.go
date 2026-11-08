@@ -8,10 +8,13 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/fatih/color"
 )
+
+const logFilePermission os.FileMode = 0o600
 
 type LogLevel int
 
@@ -27,55 +30,60 @@ var (
 	noColor bool
 	file    *os.File
 	mu      sync.Mutex
-	level   = LevelDebug
+
+	currentLevel atomic.Int32
 )
 
 func init() {
 	file = os.Stdout
+	currentLevel.Store(int32(LevelDebug))
 }
 
 func checkLevel(l LogLevel) bool {
-	return l >= level
+	return l >= LogLevel(currentLevel.Load())
 }
 
 func SetLogLevel(l LogLevel) {
-	mu.Lock()
-	defer mu.Unlock()
-	level = l
+	currentLevel.Store(int32(l))
 }
 
 func SetupFile(logFilePath string, disableColor ...bool) error {
+	logFile, err := openLogFile(logFilePath)
+	if err != nil {
+		return err
+	}
+
 	mu.Lock()
 	defer mu.Unlock()
-
 	if len(disableColor) > 0 {
 		noColor = disableColor[0]
 	}
+	file = logFile
+	return nil
+}
 
-	f, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
-	if err != nil {
-		if os.IsNotExist(err) {
-			Info("The filepath `%s` doesn't exist\nDo you want to create it? [y/n]", logFilePath)
-			var response string
-			_, scanErr := fmt.Scanln(&response)
-			if scanErr != nil || (response != "y" && response != "Y") {
-				return fmt.Errorf("log file creation aborted")
-			}
-			dir := filepath.Dir(logFilePath)
-			if mkErr := os.MkdirAll(dir, os.ModePerm); mkErr != nil {
-				return fmt.Errorf("failed to create log directory: %w", mkErr)
-			}
-			f, err = os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
-			if err != nil {
-				return fmt.Errorf("failed to create log file: %w", err)
-			}
-		} else {
-			return fmt.Errorf("failed to open log file: %w", err)
-		}
+func openLogFile(logFilePath string) (*os.File, error) {
+	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, logFilePermission)
+	if err == nil {
+		return logFile, nil
+	}
+	if !os.IsNotExist(err) {
+		return nil, fmt.Errorf("failed to open log file: %w", err)
 	}
 
-	file = f
-	return nil
+	Info("The filepath `%s` doesn't exist\nDo you want to create it? [y/n]", logFilePath)
+	var response string
+	if _, scanErr := fmt.Scanln(&response); scanErr != nil || (response != "y" && response != "Y") {
+		return nil, fmt.Errorf("log file creation aborted")
+	}
+	if err := os.MkdirAll(filepath.Dir(logFilePath), os.ModePerm); err != nil {
+		return nil, fmt.Errorf("failed to create log directory: %w", err)
+	}
+	logFile, err = os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, logFilePermission)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create log file: %w", err)
+	}
+	return logFile, nil
 }
 
 func Close() {
@@ -97,7 +105,7 @@ func SetNoColor(disable bool) {
 
 func writeToFile(message string) {
 	if file != nil && file != os.Stdout {
-		if _, err := fmt.Fprintln(file, message); err != nil {
+		if _, err := fmt.Fprint(file, strings.TrimSuffix(message, "\n")+"\n"); err != nil {
 			fmt.Printf("failed to write to log file: %v", err)
 		}
 	}
@@ -123,8 +131,10 @@ func Info(format string, args ...any) {
 	defer mu.Unlock()
 
 	msg := fmt.Sprintf(format, args...)
+	plain := fmt.Sprintf("INFO:     [%s] %s\n", timestamp(), msg)
+	writeToFile(plain)
 	if noColor {
-		fmt.Printf("INFO:     [%s] %s\n", timestamp(), msg)
+		fmt.Print(plain)
 		return
 	}
 	ts := color.New(color.FgHiBlack).Sprintf("[%s]", timestamp())
@@ -140,8 +150,10 @@ func Success(format string, args ...any) {
 	defer mu.Unlock()
 
 	msg := fmt.Sprintf(format, args...)
+	plain := fmt.Sprintf("SUCCESS:  [%s] %s\n", timestamp(), msg)
+	writeToFile(plain)
 	if noColor {
-		fmt.Printf("SUCCESS:  [%s] %s\n", timestamp(), msg)
+		fmt.Print(plain)
 		return
 	}
 	ts := color.New(color.FgHiBlack).Sprintf("[%s]", timestamp())

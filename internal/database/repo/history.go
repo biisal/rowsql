@@ -46,11 +46,11 @@ func (q *Queries) InsertHistory(ctx context.Context, message string) {
 
 	switch q.driver {
 	case configs.DriverPostgres:
-		query = fmt.Sprintf("INSERT INTO %s (message, time) VALUES ($1, NOW()) RETURNING id", historyTableName)
+		query = fmt.Sprintf("INSERT INTO %s (message, time) VALUES ($1, NOW())", historyTableName)
 	case configs.DriverMySQL:
-		query = fmt.Sprintf("INSERT INTO %s (message, time) VALUES (?, NOW()) RETURNING id", historyTableName)
+		query = fmt.Sprintf("INSERT INTO %s (message, time) VALUES (?, NOW())", historyTableName)
 	case configs.DriverSQLite:
-		query = fmt.Sprintf("INSERT INTO %s (message, time) VALUES (?, datetime('now')) RETURNING id", historyTableName)
+		query = fmt.Sprintf("INSERT INTO %s (message, time) VALUES (?, datetime('now'))", historyTableName)
 
 	}
 
@@ -73,26 +73,27 @@ func (q *Queries) InsertHistory(ctx context.Context, message string) {
 	}
 }
 
-func (q *Queries) DeleteHistory(ctx context.Context, id int) error {
-	query := fmt.Sprintf("DELETE FROM %s WHERE id = $1", historyTableName)
-	_, err := q.db.ExecContext(ctx, query, id)
-	if err != nil {
-		logger.Errorln(err)
-		return err
-	}
-	return nil
-}
-
 func (q *Queries) CreateHistoryTable(ctx context.Context) error {
 	var query string
 
 	switch q.driver {
 	case configs.DriverPostgres:
-		query = fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (id SERIAL PRIMARY KEY, message TEXT, time TIMESTAMP WITH TIME ZONE);", historyTableName)
+		query = fmt.Sprintf(
+			"CREATE TABLE IF NOT EXISTS %s (id SERIAL PRIMARY KEY, message TEXT, time TIMESTAMP WITH TIME ZONE);",
+			historyTableName,
+		)
 	case configs.DriverMySQL:
-		query = fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (id INT AUTO_INCREMENT PRIMARY KEY, message TEXT, time TIMESTAMP DEFAULT CURRENT_TIMESTAMP);", historyTableName)
+		query = fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
+			id INT AUTO_INCREMENT PRIMARY KEY,
+			message TEXT,
+			time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`, historyTableName)
 	case configs.DriverSQLite:
-		query = fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (id INTEGER PRIMARY KEY AUTOINCREMENT, message TEXT, time DATETIME DEFAULT CURRENT_TIMESTAMP);", historyTableName)
+		query = fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			message TEXT,
+			time DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`, historyTableName)
 	}
 	_, err := q.db.ExecContext(ctx, query)
 	if err != nil {
