@@ -29,6 +29,7 @@ var Drivers = map[Driver]Driver{
 }
 
 type ConnectionConfig struct {
+	Host     string `json:"host"`
 	Port     int    `json:"port"`
 	DBString string `json:"db_string"`
 	Env      string `json:"env,omitempty"`
@@ -59,6 +60,7 @@ func DefaultConfig() Config {
 			Port:     8080,
 			DBString: "test.db",
 			Env:      EnvProduction,
+			Host:     "127.0.0.1",
 		},
 		AppConfig: AppConfig{
 			MaxItemsPerPage: MaxItemsPerPage,
@@ -134,6 +136,9 @@ func (c *ConfigServiceImpl) applyDefaults(cfg *Config) {
 	}
 	if cfg.MinItemsPerPage == 0 {
 		cfg.MinItemsPerPage = MinItemsPerPage
+	}
+	if cfg.Host == "" {
+		cfg.Host = "127.0.0.1"
 	}
 }
 

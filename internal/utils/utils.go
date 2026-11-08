@@ -81,7 +81,7 @@ func DetectDriver(connectionString *string) (configs.Driver, error) {
 		return configs.DriverSQLite, nil
 
 	default:
-		err := fmt.Errorf("unable to detect driver from connection string! Make sure your connection string is coorect and try again")
+		err := fmt.Errorf("unable to detect driver from connection string! Make sure your connection string is coorect")
 		logger.Errorln(err)
 		return "", err
 	}

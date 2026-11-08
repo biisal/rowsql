@@ -28,6 +28,7 @@ import {
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   createNewTableMutation,
+  listTablesOptions,
   newTableFormFiledsOptions,
 } from "@/client/@tanstack/react-query.gen";
 import { Loader2 } from "lucide-react";
@@ -61,6 +62,7 @@ function getDefalutInputs(): zcolFixedType {
 }
 export const TableForm = () => {
   const navigate = useNavigate();
+  const { refetch } = useQuery(listTablesOptions());
 
   const { data: serverDataTypes, isLoading: loadingDataTypes } = useQuery(
     newTableFormFiledsOptions(),
@@ -71,6 +73,7 @@ export const TableForm = () => {
     onSuccess: (_, variable) => {
       const tableName = variable.body.tableName;
       toast.success("Table created successfully");
+      refetch();
       navigate(`/tables/${tableName}`);
     },
   });

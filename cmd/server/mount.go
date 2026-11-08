@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/biisal/rowsql/configs"
@@ -60,11 +61,20 @@ func mount(cfg *configs.Config) error {
 	}
 	logger.Info("Database driver detected: %s", driver)
 	cfg.Driver = driver
+	logger.Info("Connecting to %s database...", driver)
 	dbConn, err := sqlx.ConnectContext(ctx, string(driver), cfg.DBString)
 	if err != nil {
 		logger.Errorln("Failed to connect to database:", err)
 		return err
 	}
+	defer func() {
+		err := dbConn.Close()
+		if err != nil {
+			logger.Errorln("Failed to close database connection:", err)
+		}
+	}()
+
+	logger.Info("Connected to %s database successfully", driver)
 
 	queryBuilder, err := queries.NewBuilder(cfg.Driver, cfg.MaxItemsPerPage)
 	if err != nil {
@@ -92,8 +102,19 @@ func mount(cfg *configs.Config) error {
 		Addr:    cleanPort(cfg.Port),
 		Handler: corsMux,
 	}
-	logger.Success("Running server on port %d", cfg.Port)
-	if err := server.ListenAndServe(); err != nil {
+	ln, addr, err := listen(cfg.Host, cfg.Port)
+	if err != nil {
+		logger.Errorln("Failed to listen on port:", err)
+		return err
+	}
+	defer func() {
+		if err := ln.Close(); err != nil {
+			slog.Error("failed to ln.Close() =", "error", err)
+		}
+	}()
+	logger.Success("Listening on %s", addr)
+	go openBrowser(fmt.Sprintf("http://%s", addr))
+	if err := server.Serve(ln); err != nil {
 		logger.Errorln("Failed to start server:", err)
 		return err
 	}

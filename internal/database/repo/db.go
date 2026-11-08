@@ -16,7 +16,7 @@ type Queries struct {
 	maxItemsPerPage int
 }
 
-func New(db *sqlx.DB, driver configs.Driver, queryBuilder queries.Builder, maxItemsPerPage int) *Queries {
+func New(db sqlx.ExtContext, driver configs.Driver, queryBuilder queries.Builder, maxItemsPerPage int) *Queries {
 	return &Queries{
 		db:              db,
 		driver:          driver,
